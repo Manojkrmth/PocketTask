@@ -354,19 +354,29 @@ export default function HomePage() {
             )}
         </div>
 
-        <div className="mb-6 bg-slate-100 rounded-lg p-1 flex gap-1">
-          <Button asChild className="flex-1 bg-green-500 hover:bg-green-600 text-white shadow-sm" disabled={isLoading}>
-            <a href={socialLinks?.whatsapp || '#'} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2">
-              <WhatsAppIcon className="h-6 w-6"/> 
-              <span className="font-semibold">Join WhatsApp</span>
-            </a>
-          </Button>
-          <Button asChild className="flex-1 bg-blue-500 hover:bg-blue-600 text-white shadow-sm" disabled={isLoading}>
-            <a href={socialLinks?.telegram || '#'} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2">
-              <TelegramIcon className="h-6 w-6"/>
-              <span className="font-semibold">Join Telegram</span>
-            </a>
-          </Button>
+        <div className="mb-6 flex flex-col gap-4">
+          <a href={socialLinks?.whatsapp || '#'} target="_blank" rel="noopener noreferrer" className="group block relative"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+          >
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-green-400 to-cyan-500 rounded-lg blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
+            <Button asChild className="relative w-full h-12 bg-green-500 hover:bg-green-600 text-white shadow-lg transition-transform group-hover:scale-105" disabled={isLoading}>
+              <div className="flex items-center justify-center gap-2">
+                <WhatsAppIcon className="h-6 w-6"/> 
+                <span className="font-semibold">Join WhatsApp</span>
+              </div>
+            </Button>
+          </a>
+          <a href={socialLinks?.telegram || '#'} target="_blank" rel="noopener noreferrer" className="group block relative"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+          >
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-lg blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
+            <Button asChild className="relative w-full h-12 bg-blue-500 hover:bg-blue-600 text-white shadow-lg transition-transform group-hover:scale-105" disabled={isLoading}>
+              <div className="flex items-center justify-center gap-2">
+                <TelegramIcon className="h-6 w-6"/>
+                <span className="font-semibold">Join Telegram</span>
+              </div>
+            </Button>
+          </a>
         </div>
         
         <div className="mb-6 flex justify-center">
@@ -392,4 +402,5 @@ export default function HomePage() {
     
 
     
+
 
