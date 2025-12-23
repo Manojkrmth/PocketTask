@@ -1,28 +1,5 @@
 'use client';
 
-// =================================================================
-// BOTTOM NAVIGATION BAR CODE (for your new project)
-// Path: components/bottom-nav.tsx
-// =================================================================
-// Description:
-// This component creates the fixed bottom navigation bar for the user-facing
-// part of the app. It includes links to the main sections: Home, Tasks, 
-// Withdraw, Team, and Profile. It also intelligently hides itself on auth pages.
-//
-// How it works:
-// 1. It defines an array of navigation items, each with a path, label, and icon.
-// 2. It uses the `usePathname` hook from Next.js to determine the current page's URL.
-// 3. It checks if the current path is one of the auth-related pages and hides itself if so.
-// 4. It maps over the navigation items to create a button for each.
-// 5. If an item's `href` matches the current `pathname`, it applies an "active" style.
-// 6. The "Tasks" button is specially styled to be highlighted and animated.
-//
-// Dependencies:
-// - next/link (for client-side navigation)
-// - next/navigation (for the usePathname hook)
-// - lucide-react (for icons)
-// - @/lib/utils (for the cn utility to merge class names)
-
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, ClipboardList, Wallet, Users, UserCircle } from "lucide-react";

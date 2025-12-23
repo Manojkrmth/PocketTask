@@ -245,7 +245,7 @@ export default function HomePage() {
           <h3 className="font-bold text-lg text-gray-800 ml-1 mb-3">Quick Actions</h3>
           <div className="grid grid-cols-2 gap-4">
             
-            <Link href="#" className="group block relative">
+            <Link href="/tasks" className="group block relative">
               <div className="absolute -inset-0.5 bg-gradient-to-r from-orange-400 to-yellow-400 rounded-lg blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
               <Card className="relative p-4 flex items-center gap-4 transition-all duration-200 group-hover:scale-105 h-full bg-white">
                 <div className="p-3 bg-white/80 backdrop-blur-sm rounded-full shadow-md">
