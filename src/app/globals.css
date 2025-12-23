@@ -86,3 +86,20 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  @keyframes pulse-background {
+    0%, 100% {
+      background-size: 200% 200%;
+      background-position: 0% 50%;
+    }
+    50% {
+      background-size: 200% 200%;
+      background-position: 100% 50%;
+    }
+  }
+
+  .animate-pulse-background {
+    animation: pulse-background 10s ease-in-out infinite;
+  }
+}
