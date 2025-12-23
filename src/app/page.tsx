@@ -258,7 +258,7 @@ export default function HomePage() {
               </Card>
             </Link>
 
-            <ShareReferralDialog referralCode={userProfile?.referral_code}>
+            <ShareReferralDialog referralCode={referralCode}>
                 <div className="group block relative">
                   <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
                   <Card className="relative p-4 flex items-center gap-4 transition-all duration-200 group-hover:scale-105 h-full bg-white">
