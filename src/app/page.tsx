@@ -244,28 +244,33 @@ export default function HomePage() {
         <div className="mt-6">
           <h3 className="font-bold text-lg text-gray-800 ml-1 mb-3">Quick Actions</h3>
           <div className="grid grid-cols-2 gap-4">
-            <Link href="#" className="block group">
-              <Card className="p-4 flex items-center gap-4 hover:bg-primary/10 transition-colors duration-300 cursor-pointer h-full border-primary/20 hover:border-primary/50 shadow-sm">
-                <div className="p-3 bg-primary/20 rounded-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
-                  <Rocket className="h-6 w-6 text-primary group-hover:text-primary-foreground" />
+            
+            <Link href="#" className="group block relative">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-orange-400 to-yellow-400 rounded-lg blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
+              <Card className="relative p-4 flex items-center gap-4 transition-all duration-200 group-hover:scale-105 h-full">
+                <div className="p-3 bg-white/80 backdrop-blur-sm rounded-full shadow-md">
+                  <Rocket className="h-6 w-6 text-orange-500" />
                 </div>
                 <div>
-                  <h4 className="font-semibold text-md text-gray-800">Start Earning</h4>
-                  <p className="text-xs text-muted-foreground">Complete tasks</p>
+                  <h4 className="font-semibold text-md text-gray-900">Start Earning</h4>
+                  <p className="text-xs text-gray-600">Complete tasks</p>
                 </div>
               </Card>
             </Link>
 
             <ShareReferralDialog referralCode={userProfile?.referral_code}>
-              <Card className="p-4 flex items-center gap-4 hover:bg-accent/10 transition-colors duration-300 cursor-pointer h-full border-accent/20 hover:border-accent/50 shadow-sm group">
-                 <div className="p-3 bg-accent/20 rounded-full group-hover:bg-accent group-hover:text-accent-foreground transition-colors duration-300">
-                  <Users className="h-6 w-6 text-accent-foreground" />
+                <div className="group block relative">
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
+                  <Card className="relative p-4 flex items-center gap-4 transition-all duration-200 group-hover:scale-105 h-full">
+                    <div className="p-3 bg-white/80 backdrop-blur-sm rounded-full shadow-md">
+                      <Users className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-md text-gray-900">Invite Friends</h4>
+                      <p className="text-xs text-gray-600">Earn bonuses</p>
+                    </div>
+                  </Card>
                 </div>
-                <div>
-                  <h4 className="font-semibold text-md text-gray-800">Invite Friends</h4>
-                  <p className="text-xs text-muted-foreground">Earn bonuses</p>
-                </div>
-              </Card>
             </ShareReferralDialog>
           </div>
         </div>
