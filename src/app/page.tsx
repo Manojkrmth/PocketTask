@@ -1,4 +1,3 @@
-
 'use client';
 
 import Image from 'next/image';
@@ -35,6 +34,11 @@ export default function HomePage() {
   const { formatCurrency } = useCurrency();
   const [systemSettings, setSystemSettings] = React.useState<any>(null);
   const [featuredOffers, setFeaturedOffers] = React.useState<any[]>([]);
+
+  // Fix for React Hook order error
+  const autoplay = React.useRef(
+    Autoplay({ delay: 4000, stopOnInteraction: true })
+  );
 
   React.useEffect(() => {
     const checkSession = async () => {
@@ -217,11 +221,7 @@ export default function HomePage() {
                     opts={{
                         loop: true,
                     }}
-                    plugins={[
-                        Autoplay({
-                            delay: 4000,
-                        }),
-                    ]}
+                    plugins={[autoplay.current]}
                     className="w-full"
                 >
                     <CarouselContent>
