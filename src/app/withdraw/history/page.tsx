@@ -26,7 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { ListFilter, Loader2, Wallet } from "lucide-react";
+import { ListFilter, Loader2, Wallet, IndianRupee } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/page-header';
 import { useCurrency } from '@/context/currency-context';
@@ -39,36 +39,55 @@ type Status = 'Approved' | 'Pending' | 'Rejected';
 export default function WithdrawHistoryPage() {
   const [statusFilters, setStatusFilters] = useState<Status[]>([]);
   const [user, setUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
 
   const [visibleItems, setVisibleItems] = useState(ITEMS_PER_PAGE);
   const { formatCurrency } = useCurrency();
 
   useEffect(() => {
-    const fetchHistory = async (userId: string) => {
+    const fetchHistoryAndProfile = async (userId: string) => {
         setIsHistoryLoading(true);
-        const { data, error } = await supabase
+        setIsProfileLoading(true);
+
+        const { data: historyData, error: historyError } = await supabase
             .from('payments')
             .select('*')
             .eq('user_id', userId);
         
-        if (error) {
-            console.error("Error fetching withdrawal history:", error);
+        if (historyError) {
+            console.error("Error fetching withdrawal history:", historyError);
             setHistory([]);
         } else {
-            setHistory(data || []);
+            setHistory(historyData || []);
         }
         setIsHistoryLoading(false);
+
+        const { data: profileData, error: profileError } = await supabase
+          .from('users')
+          .select('balance_available, balance_hold')
+          .eq('id', userId)
+          .single();
+        
+        if(profileError) {
+          console.error("Error fetching user profile for earnings:", profileError);
+          setUserProfile(null);
+        } else {
+          setUserProfile(profileData);
+        }
+        setIsProfileLoading(false);
     };
 
     const getUser = async () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
             setUser(session.user);
-            fetchHistory(session.user.id);
+            fetchHistoryAndProfile(session.user.id);
         } else {
             setIsHistoryLoading(false);
+            setIsProfileLoading(false);
         }
     };
     getUser();
@@ -80,7 +99,13 @@ export default function WithdrawHistoryPage() {
       .filter(item => item.status === 'Approved')
       .reduce((sum, item) => sum + item.amount, 0);
   }, [history]);
-
+  
+  const totalEarned = useMemo(() => {
+    if (!userProfile) return 0;
+    const available = userProfile.balance_available || 0;
+    const hold = userProfile.balance_hold || 0;
+    return available + hold + totalWithdrawn;
+  }, [userProfile, totalWithdrawn]);
 
   const sortedHistory = useMemo(() => {
     if (!history) return [];
@@ -101,7 +126,7 @@ export default function WithdrawHistoryPage() {
   const currentItems = useMemo(() => filteredItems.slice(0, visibleItems), [filteredItems, visibleItems]);
   const canLoadMore = visibleItems < filteredItems.length;
 
-  const isLoading = isHistoryLoading;
+  const isLoading = isHistoryLoading || isProfileLoading;
 
   const toggleFilter = (status: Status) => {
     setVisibleItems(ITEMS_PER_PAGE); // Reset pagination on filter change
@@ -124,21 +149,36 @@ export default function WithdrawHistoryPage() {
        <PageHeader title="Wallet History" description="Review your past payment requests" />
 
       <main className="p-4 space-y-4">
-
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Withdrawn</CardTitle>
-                <Wallet className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold text-green-600">
-                    {isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : formatCurrency(totalWithdrawn)}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                    The total amount from all your approved withdrawals.
-                </p>
-            </CardContent>
-        </Card>
+        <div className="grid grid-cols-2 gap-4">
+          <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Earned</CardTitle>
+                  <IndianRupee className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                  <div className="text-2xl font-bold">
+                      {isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : formatCurrency(totalEarned)}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                      Your total lifetime earnings.
+                  </p>
+              </CardContent>
+          </Card>
+          <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Withdrawn</CardTitle>
+                  <Wallet className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                  <div className="text-2xl font-bold text-green-600">
+                      {isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : formatCurrency(totalWithdrawn)}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                      From all approved withdrawals.
+                  </p>
+              </CardContent>
+          </Card>
+        </div>
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
