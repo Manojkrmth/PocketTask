@@ -86,8 +86,8 @@ export default function SignupPage() {
       if (insertError) {
         console.error("Supabase insert error:", insertError);
         setError(`Could not save user profile: ${insertError.message}`);
-        // Optional: delete the authenticated user if profile creation fails
-        await supabase.auth.admin.deleteUser(authData.user.id);
+        // This admin function cannot be called from the client-side for security reasons.
+        // await supabase.auth.admin.deleteUser(authData.user.id);
         setIsLoading(false);
         return;
       }
