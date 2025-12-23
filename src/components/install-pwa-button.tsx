@@ -1,4 +1,3 @@
-
 'use client';
 
 // =================================================================
@@ -107,14 +106,14 @@ export function InstallPWAButton() {
         <Download className="h-5 w-5" />
       </Button>
 
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-sm bg-white text-gray-900">
         <DialogHeader>
           <DialogTitle>How to Install App</DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-gray-500">
             You can add this app to your home screen for a better experience.
           </DialogDescription>
         </DialogHeader>
-        <div className="py-4 space-y-4 text-sm">
+        <div className="py-4 space-y-4 text-sm text-gray-800">
           <p>
             <strong>For Android (Chrome):</strong>
             <ol className="list-decimal list-inside space-y-2 mt-2 pl-2">
@@ -136,4 +135,3 @@ export function InstallPWAButton() {
     </Dialog>
   );
 }
-
