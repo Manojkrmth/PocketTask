@@ -1,112 +1,192 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogDescription,
   DialogFooter,
   DialogClose,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from './ui/button';
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
-import { Loader2 } from "lucide-react";
-import { supabase } from '@/lib/supabase';
+import { Input } from './ui/input';
+import { Loader2 } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase';
+import type { User } from '@supabase/supabase-js';
 
-export function AddReferralDialog({ userId, onFinished }: { userId: string, onFinished: () => void }) {
-    const [open, setOpen] = useState(false);
+function ReferrerName({ userId, onData }: { userId: string, onData: (name: string) => void }) {
+    const [name, setName] = useState<string>('');
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchName = async () => {
+            const { data, error } = await supabase
+                .from('users')
+                .select('full_name')
+                .eq('id', userId)
+                .single();
+
+            if (data) {
+                setName(data.full_name);
+                onData(data.full_name);
+            }
+            setLoading(false);
+        }
+        fetchName();
+    }, [userId, onData]);
+
+
+    if (loading) {
+        return <Loader2 className="h-4 w-4 animate-spin" />
+    }
+    if (!name) {
+        return <span className="font-bold text-lg text-destructive">User Not Found</span>;
+    }
+    return <span className="font-bold text-lg text-primary">{name}</span>;
+}
+
+export function AddReferralDialog({ onFinished }: { onFinished: () => void }) {
     const [referralCode, setReferralCode] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
+    const [isVerifying, startVerifying] = useTransition();
+    const [isConfirming, startConfirming] = useTransition();
+    const [foundUser, setFoundUser] = useState<{ id: string, full_name: string } | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [isOpen, setIsOpen] = useState(false);
+    
     const { toast } = useToast();
+    const [currentUser, setCurrentUser] = useState<User | null>(null);
 
-    const handleSubmit = async () => {
-        if (!referralCode.trim()) {
-            setError('Please enter a referral code.');
+    useEffect(() => {
+        const getUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            setCurrentUser(user);
+        };
+        getUser();
+    }, []);
+
+    const handleVerify = async () => {
+        if (!referralCode) {
+            setError("Please enter a referral code.");
             return;
         }
-        setIsLoading(true);
-        setError(null);
+        startVerifying(async () => {
+            setError(null);
+            setFoundUser(null);
+            
+            const { data, error: queryError } = await supabase
+                .from('users')
+                .select('id, full_name')
+                .eq('referral_code', referralCode.trim().toUpperCase())
+                .single();
+            
+            if (queryError || !data) {
+                setError('Invalid referral code. Please check and try again.');
+            } else {
+                if (data.id === currentUser?.id) {
+                   setError('You cannot refer yourself.');
+                   return;
+                }
+                setFoundUser(data);
+            }
+        });
+    }
 
-        // Check if the referral code exists
-        const { data: referrer, error: checkError } = await supabase
-            .from('users')
-            .select('id')
-            .eq('referral_code', referralCode.trim())
-            .single();
-
-        if (checkError || !referrer) {
-            setError('Invalid referral code. Please check and try again.');
-            setIsLoading(false);
+    const handleConfirm = async () => {
+        if (!foundUser || !currentUser) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not confirm referral.'})
             return;
         }
         
-        if (referrer.id === userId) {
-            setError('You cannot use your own referral code.');
-            setIsLoading(false);
-            return;
-        }
+        const updatedData = {
+          referred_by: referralCode.trim().toUpperCase()
+        };
 
-        // Update the current user's 'referred_by' field
-        const { error: updateError } = await supabase
-            .from('users')
-            .update({ referred_by: referralCode.trim() })
-            .eq('id', userId);
+        startConfirming(async () => {
+            const { error } = await supabase
+              .from('users')
+              .update(updatedData)
+              .eq('id', currentUser.id)
 
-        if (updateError) {
-            console.error(updateError);
-            setError('Failed to apply referral code. Please try again.');
-            setIsLoading(false);
-        } else {
-            toast({
-                title: 'Success!',
-                description: 'Referral code has been applied.',
-            });
-            setIsLoading(false);
-            setOpen(false);
-            onFinished(); // Callback to refresh the page or state
+            if(error) {
+                 toast({ variant: 'destructive', title: 'Error', description: error.message });
+            } else {
+                 toast({ title: 'Success!', description: `Your referral has been added.` });
+                 setIsOpen(false);
+                 onFinished();
+            }
+        });
+    }
+    
+    const handleOpenChange = (open: boolean) => {
+        if (!open) {
+            setFoundUser(null); 
+            setError(null); 
+            setReferralCode('');
         }
-    };
+        setIsOpen(open);
+    }
+
+    const isLoading = isVerifying || isConfirming;
 
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={isOpen} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
-                <Button>Add Code</Button>
+                <Button className="w-full">Add Code</Button>
             </DialogTrigger>
-            <DialogContent className="max-w-sm bg-white text-gray-900">
+            <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Add Referral Code</DialogTitle>
                     <DialogDescription>
-                        Enter the code of the friend who referred you. This can only be done once.
+                        Enter your friend's referral code to join their team. This can only be done once.
                     </DialogDescription>
                 </DialogHeader>
-                <div className="py-4 space-y-2">
-                    <Label htmlFor="referral-code">Referral Code</Label>
-                    <Input 
-                        id="referral-code" 
-                        value={referralCode}
-                        onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                        placeholder="e.g., CM123456"
-                    />
-                    {error && <p className="text-sm text-destructive">{error}</p>}
+                <div className="py-4 space-y-4">
+                    {!foundUser ? (
+                        <div className='space-y-2'>
+                             <div className="flex items-center gap-2">
+                                <Input 
+                                    id="referral-code"
+                                    placeholder="Enter referral code"
+                                    value={referralCode}
+                                    onChange={(e) => setReferralCode(e.target.value)}
+                                    disabled={isLoading}
+                                />
+                                <Button onClick={handleVerify} disabled={isLoading || !referralCode}>
+                                    {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Verify
+                                </Button>
+                            </div>
+                            {error && <p className="text-sm text-destructive">{error}</p>}
+                        </div>
+                    ) : (
+                        <Alert>
+                            <AlertTitle className="flex items-center gap-2">Confirm Referrer</AlertTitle>
+                            <AlertDescription>
+                                Is this your referrer? <br />
+                                 <span className="font-bold text-lg text-primary">{foundUser.full_name}</span>
+                            </AlertDescription>
+                        </Alert>
+                    )}
                 </div>
                 <DialogFooter>
                     <DialogClose asChild>
-                        <Button type="button" variant="secondary">
+                        <Button type="button" variant="secondary" disabled={isLoading}>
                             Cancel
                         </Button>
                     </DialogClose>
-                    <Button onClick={handleSubmit} disabled={isLoading}>
-                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Apply Code
-                    </Button>
+                    {foundUser && (
+                        <Button type="button" onClick={handleConfirm} disabled={isLoading}>
+                            {isConfirming && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Yes, Confirm
+                        </Button>
+                    )}
                 </DialogFooter>
             </DialogContent>
         </Dialog>
-    );
+    )
 }

@@ -27,10 +27,8 @@ import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
 
 const menuItems = [
-  { href: '#', icon: PlusSquare, label: 'Post a Task', badge: 'Coming Soon' },
-  { href: '#', icon: Edit, label: 'Edit Profile' },
+  { href: '/profile/edit', icon: Edit, label: 'Edit Profile' },
   { href: '/update-password', icon: Lock, label: 'Change Password' },
-  { href: '#', icon: Globe, label: 'Currency (INR)' },
 ];
 
 const legalItems = [
@@ -158,7 +156,7 @@ export default function ProfilePage() {
                   <p className="text-sm text-muted-foreground mb-3">
                       Were you referred by a friend? Add their code here to join their team.
                   </p>
-                  <AddReferralDialog userId={user.id} onFinished={() => window.location.reload()} />
+                  <AddReferralDialog />
                </CardContent>
              </Card>
           ) : (
@@ -175,7 +173,6 @@ export default function ProfilePage() {
               <Link href={item.href} key={item.label} className="flex items-center py-4 text-md font-medium">
                 <item.icon className="h-5 w-5 mr-4 text-primary" />
                 <span>{item.label}</span>
-                {item.badge && <Badge variant="secondary" className="ml-2">{item.badge}</Badge>}
                 <ChevronRight className="h-5 w-5 ml-auto text-muted-foreground" />
               </Link>
             ))}
