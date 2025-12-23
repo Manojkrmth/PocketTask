@@ -1,21 +1,20 @@
 import { initializeApp, getApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
 
-// IMPORTANT: Replace this with your new Firebase project's configuration
-// You can find this in your Firebase project settings.
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  "projectId": "studio-5358554212-c676c",
+  "appId": "1:166226930906:web:aa89f1252645320176c9e3",
+  "apiKey": "AIzaSyDP5gF_Hzfj04_Qo4uIDjjs6xsa3anuUpU",
+  "authDomain": "studio-5358554212-c676c.firebaseapp.com",
+  "measurementId": "",
+  "messagingSenderId": "166226930906"
 };
 
 // Initialize Firebase for your new project
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
-const firestore = getFirestore(app);
 
-export { app, auth, firestore };
+// Since you are using Supabase for the database, we are not initializing Firestore.
+// const firestore = getFirestore(app);
+
+export { app, auth };
