@@ -74,12 +74,12 @@ export default function ChooseTaskTypePage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {taskTypes.map((task) => (
             <Link href={task.href} key={task.name} className="group">
-              <Card className="h-full hover:bg-primary/5 hover:border-primary/50 transition-all duration-200">
+              <Card className="hover:bg-primary/5 hover:border-primary/50 transition-all duration-200 h-full">
                 <CardContent className="p-4 flex items-center gap-4 h-full">
                   <div className="p-3 bg-muted rounded-full">
                     {task.icon}
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 flex flex-col justify-center">
                     <h3 className="font-semibold text-gray-800">{task.name}</h3>
                     <p className="text-xs text-gray-500">{task.description}</p>
                   </div>
