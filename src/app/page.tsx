@@ -14,6 +14,7 @@ import {
   Copy,
   ShoppingCart,
   Phone,
+  PlusSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -365,8 +366,27 @@ export default function HomePage() {
             </a>
           </Button>
         </div>
+        
+        <div className="mb-6 flex justify-center">
+            <Button 
+                onClick={handleComingSoon} 
+                className="w-full max-w-xs h-14 text-lg font-bold rounded-xl relative overflow-hidden bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg transition-transform hover:scale-105"
+            >
+                <div className="absolute inset-0 bg-black/20"></div>
+                <div className="relative flex flex-col items-center">
+                    <div className="flex items-center gap-2">
+                        <PlusSquare className="h-5 w-5" />
+                        <span>Post a Task</span>
+                    </div>
+                    <span className="text-xs font-normal opacity-80">Become a Partner</span>
+                </div>
+                <Badge variant="destructive" className="absolute top-2 right-2 text-xs">Soon</Badge>
+            </Button>
+        </div>
       </main>
     </div>
   );
+
+    
 
     
