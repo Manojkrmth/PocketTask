@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import { supabase } from '@/lib/supabase';
+import { setSupabaseAuthToken } from '@/lib/supabase';
 import { LoadingScreen } from '@/components/loading-screen';
 
 export default function LoginPage() {
@@ -23,10 +23,13 @@ export default function LoginPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
+        const idToken = await user.getIdToken();
+        await setSupabaseAuthToken(idToken);
         router.push('/');
       } else {
+        await setSupabaseAuthToken(null);
         setAuthLoading(false);
       }
     });
@@ -43,26 +46,16 @@ export default function LoginPage() {
       const user = userCredential.user;
       
       const idToken = await user.getIdToken();
+      await setSupabaseAuthToken(idToken);
 
-      const { error: sessionError } = await supabase.auth.setSession({
-        access_token: idToken,
-        refresh_token: String(Math.random()),
-      });
-
-      if (sessionError) {
-        console.error("Supabase session error on login:", sessionError);
-        throw new Error(`Supabase session error: ${sessionError.message}`);
-      }
-
-      router.push('/'); 
+      // The onAuthStateChanged listener will handle the redirect
+      // router.push('/'); 
     } catch (error: any) {
       console.error("Login error:", error);
       const errorCode = error.code;
       let errorMessage = 'An unknown error occurred.';
       if (errorCode === 'auth/user-not-found' || errorCode === 'auth/wrong-password' || errorCode === 'auth/invalid-credential') {
         errorMessage = 'Invalid credentials. Please try again.';
-      } else if (error.message.includes('Supabase')) {
-        errorMessage = `Could not sync session. ${error.message}`;
       } else {
         errorMessage = 'An unknown login error occurred.';
       }

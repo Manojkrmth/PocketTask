@@ -1,10 +1,5 @@
 'use client';
 
-// =================================================================
-// SIGNUP PAGE CODE (for your new project)
-// Path: app/signup/page.tsx
-// =================================================================
-
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -16,11 +11,10 @@ import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { createUserWithEmailAndPassword, deleteUser } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import { supabase } from '@/lib/supabase';
+import { supabase, setSupabaseAuthToken } from '@/lib/supabase';
 
 
 export default function SignupPage() {
-  // State variables to hold form data
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [reenteredPassword, setReenteredPassword] = useState('');
@@ -28,15 +22,12 @@ export default function SignupPage() {
   const [mobile, setMobile] = useState('');
   const [referralCode, setReferralCode] = useState('');
 
-  // State for loading and error messages
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // This effect checks if a referral code is present in the URL (e.g., /signup?ref=CM123)
-  // and pre-fills the input field.
   useEffect(() => {
     const refCode = searchParams.get('ref');
     if (refCode) {
@@ -44,12 +35,10 @@ export default function SignupPage() {
     }
   }, [searchParams]);
   
-  // This function handles the signup process when the form is submitted.
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    // Basic client-side validation
     if (password.length < 8) {
       setError("Password must be at least 8 characters long.");
       return;
@@ -65,32 +54,20 @@ export default function SignupPage() {
     
     setIsLoading(true);
     
+    let user;
     try {
-      // 1. Create the user with Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
+      user = userCredential.user;
 
-      // 2. Get the Firebase ID token
       const idToken = await user.getIdToken();
-
-      // 3. Set the session for the Supabase client
-      const { error: sessionError } = await supabase.auth.setSession({
-        access_token: idToken,
-        refresh_token: String(Math.random()),
-      });
-
-      if (sessionError) {
-        console.error("Supabase session error:", sessionError);
-        throw new Error(`Supabase session error: ${sessionError.message}`);
-      }
-
-      // 4. Save the user's profile data to Supabase
+      await setSupabaseAuthToken(idToken);
+      
       const { error: supabaseError } = await supabase.from('users').insert({ 
         id: user.uid, 
         email: user.email, 
         full_name: fullName, 
         mobile: mobile,
-        referral_code: `CM${user.uid.substring(0, 6).toUpperCase()}`, // Generate a unique referral code
+        referral_code: `CM${user.uid.substring(0, 6).toUpperCase()}`,
         referred_by: referralCode || null,
         balance_available: 0,
         balance_hold: 0,
@@ -98,22 +75,21 @@ export default function SignupPage() {
       });
 
       if (supabaseError) {
-        // IMPORTANT: If Supabase insert fails, delete the just-created Firebase user
-        // to prevent orphaned auth accounts.
-        console.error("Supabase insert error:", supabaseError);
-        if (auth.currentUser) {
-           await deleteUser(auth.currentUser);
-        }
         throw new Error(`Supabase insert error: ${supabaseError.message}`);
       }
       
       console.log('User created in Firebase and data saved to Supabase.');
       
-      // 5. Redirect to the main dashboard on successful signup
       router.push('/');
 
     } catch (error: any) {
         console.error("Signup error:", error);
+
+        if (auth.currentUser) {
+           await deleteUser(auth.currentUser);
+           console.log("Cleaned up Firebase user due to Supabase error.");
+        }
+
         const errorCode = error.code;
         let errorMessage = "An unexpected error occurred. Please try again.";
 
@@ -122,7 +98,6 @@ export default function SignupPage() {
         } else if (errorCode === 'auth/weak-password') {
             errorMessage = 'The password is too weak. Please use at least 8 characters.';
         } else if (error.message.includes('Supabase')) {
-            // Provide a more specific error for Supabase issues
             errorMessage = `Could not save user profile. ${error.message}`;
         }
         setError(errorMessage);
@@ -131,7 +106,6 @@ export default function SignupPage() {
     }
   };
 
-  // The JSX for the signup form layout
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-neutral-900 p-6 text-white">
       <div className="w-full max-w-sm">
@@ -173,7 +147,6 @@ export default function SignupPage() {
               <Input id="referral-code" type="text" placeholder="e.g., CM123456" value={referralCode} onChange={(e) => setReferralCode(e.target.value)} className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500 focus:ring-primary" />
             </div>
 
-            {/* Display error message if any */}
             {error && <p className="text-sm text-destructive">{error}</p>}
             
             <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base h-12" disabled={isLoading}>
