@@ -41,61 +41,62 @@ export default function HomePage() {
   );
 
   React.useEffect(() => {
+    const fetchUserProfile = async (userId: string) => {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching user profile:', error);
+        return null;
+      }
+      return data;
+    }
+
+    const setupUser = async (sessionUser: User) => {
+      setUser(sessionUser);
+      const profile = await fetchUserProfile(sessionUser.id);
+      if (profile) {
+        setUserProfile(profile);
+      }
+      setLoading(false);
+    }
+    
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         router.push('/login');
         return;
       }
-      setUser(session.user);
-      
-      const { data: profile, error: profileError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
-      
-      if (profileError && profileError.code !== 'PGRST116') { // Ignore 'PGRST116' (No rows found)
-        console.error('Error fetching user profile:', profileError);
-      } else {
-        setUserProfile(profile);
-      }
-
-      // Mock data for settings and offers since there's no backend for it yet.
-      setSystemSettings({
-        noticeBoardText: "Welcome to AuthNexus! Complete tasks and earn rewards.",
-        socialLinks: {
-          whatsapp: "#",
-          telegram: "#",
-        }
-      });
-      setFeaturedOffers([
-        { id: '1', imageUrl: 'https://picsum.photos/seed/offer1/420/180', description: 'Special Offer 1', redirectLink: '#' },
-        { id: '2', imageUrl: 'https://picsum.photos/seed/offer2/420/180', description: 'Special Offer 2', redirectLink: '#' }
-      ]);
-
-      setLoading(false);
+      await setupUser(session.user);
     };
 
     checkSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        setUser(session.user);
-        // fetch profile again if user changes
-        if (session.user) {
-            supabase.from('users').select('*').eq('id', session.user.id).single().then(({ data, error }) => {
-                if (error && error.code !== 'PGRST116') {
-                    console.error('Error fetching profile on auth change:', error);
-                } else {
-                    setUserProfile(data);
-                }
-            });
-        }
+      if (session && session.user) {
+         setupUser(session.user);
       } else {
+        setUser(null);
+        setUserProfile(null);
         router.push('/login');
       }
     });
+
+    // Mock data for settings and offers - can be replaced with real backend calls
+    setSystemSettings({
+      noticeBoardText: "Welcome to AuthNexus! Complete tasks and earn rewards.",
+      socialLinks: {
+        whatsapp: "#",
+        telegram: "#",
+      }
+    });
+    setFeaturedOffers([
+      { id: '1', imageUrl: 'https://picsum.photos/seed/offer1/420/180', description: 'Special Offer 1', redirectLink: '#' },
+      { id: '2', imageUrl: 'https://picsum.photos/seed/offer2/420/180', description: 'Special Offer 2', redirectLink: '#' }
+    ]);
 
     return () => subscription.unsubscribe();
   }, [router]);
