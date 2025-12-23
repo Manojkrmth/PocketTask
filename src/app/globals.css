@@ -102,4 +102,17 @@ body {
   .animate-pulse-background {
     animation: pulse-background 10s ease-in-out infinite;
   }
+
+  @keyframes tricolor-spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  .animate-tricolor-spin {
+    animation: tricolor-spin 1.5s linear infinite;
+  }
 }
