@@ -189,13 +189,13 @@ export default function ProfilePage() {
           <CardContent className="flex justify-around">
              <a href={socialLinks?.instagram || '#'} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 text-muted-foreground hover:text-primary">
                 <div className="w-12 h-12 flex items-center justify-center bg-slate-100 rounded-full">
-                    <InstagramIcon className="h-7 w-7" />
+                    <InstagramIcon className="h-7 w-7 text-[#E1306C]" />
                 </div>
                 <span className="text-xs font-medium">Instagram</span>
             </a>
              <a href={socialLinks?.whatsapp || '#'} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 text-muted-foreground hover:text-primary">
                  <div className="w-12 h-12 flex items-center justify-center bg-slate-100 rounded-full">
-                    <WhatsAppIcon className="h-7 w-7"/>
+                    <WhatsAppIcon className="h-7 w-7 text-[#25D366]"/>
                 </div>
                 <span className="text-xs font-medium">WhatsApp</span>
             </a>
