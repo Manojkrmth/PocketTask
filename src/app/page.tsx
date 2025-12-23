@@ -126,7 +126,7 @@ export default function HomePage() {
             <p className="text-sm opacity-90">Welcome back,</p>
             <p className="text-xs opacity-80 truncate">{user?.email || ''}</p>
             <p className="text-xs opacity-75 truncate">
-              ID: {(userProfile?.referral_code || user?.id.substring(0, 8) || '').toUpperCase()} ({userProfile?.full_name || ''})
+              ID: {(userProfile?.referral_code || user?.id.substring(0, 8) || '').toUpperCase()}
             </p>
           </div>
           <div className="flex flex-col items-center gap-2">
