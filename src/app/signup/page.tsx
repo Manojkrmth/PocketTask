@@ -80,6 +80,7 @@ export default function SignupPage() {
       });
 
       if (sessionError) {
+        console.error("Supabase session error:", sessionError);
         throw new Error(`Supabase session error: ${sessionError.message}`);
       }
 
@@ -99,6 +100,7 @@ export default function SignupPage() {
       if (supabaseError) {
         // IMPORTANT: If Supabase insert fails, delete the just-created Firebase user
         // to prevent orphaned auth accounts.
+        console.error("Supabase insert error:", supabaseError);
         await user.delete();
         throw new Error(`Supabase insert error: ${supabaseError.message}`);
       }
@@ -119,7 +121,7 @@ export default function SignupPage() {
             errorMessage = 'The password is too weak. Please use at least 8 characters.';
         } else if (error.message.includes('Supabase')) {
             // Provide a more specific error for Supabase issues
-            errorMessage = `Could not save user profile. ${error.message}`;
+            errorMessage = `Could not save user profile. Check console for details.`;
         }
         setError(errorMessage);
     } finally {

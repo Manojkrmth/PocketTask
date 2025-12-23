@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { LoadingScreen } from '@/components/loading-screen';
 
 export default function LoginPage() {
@@ -38,16 +39,32 @@ export default function LoginPage() {
     setError(null);
     
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      
+      const idToken = await user.getIdToken();
+
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: idToken,
+        refresh_token: 'dummy-refresh-token',
+      });
+
+      if (sessionError) {
+        console.error("Supabase session error on login:", sessionError);
+        throw new Error(`Supabase session error: ${sessionError.message}`);
+      }
+
       router.push('/'); 
     } catch (error: any) {
-      console.error(error);
+      console.error("Login error:", error);
       const errorCode = error.code;
       let errorMessage = 'An unknown error occurred.';
       if (errorCode === 'auth/user-not-found' || errorCode === 'auth/wrong-password' || errorCode === 'auth/invalid-credential') {
         errorMessage = 'Invalid credentials. Please try again.';
+      } else if (error.message.includes('Supabase')) {
+        errorMessage = 'Could not sync session. Please try again.';
       } else {
-        errorMessage = error.message;
+        errorMessage = 'An unknown login error occurred.';
       }
       setError(errorMessage);
     } finally {
