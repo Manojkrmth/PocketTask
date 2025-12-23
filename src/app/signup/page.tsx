@@ -79,7 +79,7 @@ export default function SignupPage() {
             email: email,
             full_name: fullName, 
             mobile: mobile,
-            referral_code: referralCode || null,
+            referred_by: referralCode || null, // Changed from referral_code to referred_by
           }
         ]);
 
@@ -175,3 +175,5 @@ export default function SignupPage() {
     </div>
   );
 }
+
+    
