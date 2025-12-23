@@ -148,7 +148,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col min-h-screen bg-gray-50 pb-16">
       <header className="bg-primary/90 p-4 rounded-b-3xl text-primary-foreground relative shadow-lg">
         <div className="flex justify-between items-start mb-4">
           <div className="flex items-center gap-3">
@@ -267,7 +267,7 @@ export default function HomePage() {
                     </div>
                     <div>
                       <h4 className="font-semibold text-md text-gray-900">Invite Friends</h4>
-                      <p className="text-xs text-gray-600">Earn bonuses</p>
+                      <p className="text-xs text-gray-600">Earn bonuses</p>                    
                     </div>
                   </Card>
                 </div>
