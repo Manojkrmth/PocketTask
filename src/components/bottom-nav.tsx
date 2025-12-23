@@ -45,22 +45,38 @@ export function BottomNav() {
         const isActive = pathname === item.href;
         const isTasksButton = item.href === '/tasks';
 
+        const buttonContent = (
+            <>
+              <item.icon className="w-6 h-6 transition-transform group-hover:scale-110" />
+              <span className="text-xs font-medium">{item.label}</span>
+            </>
+        );
+
         if (isTasksButton) {
           return (
-            <div key={item.href} className="relative flex justify-center -translate-y-3">
-              <div className="relative h-16 w-16 p-1 rounded-full bg-transparent animate-border-spin">
+             <div key={item.href} className="flex items-center justify-center p-1">
                  <Link
                     href={item.href}
                     className={cn(
-                      "relative flex flex-col items-center justify-center gap-1 p-2 transition-colors duration-200 group rounded-full h-full w-full",
-                      "bg-orange-500 text-white shadow-lg"
+                      "relative flex flex-col items-center justify-center gap-1 transition-colors duration-200 group h-full w-full rounded-md animate-border-spin",
+                      isActive 
+                        ? "bg-orange-400 text-white" 
+                        : "text-primary-foreground/70",
+                      "p-[2px]" 
                     )}
+                    style={{
+                        borderImage: 'conic-gradient(from var(--angle), hsl(var(--primary)), hsl(var(--accent)), hsl(var(--primary))) 1',
+                        '--angle': '0deg',
+                    } as React.CSSProperties}
                   >
-                    <item.icon className="w-7 h-7 transition-transform group-hover:scale-110" />
-                    <span className="text-xs font-bold">{item.label}</span>
+                    <div className={cn(
+                        "flex flex-col items-center justify-center gap-1 w-full h-full rounded-[4px]",
+                         isActive ? "bg-orange-400" : "bg-primary/90"
+                    )}>
+                        {buttonContent}
+                    </div>
                   </Link>
-              </div>
-            </div>
+             </div>
           );
         }
 
@@ -75,8 +91,7 @@ export function BottomNav() {
                 : "text-primary-foreground/70"
             )}
           >
-            <item.icon className="w-6 h-6 transition-transform group-hover:scale-110" />
-            <span className="text-xs font-medium">{item.label}</span>
+            {buttonContent}
           </Link>
         );
       })}
