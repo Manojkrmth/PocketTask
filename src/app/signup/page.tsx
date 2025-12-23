@@ -114,9 +114,6 @@ export default function SignupPage() {
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
-        queryParams: {
-           referral_code: referralCode || ''
-        }
       }
     });
     setIsLoading(false);
