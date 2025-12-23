@@ -46,6 +46,7 @@ export default function LoginPage() {
 
       const { error: sessionError } = await supabase.auth.setSession({
         access_token: idToken,
+        refresh_token: String(Math.random()),
       });
 
       if (sessionError) {

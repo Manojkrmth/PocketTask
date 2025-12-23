@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, deleteUser } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { supabase } from '@/lib/supabase';
 
@@ -76,6 +76,7 @@ export default function SignupPage() {
       // 3. Set the session for the Supabase client
       const { error: sessionError } = await supabase.auth.setSession({
         access_token: idToken,
+        refresh_token: String(Math.random()),
       });
 
       if (sessionError) {
@@ -100,7 +101,9 @@ export default function SignupPage() {
         // IMPORTANT: If Supabase insert fails, delete the just-created Firebase user
         // to prevent orphaned auth accounts.
         console.error("Supabase insert error:", supabaseError);
-        await user.delete();
+        if (auth.currentUser) {
+           await deleteUser(auth.currentUser);
+        }
         throw new Error(`Supabase insert error: ${supabaseError.message}`);
       }
       
