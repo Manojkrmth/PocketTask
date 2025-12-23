@@ -58,12 +58,10 @@ export default function SignupPage() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       user = userCredential.user;
-
-      // The new Supabase client configuration handles auth automatically.
-      // No need to call setSession or setSupabaseAuthToken anymore.
       
       const { data: supabaseData, error: supabaseError } = await supabase.from('users').insert({ 
-        id: user.uid, 
+        // id: user.uid, // This was causing the error
+        firebase_uid: user.uid, // Correct: Use the new text column
         email: user.email, 
         full_name: fullName, 
         mobile: mobile,
