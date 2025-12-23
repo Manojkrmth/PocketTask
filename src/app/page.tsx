@@ -156,7 +156,7 @@ export default function HomePage() {
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
             </Avatar>
             <div className="flex-1 overflow-hidden">
-              <p className="text-md font-semibold opacity-95">Welcome back</p>
+              <p className="text-md font-semibold opacity-95">Welcome back,</p>
               <p className="text-sm font-medium truncate">{userProfile?.full_name || user?.email}</p>
             </div>
           </div>
@@ -247,7 +247,7 @@ export default function HomePage() {
             
             <Link href="#" className="group block relative">
               <div className="absolute -inset-0.5 bg-gradient-to-r from-orange-400 to-yellow-400 rounded-lg blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
-              <Card className="relative p-4 flex items-center gap-4 transition-all duration-200 group-hover:scale-105 h-full">
+              <Card className="relative p-4 flex items-center gap-4 transition-all duration-200 group-hover:scale-105 h-full bg-white">
                 <div className="p-3 bg-white/80 backdrop-blur-sm rounded-full shadow-md">
                   <Rocket className="h-6 w-6 text-orange-500" />
                 </div>
@@ -261,7 +261,7 @@ export default function HomePage() {
             <ShareReferralDialog referralCode={userProfile?.referral_code}>
                 <div className="group block relative">
                   <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
-                  <Card className="relative p-4 flex items-center gap-4 transition-all duration-200 group-hover:scale-105 h-full">
+                  <Card className="relative p-4 flex items-center gap-4 transition-all duration-200 group-hover:scale-105 h-full bg-white">
                     <div className="p-3 bg-white/80 backdrop-blur-sm rounded-full shadow-md">
                       <Users className="h-6 w-6 text-blue-600" />
                     </div>
