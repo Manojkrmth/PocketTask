@@ -60,8 +60,8 @@ export default function SignupPage() {
       user = userCredential.user;
       
       const { data: supabaseData, error: supabaseError } = await supabase.from('users').insert({ 
-        // id: user.uid, // This was causing the error
-        firebase_uid: user.uid, // Correct: Use the new text column
+        // id: user.uid, // This was the cause of the UUID error
+        firebase_uid: user.uid, // Correct: Use the new 'firebase_uid' text column
         email: user.email, 
         full_name: fullName, 
         mobile: mobile,
