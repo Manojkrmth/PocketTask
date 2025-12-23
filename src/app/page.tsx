@@ -35,7 +35,6 @@ export default function HomePage() {
   const [systemSettings, setSystemSettings] = React.useState<any>(null);
   const [featuredOffers, setFeaturedOffers] = React.useState<any[]>([]);
 
-  // Fix for React Hook order error and TypeError
   const autoplay = React.useRef(
     Autoplay({ delay: 4000, stopOnInteraction: true })
   );
@@ -225,7 +224,7 @@ export default function HomePage() {
                     opts={{
                         loop: true,
                     }}
-                    plugins={[autoplay.current]}
+                    plugins={autoplay.current ? [autoplay.current] : []}
                     className="w-full"
                 >
                     <CarouselContent>
