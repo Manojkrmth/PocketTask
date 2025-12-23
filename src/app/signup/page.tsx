@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { GoogleIcon } from '@/components/icons';
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
@@ -107,6 +108,20 @@ export default function SignupPage() {
     }
   };
 
+  const handleGoogleSignup = async () => {
+    setIsLoading(true);
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: {
+           referral_code: referralCode || ''
+        }
+      }
+    });
+    setIsLoading(false);
+  };
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-neutral-900 p-6 text-white">
       <div className="w-full max-w-sm">
@@ -130,39 +145,57 @@ export default function SignupPage() {
             </Link>
           </div>
         ) : (
-          <form onSubmit={handleSignup} className="space-y-4">
-             <div className="space-y-2">
-              <Label htmlFor="fullName" className="text-neutral-300">Full Name</Label>
-              <Input id="fullName" type="text" placeholder="e.g. Radhe Shyam" required value={fullName} onChange={(e) => setFullName(e.target.value)} className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500 focus:ring-primary" />
-            </div>
-             <div className="space-y-2">
-              <Label htmlFor="mobile" className="text-neutral-300">Mobile Number (10 digits)</Label>
-              <Input id="mobile" type="tel" placeholder="e.g. 9876543210" required value={mobile} onChange={(e) => setMobile(e.target.value.replace(/[^0-9]/g, ''))} className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500 focus:ring-primary" maxLength={10} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-neutral-300">Email</Label>
-              <Input id="email" type="email" placeholder="user@gmail.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500 focus:ring-primary" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-neutral-300">Password</Label>
-              <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="8+ character password" className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500 focus:ring-primary" />
-            </div>
-             <div className="space-y-2">
-              <Label htmlFor="reenter-password" className="text-neutral-300">Re-enter Password</Label>
-              <Input id="reenter-password" type="password" required value={reenteredPassword} onChange={(e) => setReenteredPassword(e.target.value)} placeholder="Re-enter your password" className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500 focus:ring-primary" />
-            </div>
-             <div className="space-y-2">
-              <Label htmlFor="referral-code" className="text-neutral-300">Referral Code (Optional)</Label>
-              <Input id="referral-code" type="text" placeholder="e.g., CM123456" value={referralCode} onChange={(e) => setReferralCode(e.target.value)} className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500 focus:ring-primary" />
+          <>
+            <form onSubmit={handleSignup} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="fullName" className="text-neutral-300">Full Name</Label>
+                <Input id="fullName" type="text" placeholder="e.g. Radhe Shyam" required value={fullName} onChange={(e) => setFullName(e.target.value)} className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500 focus:ring-primary" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="mobile" className="text-neutral-300">Mobile Number (10 digits)</Label>
+                <Input id="mobile" type="tel" placeholder="e.g. 9876543210" required value={mobile} onChange={(e) => setMobile(e.target.value.replace(/[^0-9]/g, ''))} className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500 focus:ring-primary" maxLength={10} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-neutral-300">Email</Label>
+                <Input id="email" type="email" placeholder="user@gmail.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500 focus:ring-primary" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-neutral-300">Password</Label>
+                <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="8+ character password" className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500 focus:ring-primary" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="reenter-password" className="text-neutral-300">Re-enter Password</Label>
+                <Input id="reenter-password" type="password" required value={reenteredPassword} onChange={(e) => setReenteredPassword(e.target.value)} placeholder="Re-enter your password" className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500 focus:ring-primary" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="referral-code" className="text-neutral-300">Referral Code (Optional)</Label>
+                <Input id="referral-code" type="text" placeholder="e.g., CM123456" value={referralCode} onChange={(e) => setReferralCode(e.target.value)} className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500 focus:ring-primary" />
+              </div>
+
+              {error && <p className="text-sm text-destructive">{error}</p>}
+              
+              <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base h-12" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Create Account
+              </Button>
+            </form>
+            
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-neutral-700" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-gray-800 px-2 text-neutral-400">
+                  Or continue with
+                  </span>
+              </div>
             </div>
 
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            
-            <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base h-12" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Create Account
+            <Button variant="outline" className="w-full h-12 bg-transparent border-neutral-700 hover:bg-neutral-800 text-white" onClick={handleGoogleSignup} disabled={isLoading}>
+                <GoogleIcon className="mr-2 h-5 w-5"/>
+                Continue with Google
             </Button>
-          </form>
+          </>
         )}
 
         <p className="mt-8 w-full text-center text-sm text-neutral-400">
@@ -175,5 +208,3 @@ export default function SignupPage() {
     </div>
   );
 }
-
-    
