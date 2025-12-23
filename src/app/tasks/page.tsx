@@ -74,6 +74,19 @@ const taskTypes = [
   },
 ];
 
+const getBadgeVariant = (badgeText: string) => {
+  switch (badgeText.toUpperCase()) {
+    case 'HOT':
+      return 'destructive';
+    case 'NEW':
+      return 'default';
+    case 'POPULAR':
+      return 'secondary';
+    default:
+      return 'outline';
+  }
+};
+
 export default function ChooseTaskTypePage() {
   return (
     <div className="flex flex-col bg-muted/40 min-h-screen">
@@ -86,21 +99,23 @@ export default function ChooseTaskTypePage() {
               <Card className="hover:bg-primary/5 hover:border-primary/50 transition-all duration-200 h-full overflow-hidden relative">
                 {task.badge && (
                    <Badge 
-                    variant={task.badge === 'HOT' ? 'destructive' : 'secondary'}
-                    className="absolute top-2 right-2 transform rotate-[15deg]"
+                    variant={getBadgeVariant(task.badge)}
+                    className="absolute top-2 right-2"
                   >
                     {task.badge}
                   </Badge>
                 )}
-                <CardContent className="p-4 flex items-center gap-4 h-full">
-                  <div className="p-3 bg-muted rounded-full">
+                <CardContent className="p-4 flex flex-col h-full">
+                  <div className="p-3 bg-muted rounded-full w-max mb-3">
                     {task.icon}
                   </div>
                   <div className="flex-1 flex flex-col justify-center min-w-0">
                     <h3 className="font-semibold text-gray-800 truncate">{task.name}</h3>
                     <p className="text-xs text-gray-500 truncate">{task.description}</p>
                   </div>
-                  <ChevronRight className="h-5 w-5 text-gray-400 group-hover:translate-x-1 transition-transform" />
+                  <div className="flex justify-end mt-2">
+                    <ChevronRight className="h-5 w-5 text-gray-400 group-hover:translate-x-1 transition-transform" />
+                  </div>
                 </CardContent>
               </Card>
             </Link>
