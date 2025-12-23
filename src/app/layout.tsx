@@ -40,7 +40,7 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased bg-neutral-100">
         <CurrencyProvider>
-            <Suspense fallback={children}>
+            <Suspense>
               <LayoutWrapper>
                 {children}
               </LayoutWrapper>
