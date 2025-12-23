@@ -166,6 +166,16 @@ body {
     -webkit-background-clip: text;
     animation: highlight-bg 3s linear infinite;
   }
+
+  @keyframes color-cycle {
+    0%, 100% { color: #FF9933; } /* Saffron */
+    33% { color: #FFFFFF; } /* White */
+    66% { color: #138808; } /* Green */
+  }
+
+  .animate-color-cycle {
+    animation: color-cycle 6s linear infinite;
+  }
   
   @keyframes tilt {
     0%, 50%, 100% {

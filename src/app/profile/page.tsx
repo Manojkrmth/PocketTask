@@ -237,7 +237,7 @@ export default function ProfilePage() {
 
         <div className="text-center text-xs text-muted-foreground pt-4 space-y-1">
             <p>App Version 1.0.0</p>
-            <p>Made with ❤️ In Bharat</p>
+            <p className="animate-color-cycle">Made with ❤️ In Bharat</p>
             <p>&copy; 2026 CookieMail. All Rights Reserved.</p>
         </div>
       </main>

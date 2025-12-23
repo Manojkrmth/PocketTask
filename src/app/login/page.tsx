@@ -130,7 +130,7 @@ export default function LoginPage() {
           
         <div className="mt-12 w-full text-center">
             <p className="text-sm text-muted-foreground">
-                <span className="animate-highlight inline-block">Made with <span className="text-red-500">❤️</span> in Bharat</span>
+                <span className="animate-color-cycle inline-block">Made with <span className="text-red-500">❤️</span> in Bharat</span>
             </p>
         </div>
       </div>
