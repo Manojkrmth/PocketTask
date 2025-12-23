@@ -13,7 +13,7 @@ import Link from "next/link";
 
 const SUPER_ADMINS = [
   'manojmukhiyamth@gmail.com',
-  'nishkrmth2004@gmail.com',
+  'nishakrmth2004@gmail.com',
   'anishamukhiya2004@gmail.com'
 ];
 
