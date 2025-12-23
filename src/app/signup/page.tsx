@@ -59,8 +59,8 @@ export default function SignupPage() {
       options: {
         data: {
           full_name: fullName,
-          mobile: mobile,
-          referred_by: referralCode || null,
+          phone: mobile,
+          referral_code: referralCode || null,
         }
       }
     });
@@ -114,7 +114,7 @@ export default function SignupPage() {
             </div>
              <div className="space-y-2">
               <Label htmlFor="mobile" className="text-neutral-300">Mobile Number (10 digits)</Label>
-              <Input id="mobile" type="tel" placeholder="e.g. 9876543210" required value={mobile} onChange={(e) => setMobile(e.target.value)} className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500 focus:ring-primary" maxLength={10} />
+              <Input id="mobile" type="tel" placeholder="e.g. 9876543210" required value={mobile} onChange={(e) => setMobile(e.target.value.replace(/[^0-9]/g, ''))} className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500 focus:ring-primary" maxLength={10} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="email" className="text-neutral-300">Email</Label>
