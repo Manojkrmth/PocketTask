@@ -18,10 +18,10 @@ export function LoadingScreen() {
                     alt="AuthNexus Logo"
                     width={80}
                     height={80}
-                    className="relative rounded-full animate-pulse"
+                    className="relative rounded-full"
                 />
             </div>
-          <h2 className="text-xl font-bold text-foreground">Securing your session...</h2>
+          <h2 className="text-xl font-bold text-foreground">Loading App...</h2>
           <p className="text-primary/70 text-sm">Please wait a moment.</p>
         </div>
       </div>
