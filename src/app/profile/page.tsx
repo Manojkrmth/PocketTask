@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import {
-  User,
   Lock,
   ChevronRight,
   Info,
@@ -97,7 +96,6 @@ export default function ProfilePage() {
   const [userProfile, setUserProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Mock settings, replace with actual data fetching if needed
   const [systemSettings, setSystemSettings] = useState<any>({
       socialLinks: {
         instagram: "#",
@@ -116,13 +114,18 @@ export default function ProfilePage() {
           }
           setUser(session.user);
           
-          const { data: profile } = await supabase
+          const { data: profile, error } = await supabase
             .from('users')
             .select('*')
             .eq('id', session.user.id)
             .single();
 
-          setUserProfile(profile);
+          if (error && error.code !== 'PGRST116') {
+             console.error('Error fetching profile:', error);
+          } else {
+             setUserProfile(profile);
+          }
+
           setIsLoading(false);
       };
       checkSession();
@@ -143,7 +146,7 @@ export default function ProfilePage() {
       <main className="px-4 space-y-6 py-6">
         
         {isLoading ? <Loader2 className="mx-auto h-6 w-6 animate-spin"/> : 
-          !hasReferrer && user ? (
+          user && !hasReferrer ? (
              <Card>
                <CardHeader>
                  <CardTitle className='flex items-center gap-2'><Gift className="h-5 w-5 text-primary"/> Add a Referral Code</CardTitle>
@@ -188,7 +191,7 @@ export default function ProfilePage() {
             </a>
              <a href={socialLinks?.whatsapp || '#'} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 text-muted-foreground hover:text-primary">
                  <div className="w-12 h-12 flex items-center justify-center bg-slate-100 rounded-full">
-                    <WhatsAppIcon className="h-7 w-7 text-green-500" />
+                    <WhatsAppIcon className="h-7 w-7"/>
                 </div>
                 <span className="text-xs font-medium">WhatsApp</span>
             </a>
@@ -207,7 +210,7 @@ export default function ProfilePage() {
           </CardHeader>
           <CardContent className="divide-y">
              {legalItems.map(item => (
-              <Link href={item.href} key={item.href} className="flex items-center py-4 text-md font-medium">
+              <Link href={item.href} key={item.label} className="flex items-center py-4 text-md font-medium">
                 <Info className="h-5 w-5 mr-4 text-primary" />
                 <span>{item.label}</span>
                 <ChevronRight className="h-5 w-5 ml-auto text-muted-foreground" />
@@ -224,6 +227,7 @@ export default function ProfilePage() {
         <div className="text-center text-xs text-muted-foreground pt-4 space-y-1">
             <p>App Version 1.0.0</p>
             <p>Made with ❤️ In Bharat</p>
+            <p>&copy; 2026 CookieMail. All Rights Reserved.</p>
         </div>
       </main>
     </div>
