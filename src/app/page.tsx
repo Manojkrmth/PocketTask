@@ -127,9 +127,10 @@ export default function HomePage() {
         <div className="flex justify-between items-center mb-4">
           <div className="flex-1 overflow-hidden">
             <p className="text-sm opacity-90">Welcome back,</p>
-            {isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : <h2 className="text-2xl font-bold truncate">{userProfile?.full_name || 'User'}</h2>}
+            <h2 className="text-2xl font-bold truncate">{userProfile?.full_name || 'User'}</h2>
             <p className="text-xs opacity-80 truncate">{user?.email || ''}</p>
             <p className="text-xs opacity-75">ID: {(userProfile?.referral_code || user?.id.substring(0, 8) || '').toUpperCase()}</p>
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : <p className="text-sm font-semibold truncate">{userProfile?.full_name || ''}</p>}
           </div>
           <div className="flex flex-col items-center gap-2">
              <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-white/20 relative" asChild>
