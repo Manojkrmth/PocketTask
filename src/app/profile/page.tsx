@@ -11,6 +11,7 @@ import {
   LogOut,
   Loader2,
   Contact,
+  PlusSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,8 +24,10 @@ import { useEffect, useState } from 'react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/page-header';
+import { Badge } from '@/components/ui/badge';
 
 const menuItems = [
+  { href: '#', icon: PlusSquare, label: 'Post a Task', badge: 'Coming Soon' },
   { href: '#', icon: Edit, label: 'Edit Profile' },
   { href: '/update-password', icon: Lock, label: 'Change Password' },
   { href: '#', icon: Globe, label: 'Currency (INR)' },
@@ -172,6 +175,7 @@ export default function ProfilePage() {
               <Link href={item.href} key={item.label} className="flex items-center py-4 text-md font-medium">
                 <item.icon className="h-5 w-5 mr-4 text-primary" />
                 <span>{item.label}</span>
+                {item.badge && <Badge variant="secondary" className="ml-2">{item.badge}</Badge>}
                 <ChevronRight className="h-5 w-5 ml-auto text-muted-foreground" />
               </Link>
             ))}
