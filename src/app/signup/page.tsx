@@ -53,30 +53,53 @@ export default function SignupPage() {
     
     setIsLoading(true);
 
-    const { data, error } = await supabase.auth.signUp({
+    const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
           full_name: fullName,
-          phone: mobile,
-          referral_code: referralCode || null,
         }
       }
     });
 
-    setIsLoading(false);
-
-    if (error) {
-      console.error("Signup error:", error);
-      setError(error.message);
+    if (authError) {
+      console.error("Signup error:", authError);
+      setError(authError.message);
+      setIsLoading(false);
       return;
     }
 
-    if (data.user && data.user.identities && data.user.identities.length === 0) {
+    if (authData.user) {
+      const { error: insertError } = await supabase
+        .from('users')
+        .insert([
+          { 
+            id: authData.user.id, 
+            email: email,
+            full_name: fullName, 
+            mobile: mobile,
+            referral_code: referralCode || null,
+          }
+        ]);
+
+      if (insertError) {
+        console.error("Supabase insert error:", insertError);
+        setError(`Could not save user profile: ${insertError.message}`);
+        // Optional: delete the authenticated user if profile creation fails
+        await supabase.auth.admin.deleteUser(authData.user.id);
+        setIsLoading(false);
+        return;
+      }
+    }
+
+
+    setIsLoading(false);
+
+    if (authData.user && authData.user.identities && authData.user.identities.length === 0) {
       // This means email confirmation is required.
        setSuccess("Please check your email to confirm your account.");
-    } else if (data.user) {
+    } else if (authData.user) {
       // User is signed up and logged in (e.g. if email confirmation is disabled)
        router.push('/');
     } else {
