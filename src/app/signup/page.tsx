@@ -71,12 +71,13 @@ export default function SignupPage() {
 
       // 2. Since you're using Supabase, you would make an API call here to save user data.
       // For example:
-      // await supabase.from('users').insert([{ 
+      // const { data, error } = await supabase.from('users').insert([{ 
       //   id: user.uid, 
       //   email: user.email, 
       //   full_name: fullName, 
       //   mobile: mobile 
       // }]);
+      // if (error) throw error;
       
       console.log('User created in Firebase. Now you should save user data to Supabase.');
       
