@@ -285,8 +285,8 @@ export default function HomePage() {
 
             <div className="group block relative" onClick={handleComingSoon}>
               <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-400 to-pink-400 rounded-lg blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
-              <Card className="relative p-4 flex items-center gap-4 h-full bg-white transition-all duration-200 group-hover:scale-105">
-                <Badge variant="destructive" className="absolute top-2 right-2 text-xs">Soon</Badge>
+              <Card className="relative p-4 flex items-center gap-4 h-full bg-white transition-all duration-200 group-hover:scale-105 overflow-visible">
+                <Badge variant="destructive" className="absolute -top-2 -right-2 text-xs">Soon</Badge>
                 <div className="p-3 bg-white/80 backdrop-blur-sm rounded-full shadow-md">
                   <ShoppingCart className="h-6 w-6 text-purple-500" />
                 </div>
@@ -299,8 +299,8 @@ export default function HomePage() {
 
             <div className="group block relative" onClick={handleComingSoon}>
               <div className="absolute -inset-0.5 bg-gradient-to-r from-teal-400 to-cyan-400 rounded-lg blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
-              <Card className="relative p-4 flex items-center gap-4 h-full bg-white transition-all duration-200 group-hover:scale-105">
-                 <Badge variant="destructive" className="absolute top-2 right-2 text-xs">Soon</Badge>
+              <Card className="relative p-4 flex items-center gap-4 h-full bg-white transition-all duration-200 group-hover:scale-105 overflow-visible">
+                 <Badge variant="destructive" className="absolute -top-2 -right-2 text-xs">Soon</Badge>
                 <div className="p-3 bg-white/80 backdrop-blur-sm rounded-full shadow-md">
                   <Phone className="h-6 w-6 text-teal-600" />
                 </div>
@@ -392,3 +392,4 @@ export default function HomePage() {
     
 
     
+
