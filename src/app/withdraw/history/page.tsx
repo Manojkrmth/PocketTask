@@ -55,8 +55,9 @@ export default function WithdrawHistoryPage() {
         
         if (error) {
             console.error("Error fetching withdrawal history:", error);
+            setHistory([]);
         } else {
-            setHistory(data);
+            setHistory(data || []);
         }
         setIsHistoryLoading(false);
     };
