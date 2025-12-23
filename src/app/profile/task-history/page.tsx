@@ -1,0 +1,328 @@
+'use client';
+
+import { useState, useMemo } from 'react';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { ListFilter, Loader2, CheckCircle2, XCircle, Hourglass } from "lucide-react";
+import { cn } from '@/lib/utils';
+import { PageHeader } from '@/components/page-header';
+import { useCurrency } from '@/context/currency-context';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { supabase } from '@/lib/supabase';
+import type { User } from '@supabase/supabase-js';
+import { useEffect } from 'react';
+
+const ITEMS_PER_PAGE = 10;
+type Status = 'Approved' | 'Pending' | 'Rejected';
+
+function TaskSubmissions() {
+  const [statusFilters, setStatusFilters] = useState<Status[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [taskHistory, setTaskHistory] = useState<any[]>([]);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
+  
+  const [visibleItems, setVisibleItems] = useState(ITEMS_PER_PAGE);
+  const { formatCurrency } = useCurrency();
+
+  useEffect(() => {
+    const fetchUserAndTasks = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+            setUser(session.user);
+            const { data, error } = await supabase
+                .from('userTasks')
+                .select('*')
+                .eq('userId', session.user.id)
+                .order('submissionTime', { ascending: false });
+            
+            if (error) {
+                console.error("Error fetching task history:", error);
+            } else {
+                setTaskHistory(data || []);
+            }
+        }
+        setIsHistoryLoading(false);
+    };
+    fetchUserAndTasks();
+  }, []);
+  
+  const filteredTasks = useMemo(() => {
+     if (!taskHistory) return [];
+     return statusFilters.length > 0 
+      ? taskHistory.filter((task: any) => statusFilters.includes(task.status as Status)) 
+      : taskHistory
+  }, [taskHistory, statusFilters]);
+
+  const currentTasks = useMemo(() => filteredTasks.slice(0, visibleItems), [filteredTasks, visibleItems]);
+  const canLoadMore = visibleItems < filteredTasks.length;
+
+  const toggleFilter = (status: Status) => {
+    setVisibleItems(ITEMS_PER_PAGE);
+    setStatusFilters(prev => 
+      prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
+    );
+  };
+  
+  const formatDate = (date: any) => {
+    if (!date) return 'N/A';
+    return new Date(date).toLocaleString();
+  }
+
+  const loadMore = () => {
+    setVisibleItems(prev => prev + ITEMS_PER_PAGE);
+  };
+  
+  return (
+      <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>My Submissions</CardTitle>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 gap-1">
+                  <ListFilter className="h-3.5 w-3.5" />
+                  <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Filter</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Filter by status</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuCheckboxItem checked={statusFilters.includes('Approved')} onCheckedChange={() => toggleFilter('Approved')}>Approved</DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem checked={statusFilters.includes('Pending')} onCheckedChange={() => toggleFilter('Pending')}>Pending</DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem checked={statusFilters.includes('Rejected')} onCheckedChange={() => toggleFilter('Rejected')}>Rejected</DropdownMenuCheckboxItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Gmail ID</TableHead>
+                  <TableHead>Reward</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Submitted At</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isHistoryLoading && <TableRow><TableCell colSpan={4} className="h-24 text-center"><div className="flex justify-center items-center gap-2"><Loader2 className="h-6 w-6 animate-spin"/> Loading...</div></TableCell></TableRow>}
+                {!isHistoryLoading && currentTasks.map((task: any, index: number) => (
+                  <TableRow key={task.id}>
+                    <TableCell><div className="font-medium">{task.gmail}</div></TableCell>
+                    <TableCell><div className="font-medium text-green-600">{task.reward ? formatCurrency(task.reward) : 'N/A'}</div></TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={cn(
+                          task.status === "Approved" && "bg-green-100 text-green-800 border-green-200",
+                          task.status === "Pending" && "bg-yellow-100 text-yellow-800 border-yellow-200",
+                          task.status === "Rejected" && "bg-red-100 text-red-800 border-red-200"
+                        )}>{task.status}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-medium text-xs">{formatDate(task.submissionTime)}</TableCell>
+                  </TableRow>
+                ))}
+                {!isHistoryLoading && (!currentTasks || currentTasks.length === 0) && (
+                  <TableRow><TableCell colSpan={4} className="text-center py-10 text-muted-foreground h-24">No tasks found for the selected filters.</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+             {canLoadMore && (
+              <div className="pt-4 flex justify-center">
+                <Button onClick={loadMore} variant="outline">Load More</Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+  )
+}
+
+function CoinSubmissions() {
+    const [user, setUser] = useState<User | null>(null);
+    const [coinHistory, setCoinHistory] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    const { formatCurrency } = useCurrency();
+    const [visibleItems, setVisibleItems] = useState(ITEMS_PER_PAGE);
+
+    useEffect(() => {
+        const fetchUserAndSubmissions = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if(session){
+                setUser(session.user);
+                const { data, error } = await supabase
+                    .from('coinSubmissions')
+                    .select('*')
+                    .eq('userId', session.user.id)
+                    .order('submissionTime', { ascending: false });
+
+                if (error) {
+                    console.error("Error fetching coin history:", error);
+                } else {
+                    setCoinHistory(data || []);
+                }
+            }
+            setIsLoading(false);
+        };
+        fetchUserAndSubmissions();
+    }, []);
+
+    const currentItems = useMemo(() => coinHistory?.slice(0, visibleItems) || [], [coinHistory, visibleItems]);
+    const canLoadMore = visibleItems < (coinHistory?.length || 0);
+
+    const loadMore = () => {
+        setVisibleItems(prev => prev + ITEMS_PER_PAGE);
+    };
+
+    const formatDate = (date: any) => {
+        if (!date) return 'N/A';
+        return new Date(date).toLocaleString();
+    }
+    
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>My Coin Submissions</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Order ID</TableHead>
+                            <TableHead>Type</TableHead>
+                            <TableHead>Reward</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Date</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {isLoading && <TableRow><TableCell colSpan={5} className="h-24 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin"/></TableCell></TableRow>}
+                        {!isLoading && currentItems.map((item: any) => (
+                            <TableRow key={item.id}>
+                                <TableCell className="font-mono text-xs">{item.orderId}</TableCell>
+                                <TableCell className="font-medium capitalize">{item.coinType} Coin</TableCell>
+                                <TableCell className="font-bold text-green-600">{formatCurrency(item.rewardInr)}</TableCell>
+                                <TableCell>
+                                    <Badge variant="outline" className={cn(
+                                        item.status === "Approved" && "bg-green-100 text-green-800 border-green-200",
+                                        item.status === "Pending" && "bg-yellow-100 text-yellow-800 border-yellow-200",
+                                        item.status === "Rejected" && "bg-red-100 text-red-800 border-red-200"
+                                    )}>{item.status}</Badge>
+                                </TableCell>
+                                <TableCell className="text-right text-xs">{formatDate(item.submissionTime)}</TableCell>
+                            </TableRow>
+                        ))}
+                        {!isLoading && currentItems.length === 0 && (
+                            <TableRow><TableCell colSpan={5} className="h-24 text-center text-muted-foreground">No coin submissions found.</TableCell></TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+                {canLoadMore && (
+                    <div className="pt-4 flex justify-center">
+                        <Button onClick={loadMore} variant="outline">Load More</Button>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
+export default function TaskHistoryPage() {
+    const [user, setUser] = useState<User | null>(null);
+    const [userProfile, setUserProfile] = useState<any>(null);
+    const [isProfileLoading, setIsProfileLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchUserProfile = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if(session){
+                setUser(session.user);
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('tasksApproved, tasksPending, tasksRejected')
+                    .eq('id', session.user.id)
+                    .single();
+
+                if (error && error.code !== 'PGRST116') {
+                    console.error("Error fetching user profile for stats:", error);
+                } else {
+                    setUserProfile(data);
+                }
+            }
+            setIsProfileLoading(false);
+        };
+        fetchUserProfile();
+    }, []);
+
+    const isLoading = isProfileLoading;
+
+    return (
+    <div className="min-h-screen">
+       <PageHeader title="Submission History" description="Review your past submissions" />
+
+      <main className="p-4 space-y-4">
+        
+        <div className="grid grid-cols-3 gap-4 mb-4">
+            <Card className="bg-green-50 border-green-200">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-green-800">Approved</CardTitle>
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold text-green-900">{isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : userProfile?.tasksApproved || 0}</div>
+                </CardContent>
+            </Card>
+            <Card className="bg-yellow-50 border-yellow-200">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-yellow-800">Pending</CardTitle>
+                    <Hourglass className="h-4 w-4 text-yellow-600" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold text-yellow-900">{isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : userProfile?.tasksPending || 0}</div>
+                </CardContent>
+            </Card>
+            <Card className="bg-red-50 border-red-200">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-red-800">Rejected</CardTitle>
+                    <XCircle className="h-4 w-4 text-red-600" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold text-red-900">{isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : userProfile?.tasksRejected || 0}</div>
+                </CardContent>
+            </Card>
+        </div>
+        
+        <Tabs defaultValue="tasks" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="tasks">Task Submissions</TabsTrigger>
+                <TabsTrigger value="coins">Coin Submissions</TabsTrigger>
+            </TabsList>
+            <TabsContent value="tasks" className="mt-4">
+                <TaskSubmissions />
+            </TabsContent>
+            <TabsContent value="coins" className="mt-4">
+                <CoinSubmissions />
+            </TabsContent>
+        </Tabs>
+      </main>
+    </div>
+  );
+}
