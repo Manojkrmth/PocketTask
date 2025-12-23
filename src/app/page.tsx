@@ -12,9 +12,12 @@ import {
   Rocket,
   Users,
   Copy,
+  ShoppingCart,
+  Phone,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { WhatsAppIcon, TelegramIcon } from '@/components/icons';
 import { ShareReferralDialog } from '@/components/share-referral-dialog';
@@ -148,7 +151,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col min-h-screen bg-background">
       <header className="bg-primary/90 p-4 rounded-b-3xl text-primary-foreground relative shadow-lg">
         <div className="flex justify-between items-start mb-4">
           <div className="flex items-center gap-3">
@@ -272,6 +275,35 @@ export default function HomePage() {
                   </Card>
                 </div>
             </ShareReferralDialog>
+
+            <div className="group block relative cursor-not-allowed">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-400 to-pink-400 rounded-lg blur opacity-50"></div>
+              <Card className="relative p-4 flex items-center gap-4 h-full bg-white opacity-80">
+                <div className="p-3 bg-white/80 backdrop-blur-sm rounded-full shadow-md">
+                  <ShoppingCart className="h-6 w-6 text-purple-500" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-md text-gray-700">Shop</h4>
+                  <p className="text-xs text-gray-500">Explore products</p>
+                </div>
+                <Badge variant="secondary" className="absolute top-2 right-2">Coming Soon</Badge>
+              </Card>
+            </div>
+
+            <div className="group block relative cursor-not-allowed">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-teal-400 to-cyan-400 rounded-lg blur opacity-50"></div>
+              <Card className="relative p-4 flex items-center gap-4 h-full bg-white opacity-80">
+                <div className="p-3 bg-white/80 backdrop-blur-sm rounded-full shadow-md">
+                  <Phone className="h-6 w-6 text-teal-600" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-md text-gray-700">Contact Us</h4>
+                  <p className="text-xs text-gray-500">Get support</p>
+                </div>
+                <Badge variant="secondary" className="absolute top-2 right-2">Coming Soon</Badge>
+              </Card>
+            </div>
+
           </div>
         </div>
 
