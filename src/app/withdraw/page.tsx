@@ -31,6 +31,7 @@ import {
 import { useCurrency } from '@/context/currency-context';
 import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
+import { PageHeader } from '@/components/page-header';
 
 export default function WithdrawPage() {
   const { toast } = useToast();
@@ -206,16 +207,7 @@ export default function WithdrawPage() {
 
   return (
     <div>
-       <header className="bg-primary/90 p-4 text-primary-foreground text-center font-bold rounded-b-xl shadow-md sticky top-0 z-10 flex justify-between items-center">
-        <div className="w-10"></div>
-        <h1 className="text-xl">Withdraw</h1>
-        <Button variant="ghost" size="icon" asChild className="text-primary-foreground hover:bg-white/20">
-          <Link href="/withdraw/history">
-            <History className="h-5 w-5"/>
-            <span className="sr-only">Wallet History</span>
-          </Link>
-        </Button>
-      </header>
+       <PageHeader title="Withdraw" />
 
       <main className="p-4">
         <div className="grid grid-cols-2 gap-4 mb-6">
@@ -366,5 +358,3 @@ export default function WithdrawPage() {
     </div>
   );
 }
-
-    
