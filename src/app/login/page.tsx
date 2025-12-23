@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
 import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { supabase } from '@/lib/supabase';
@@ -46,7 +46,7 @@ export default function LoginPage() {
 
       const { error: sessionError } = await supabase.auth.setSession({
         access_token: idToken,
-        refresh_token: 'dummy-refresh-token',
+        refresh_token: idToken,
       });
 
       if (sessionError) {
@@ -62,7 +62,7 @@ export default function LoginPage() {
       if (errorCode === 'auth/user-not-found' || errorCode === 'auth/wrong-password' || errorCode === 'auth/invalid-credential') {
         errorMessage = 'Invalid credentials. Please try again.';
       } else if (error.message.includes('Supabase')) {
-        errorMessage = 'Could not sync session. Please try again.';
+        errorMessage = `Could not sync session. ${error.message}`;
       } else {
         errorMessage = 'An unknown login error occurred.';
       }
