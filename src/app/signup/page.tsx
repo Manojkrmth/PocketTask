@@ -76,7 +76,6 @@ export default function SignupPage() {
       // 3. Set the session for the Supabase client
       const { error: sessionError } = await supabase.auth.setSession({
         access_token: idToken,
-        refresh_token: idToken, // Pass the same token for simplicity as Firebase manages refresh
       });
 
       if (sessionError) {
