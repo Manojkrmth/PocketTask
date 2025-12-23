@@ -182,4 +182,22 @@ body {
   .animate-tilt {
     animation: tilt 10s infinite linear;
   }
+  
+  @property --angle {
+    syntax: "<angle>";
+    initial-value: 0deg;
+    inherits: false;
+  }
+
+  @keyframes border-spin {
+    to {
+      --angle: 360deg;
+    }
+  }
+
+  .animate-border-spin {
+    --angle: 0deg;
+    border-image: conic-gradient(from var(--angle), hsl(var(--primary) / 0.8), hsl(var(--accent) / 0.6) 50%, hsl(var(--primary) / 0.8)) 1;
+    animation: border-spin 4s linear infinite;
+  }
 }

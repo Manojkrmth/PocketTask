@@ -48,17 +48,18 @@ export function BottomNav() {
         if (isTasksButton) {
           return (
             <div key={item.href} className="relative flex justify-center -translate-y-3">
-              <div className="absolute -inset-1.5 bg-gradient-to-r from-orange-400 to-yellow-400 rounded-full blur-sm animate-spin" style={{ animationDuration: '4s' }} />
-              <Link
-                href={item.href}
-                className={cn(
-                  "relative flex flex-col items-center justify-center gap-1 p-2 transition-colors duration-200 group rounded-full h-16 w-16",
-                  "bg-orange-500 text-white shadow-lg"
-                )}
-              >
-                <item.icon className="w-7 h-7 transition-transform group-hover:scale-110" />
-                <span className="text-xs font-bold">{item.label}</span>
-              </Link>
+              <div className="relative h-16 w-16 p-1 rounded-full bg-transparent animate-border-spin">
+                 <Link
+                    href={item.href}
+                    className={cn(
+                      "relative flex flex-col items-center justify-center gap-1 p-2 transition-colors duration-200 group rounded-full h-full w-full",
+                      "bg-orange-500 text-white shadow-lg"
+                    )}
+                  >
+                    <item.icon className="w-7 h-7 transition-transform group-hover:scale-110" />
+                    <span className="text-xs font-bold">{item.label}</span>
+                  </Link>
+              </div>
             </div>
           );
         }
