@@ -148,7 +148,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50 pb-16">
+    <div className="flex flex-col min-h-screen bg-gray-50">
       <header className="bg-primary/90 p-4 rounded-b-3xl text-primary-foreground relative shadow-lg">
         <div className="flex justify-between items-start mb-4">
           <div className="flex items-center gap-3">

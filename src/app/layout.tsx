@@ -23,9 +23,11 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <CurrencyProvider>
-          {children}
+          <main className="max-w-md mx-auto bg-background min-h-screen relative pb-24 shadow-2xl">
+            {children}
+            <BottomNav />
+          </main>
         </CurrencyProvider>
-        <BottomNav />
         <Toaster />
       </body>
     </html>
