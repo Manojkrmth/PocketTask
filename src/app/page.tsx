@@ -282,7 +282,7 @@ export default function HomePage() {
                 <div className="p-3 bg-white/80 backdrop-blur-sm rounded-full shadow-md">
                   <ShoppingCart className="h-6 w-6 text-purple-500" />
                 </div>
-                <div>
+                <div className="flex-1">
                   <h4 className="font-semibold text-md text-gray-700">Shop</h4>
                   <p className="text-xs text-gray-500">Explore products</p>
                 </div>
@@ -296,7 +296,7 @@ export default function HomePage() {
                 <div className="p-3 bg-white/80 backdrop-blur-sm rounded-full shadow-md">
                   <Phone className="h-6 w-6 text-teal-600" />
                 </div>
-                <div>
+                <div className="flex-1">
                   <h4 className="font-semibold text-md text-gray-700">Contact Us</h4>
                   <p className="text-xs text-gray-500">Get support</p>
                 </div>
@@ -365,5 +365,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-    
