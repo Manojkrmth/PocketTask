@@ -1,26 +1,43 @@
-
 'use client';
 
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
+
+export type Currency = 'INR' | 'USD';
 
 interface CurrencyContextType {
+  currency: Currency;
+  setCurrency: (currency: Currency) => void;
   formatCurrency: (value: number) => string;
+  usdToInrRate: number;
 }
 
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
 
 export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
-  const formatCurrency = (value: number) => {
-    // You can make this more dynamic based on user settings in the future
-    return new Intl.NumberFormat('en-IN', {
+  const [currency, setCurrency] = useState<Currency>('INR');
+  
+  // In a real app, this would be fetched from a backend
+  const usdToInrRate = 85; 
+
+  const formatCurrency = useCallback((value: number) => {
+    let displayValue = value;
+    let currencyCode = 'INR';
+
+    if (currency === 'USD') {
+      displayValue = value / usdToInrRate;
+      currencyCode = 'USD';
+    }
+    
+    return new Intl.NumberFormat(currency === 'INR' ? 'en-IN' : 'en-US', {
       style: 'currency',
-      currency: 'INR',
+      currency: currencyCode,
       minimumFractionDigits: 2,
-    }).format(value);
-  };
+    }).format(displayValue);
+
+  }, [currency, usdToInrRate]);
 
   return (
-    <CurrencyContext.Provider value={{ formatCurrency }}>
+    <CurrencyContext.Provider value={{ currency, setCurrency, formatCurrency, usdToInrRate }}>
       {children}
     </CurrencyContext.Provider>
   );

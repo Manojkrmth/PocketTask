@@ -28,6 +28,7 @@ import { Badge } from '@/components/ui/badge';
 
 const menuItems = [
   { href: '/profile/edit', icon: Edit, label: 'Edit Profile' },
+  { href: '/profile/currency', icon: Globe, label: 'Currency' },
   { href: '/update-password', icon: Lock, label: 'Change Password' },
 ];
 
@@ -179,6 +180,12 @@ export default function ProfilePage() {
                 <ChevronRight className="h-5 w-5 ml-auto text-muted-foreground" />
               </Link>
             ))}
+             <div className="flex items-center py-4 text-md font-medium">
+                <PlusSquare className="h-5 w-5 mr-4 text-primary" />
+                <span className="flex-1">Post a Task</span>
+                 <Badge variant="destructive" className="text-xs mr-2">Soon</Badge>
+                <ChevronRight className="h-5 w-5 ml-auto text-muted-foreground" />
+            </div>
           </CardContent>
         </Card>
 
