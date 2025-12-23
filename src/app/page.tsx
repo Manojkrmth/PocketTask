@@ -152,10 +152,8 @@ export default function HomePage() {
       <header className="bg-primary/90 p-4 rounded-b-3xl text-primary-foreground relative shadow-lg">
         <div className="flex justify-between items-start mb-4">
           <div className="flex items-center gap-3">
-             <Avatar className="h-12 w-12 border-2 border-white/50">
-                <AvatarFallback className="bg-primary/80 text-lg font-bold">
-                    {getInitials(userProfile?.full_name, user?.email)}
-                </AvatarFallback>
+             <Avatar className="h-12 w-12 border-2 border-white/50 flex items-center justify-center bg-primary/80">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
             </Avatar>
             <div className="flex-1 overflow-hidden">
               <p className="text-md font-semibold opacity-95">Welcome back</p>
@@ -182,9 +180,6 @@ export default function HomePage() {
                     <p className="text-xs font-medium text-white/80">Referral ID</p>
                     <p className="text-lg font-mono font-bold tracking-wider">{referralCode}</p>
                 </div>
-                <Button variant="ghost" size="icon" className="text-white/80 hover:bg-white/20 hover:text-white" onClick={copyReferralCode}>
-                    <Copy className="h-5 w-5"/>
-                </Button>
             </div>
         </Card>
 
