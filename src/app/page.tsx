@@ -18,7 +18,7 @@ import { WhatsAppIcon, TelegramIcon } from '@/components/icons';
 import { ShareReferralDialog } from '@/components/share-referral-dialog';
 import { InstallPWAButton } from '@/components/install-pwa-button';
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
-import Autoplay from "embla-carousel-react";
+import Autoplay from "embla-carousel-autoplay";
 import * as React from 'react';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
@@ -224,7 +224,7 @@ export default function HomePage() {
                     opts={{
                         loop: true,
                     }}
-                    plugins={autoplay.current ? [autoplay.current] : []}
+                    plugins={[autoplay.current]}
                     className="w-full"
                 >
                     <CarouselContent>
