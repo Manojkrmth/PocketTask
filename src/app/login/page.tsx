@@ -12,12 +12,6 @@ import { supabase } from '@/lib/supabase';
 import { LoadingScreen } from '@/components/loading-screen';
 import { GoogleIcon } from '@/components/icons';
 
-const SUPER_ADMINS = [
-  'manojmukhiyamth@gmail.com',
-  'nishakrmth2004@gmail.com',
-  'anishamukhiya2004@gmail.com'
-];
-
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -30,11 +24,7 @@ export default function LoginPage() {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
-        if (SUPER_ADMINS.includes(session.user.email ?? '')) {
-            router.push('/cmadmin/dashboard');
-        } else {
-            router.push('/');
-        }
+        router.push('/');
       } else {
         setAuthLoading(false);
       }
@@ -43,11 +33,7 @@ export default function LoginPage() {
     const checkSession = async () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-             if (SUPER_ADMINS.includes(session.user.email ?? '')) {
-                router.push('/cmadmin/dashboard');
-            } else {
-                router.push('/');
-            }
+            router.push('/');
         } else {
             setAuthLoading(false);
         }
@@ -71,11 +57,7 @@ export default function LoginPage() {
       console.error("Login error:", error);
       setError(error.message || 'An unknown login error occurred.');
     } else if (data.user) {
-        if (SUPER_ADMINS.includes(data.user.email ?? '')) {
-            router.push('/cmadmin/dashboard');
-        } else {
-            router.push('/');
-        }
+        router.push('/');
     }
     
     setIsLoading(false);
