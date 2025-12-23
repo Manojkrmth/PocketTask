@@ -121,7 +121,7 @@ export default function WithdrawHistoryPage() {
 
   return (
     <div className="min-h-screen">
-       <PageHeader title="Withdrawal History" description="Review your past payment requests" />
+       <PageHeader title="Wallet History" description="Review your past payment requests" />
 
       <main className="p-4 space-y-4">
 
