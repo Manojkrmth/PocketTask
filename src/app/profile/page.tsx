@@ -105,6 +105,21 @@ export default function ProfilePage() {
       }
   });
 
+  const fetchProfileData = async (sessionUser: SupabaseUser) => {
+    const { data: profile, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', sessionUser.id)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      console.error('Error fetching profile:', error);
+    } else {
+      setUserProfile(profile);
+    }
+  };
+
+
   useEffect(() => {
       const checkSession = async () => {
           setIsLoading(true);
@@ -114,19 +129,7 @@ export default function ProfilePage() {
               return;
           }
           setUser(session.user);
-          
-          const { data: profile, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-
-          if (error && error.code !== 'PGRST116') {
-             console.error('Error fetching profile:', error);
-          } else {
-             setUserProfile(profile);
-          }
-
+          await fetchProfileData(session.user);
           setIsLoading(false);
       };
       checkSession();
@@ -156,7 +159,7 @@ export default function ProfilePage() {
                   <p className="text-sm text-muted-foreground mb-3">
                       Were you referred by a friend? Add their code here to join their team.
                   </p>
-                  <AddReferralDialog />
+                  <AddReferralDialog onFinished={() => user && fetchProfileData(user)} />
                </CardContent>
              </Card>
           ) : (

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -50,7 +50,7 @@ function ReferrerName({ userId, onData }: { userId: string, onData: (name: strin
     return <span className="font-bold text-lg text-primary">{name}</span>;
 }
 
-export function AddReferralDialog({ onFinished }: { onFinished: () => void }) {
+export function AddReferralDialog({ onFinished }: { onFinished?: () => void }) {
     const [referralCode, setReferralCode] = useState('');
     const [isVerifying, startVerifying] = useTransition();
     const [isConfirming, startConfirming] = useTransition();
@@ -117,7 +117,9 @@ export function AddReferralDialog({ onFinished }: { onFinished: () => void }) {
             } else {
                  toast({ title: 'Success!', description: `Your referral has been added.` });
                  setIsOpen(false);
-                 onFinished();
+                 if (onFinished) {
+                    onFinished();
+                 }
             }
         });
     }
