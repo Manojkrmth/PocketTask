@@ -121,9 +121,11 @@ export default function LoginPage() {
             </Link>
           </p>
           
-        <p className="mt-12 text-center text-sm text-neutral-500">
-            Made with ❤️ in Bharat
-        </p>
+        <div className="mt-12 w-full overflow-hidden">
+          <p className="text-center text-sm text-neutral-500 animate-slide-in-out">
+              Made with ❤️ in Bharat
+          </p>
+        </div>
       </div>
     </div>
   );

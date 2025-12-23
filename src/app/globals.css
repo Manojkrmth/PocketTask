@@ -103,6 +103,21 @@ body {
     animation: pulse-background 10s ease-in-out infinite;
   }
 
+  @keyframes pulse-background-fast {
+    0%, 100% {
+      background-size: 100% 100%;
+      background-position: center top;
+    }
+    50% {
+      background-size: 120% 120%;
+      background-position: center bottom;
+    }
+  }
+
+  .animate-pulse-background-fast {
+    animation: pulse-background-fast 5s ease-in-out infinite;
+  }
+  
   @keyframes tricolor-spin {
     0% {
       transform: rotate(0deg);
@@ -114,5 +129,22 @@ body {
 
   .animate-tricolor-spin {
     animation: tricolor-spin 1.5s linear infinite;
+  }
+
+  @keyframes slide-in-out {
+    0%, 100% {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    10%, 90% {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  .animate-slide-in-out {
+    display: inline-block;
+    white-space: nowrap;
+    animation: slide-in-out 10s linear infinite;
   }
 }
