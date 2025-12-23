@@ -98,12 +98,12 @@ export function InstallPWAButton() {
     <Dialog open={showInstructions} onOpenChange={setShowInstructions}>
        <Button
         variant="ghost"
-        size="icon"
-        className="text-primary-foreground hover:bg-white/20 h-9 w-9"
+        size="sm"
+        className="h-8 gap-1 w-full text-primary-foreground hover:bg-white/20 hover:text-primary-foreground border border-white/50 rounded-md"
         onClick={handleInstallClick}
-        title="Install App"
       >
-        <Download className="h-5 w-5" />
+        <Download className="h-4 w-4" />
+        <span>Install App</span>
       </Button>
 
       <DialogContent className="max-w-sm bg-white text-gray-900">

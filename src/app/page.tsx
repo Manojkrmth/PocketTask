@@ -160,7 +160,7 @@ export default function HomePage() {
               <p className="text-sm font-medium truncate">{userProfile?.full_name || user?.email}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col items-end gap-2">
              <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-white/20 relative h-9 w-9" asChild>
               <Link href="#">
                 <Bell className="h-5 w-5" />
