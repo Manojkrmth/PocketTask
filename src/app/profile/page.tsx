@@ -34,9 +34,9 @@ const menuItems = [
 ];
 
 const legalItems = [
-  { href: '#', label: 'Disclaimer' },
-  { href: '#', label: 'Privacy Policy' },
-  { href: '#', label: 'Terms & Conditions' },
+  { href: '/disclaimer', label: 'Disclaimer' },
+  { href: '/privacy', label: 'Privacy Policy' },
+  { href: '/terms', label: 'Terms & Conditions' },
 ];
 
 function ReferrerInfoCard({ referralCode }: { referralCode: string }) {
