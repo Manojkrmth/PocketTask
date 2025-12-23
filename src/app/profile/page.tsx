@@ -30,7 +30,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 
 const menuItems = [
-  { href: '/profile/task-history', icon: History, label: 'Task History', comingSoon: true },
+  { href: '/profile/task-history', icon: History, label: 'Task History' },
   { href: '/withdraw/history', icon: Wallet, label: 'Wallet History' },
   { href: '/profile/edit', icon: Edit, label: 'Edit Profile' },
   { href: '/profile/currency', icon: Globe, label: 'Currency' },
@@ -147,7 +147,7 @@ export default function ProfilePage() {
     router.push('/login');
   }
 
-  const handleComingSoon = (e: React.MouseEvent, href: string) => {
+  const handleComingSoon = (e: React.MouseEvent) => {
     e.preventDefault();
     toast({
       title: "Coming Soon!",
@@ -187,31 +187,14 @@ export default function ProfilePage() {
             <CardTitle>Account</CardTitle>
           </CardHeader>
           <CardContent className="divide-y">
-            {menuItems.map(item => {
-              const linkContent = (
-                <div className="flex items-center py-4 text-md font-medium">
-                  <item.icon className="h-5 w-5 mr-4 text-primary" />
-                  <span className="flex-1">{item.label}</span>
-                  {item.comingSoon && <Badge variant="destructive" className="text-xs mr-2">Soon</Badge>}
-                  <ChevronRight className="h-5 w-5 ml-auto text-muted-foreground" />
-                </div>
-              );
-
-              if (item.comingSoon) {
-                return (
-                  <div key={item.label} onClick={(e: any) => handleComingSoon(e, item.href)} className="cursor-pointer">
-                    {linkContent}
-                  </div>
-                );
-              }
-              
-              return (
-                 <Link href={item.href} key={item.label}>
-                    {linkContent}
-                 </Link>
-              );
-            })}
-             <div className="flex items-center py-4 text-md font-medium" onClick={(e: any) => handleComingSoon(e, '#')}>
+            {menuItems.map(item => (
+              <Link href={item.href} key={item.label} className="flex items-center py-4 text-md font-medium">
+                <item.icon className="h-5 w-5 mr-4 text-primary" />
+                <span className="flex-1">{item.label}</span>
+                <ChevronRight className="h-5 w-5 ml-auto text-muted-foreground" />
+              </Link>
+            ))}
+             <div className="flex items-center py-4 text-md font-medium" onClick={handleComingSoon}>
                 <PlusSquare className="h-5 w-5 mr-4 text-primary" />
                 <span className="flex-1">Post a Task</span>
                  <Badge variant="destructive" className="text-xs mr-2">Soon</Badge>
