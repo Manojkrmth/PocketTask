@@ -170,16 +170,16 @@ export default function HomePage() {
                 </span>
               </Link>
             </Button>
-            <InstallPWAButton />
           </div>
         </div>
 
         <Card className="bg-white/10 border-0 p-3">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center gap-2">
                 <div>
                     <p className="text-xs font-medium text-white/80">Referral ID</p>
                     <p className="text-lg font-mono font-bold tracking-wider">{referralCode}</p>
                 </div>
+                <InstallPWAButton />
             </div>
         </Card>
 

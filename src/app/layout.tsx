@@ -10,13 +10,15 @@ import { Suspense } from 'react';
 function NavWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAuthPage = ['/login', '/signup', '/forgot-password', '/update-password'].includes(pathname);
-  // A simple check to see if we're on the root loading component.
-  const isLoading = pathname === '/';
-
+  
   return (
     <>
       {children}
-      {!isAuthPage && <BottomNav />}
+      {!isAuthPage && (
+        <Suspense fallback={null}>
+          <BottomNav />
+        </Suspense>
+      )}
     </>
   );
 }
