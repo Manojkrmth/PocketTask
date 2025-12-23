@@ -1,10 +1,15 @@
 'use client';
 
 import Image from 'next/image';
+import { cn } from "@/lib/utils";
 
 export function LoadingScreen() {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className={cn(
+          "flex min-h-screen items-center justify-center",
+          "bg-gradient-to-br from-gray-900 via-gray-800 to-neutral-900",
+          "text-white"
+        )}>
         <div className="flex flex-col items-center gap-4 text-center">
             <div className="relative h-20 w-20">
                 <div className="absolute inset-0 bg-primary rounded-full animate-ping opacity-75"></div>
