@@ -10,7 +10,6 @@ import { useRouter } from 'next/navigation';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import { setSupabaseAuthToken } from '@/lib/supabase';
 import { LoadingScreen } from '@/components/loading-screen';
 
 export default function LoginPage() {
@@ -25,11 +24,10 @@ export default function LoginPage() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        const idToken = await user.getIdToken();
-        await setSupabaseAuthToken(idToken);
+        // The onAuthStateChanged listener will handle the redirect after login
+        // The new Supabase client configuration handles auth automatically.
         router.push('/');
       } else {
-        await setSupabaseAuthToken(null);
         setAuthLoading(false);
       }
     });
@@ -42,14 +40,8 @@ export default function LoginPage() {
     setError(null);
     
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-      
-      const idToken = await user.getIdToken();
-      await setSupabaseAuthToken(idToken);
-
-      // The onAuthStateChanged listener will handle the redirect
-      // router.push('/'); 
+      await signInWithEmailAndPassword(auth, email, password);
+      // The onAuthStateChanged listener will handle the redirect and Supabase session
     } catch (error: any) {
       console.error("Login error:", error);
       const errorCode = error.code;

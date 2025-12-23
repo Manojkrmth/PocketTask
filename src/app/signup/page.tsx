@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { createUserWithEmailAndPassword, deleteUser } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import { supabase, setSupabaseAuthToken } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 
 export default function SignupPage() {
@@ -59,10 +59,10 @@ export default function SignupPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       user = userCredential.user;
 
-      const idToken = await user.getIdToken();
-      await setSupabaseAuthToken(idToken);
+      // The new Supabase client configuration handles auth automatically.
+      // No need to call setSession or setSupabaseAuthToken anymore.
       
-      const { error: supabaseError } = await supabase.from('users').insert({ 
+      const { data: supabaseData, error: supabaseError } = await supabase.from('users').insert({ 
         id: user.uid, 
         email: user.email, 
         full_name: fullName, 
@@ -72,22 +72,27 @@ export default function SignupPage() {
         balance_available: 0,
         balance_hold: 0,
         status: 'Active',
-      });
+      }).select();
 
       if (supabaseError) {
         throw new Error(`Supabase insert error: ${supabaseError.message}`);
       }
       
-      console.log('User created in Firebase and data saved to Supabase.');
+      console.log('User created in Firebase and data saved to Supabase:', supabaseData);
       
       router.push('/');
 
     } catch (error: any) {
         console.error("Signup error:", error);
 
+        // If Supabase insert fails, delete the Firebase user to prevent orphaned accounts
         if (auth.currentUser) {
-           await deleteUser(auth.currentUser);
-           console.log("Cleaned up Firebase user due to Supabase error.");
+           try {
+                await deleteUser(auth.currentUser);
+                console.log("Cleaned up Firebase user due to an error during signup process.");
+           } catch (deleteError) {
+                console.error("Failed to clean up Firebase user:", deleteError);
+           }
         }
 
         const errorCode = error.code;
