@@ -78,53 +78,53 @@ export function ShareReferralDialog({ children, referralCode }: { children: Reac
             <DialogTrigger asChild>
                 {children}
             </DialogTrigger>
-            <DialogContent className="max-w-sm">
+            <DialogContent className="max-w-sm bg-white text-gray-900">
                 <DialogHeader className="text-center">
                     <DialogTitle className="text-lg font-bold">Share & Earn</DialogTitle>
-                    <DialogDescription>
+                    <DialogDescription className="text-gray-500">
                         Share your code and link with friends to earn referral bonuses.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="py-4 space-y-4">
                     <div className="space-y-2">
-                        <Label htmlFor="referral-code-input" className="font-semibold">Your Referral Code</Label>
+                        <Label htmlFor="referral-code-input" className="font-semibold text-gray-800">Your Referral Code</Label>
                         <div className="flex items-center gap-2">
-                            <Input id="referral-code-input" value={code} readOnly className="font-mono text-center text-lg h-12 bg-muted"/>
-                            <CopyButton value={code} className="h-12 w-12 shrink-0">
+                            <Input id="referral-code-input" value={code} readOnly className="font-mono text-center text-lg h-12 bg-gray-100 text-gray-800 border-gray-300"/>
+                            <CopyButton value={code} className="h-12 w-12 shrink-0 bg-gray-200 text-gray-700 hover:bg-gray-300">
                                 <Copy className="h-6 w-6"/>
                             </CopyButton>
                         </div>
                     </div>
                      <div className="space-y-2">
-                        <Label htmlFor="referral-link-input" className="font-semibold">Your Referral Link</Label>
+                        <Label htmlFor="referral-link-input" className="font-semibold text-gray-800">Your Referral Link</Label>
                          <div className="flex items-center gap-2">
-                            <Input id="referral-link-input" value={shareUrl} readOnly className="text-xs h-12 bg-muted"/>
-                             <CopyButton value={shareUrl} className="h-12 w-12 shrink-0">
+                            <Input id="referral-link-input" value={shareUrl} readOnly className="text-xs h-12 bg-gray-100 text-gray-800 border-gray-300"/>
+                             <CopyButton value={shareUrl} className="h-12 w-12 shrink-0 bg-gray-200 text-gray-700 hover:bg-gray-300">
                                 <LinkIcon className="h-6 w-6"/>
                             </CopyButton>
                         </div>
                     </div>
 
-                    <Separator />
+                    <Separator className="bg-gray-200" />
                     
                     <div className="grid grid-cols-3 gap-2 text-center">
-                        <a href={`https://wa.me/?text=${encodeURIComponent(shareText + '\n' + shareUrl)}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center p-2 rounded-lg hover:bg-slate-100 gap-1">
+                        <a href={`https://wa.me/?text=${encodeURIComponent(shareText + '\n' + shareUrl)}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center p-2 rounded-lg hover:bg-gray-100 gap-1">
                            <div className="w-12 h-12 flex items-center justify-center bg-green-100 rounded-full text-green-600">
                              <WhatsAppIcon className="h-7 w-7"/>
                            </div>
-                           <span className="text-xs text-muted-foreground">WhatsApp</span>
+                           <span className="text-xs text-gray-500">WhatsApp</span>
                         </a>
-                        <a href={`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center p-2 rounded-lg hover:bg-slate-100 gap-1">
+                        <a href={`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center p-2 rounded-lg hover:bg-gray-100 gap-1">
                            <div className="w-12 h-12 flex items-center justify-center bg-blue-100 rounded-full text-blue-600">
                              <TelegramIcon className="h-7 w-7"/>
                            </div>
-                            <span className="text-xs text-muted-foreground">Telegram</span>
+                            <span className="text-xs text-gray-500">Telegram</span>
                         </a>
-                         <button onClick={handleShare} className="flex flex-col items-center justify-center p-2 rounded-lg hover:bg-slate-100 gap-1">
-                           <div className="w-12 h-12 flex items-center justify-center bg-gray-100 rounded-full text-gray-600">
+                         <button onClick={handleShare} className="flex flex-col items-center justify-center p-2 rounded-lg hover:bg-gray-100 gap-1">
+                           <div className="w-12 h-12 flex items-center justify-center bg-gray-200 rounded-full text-gray-600">
                              <Share className="h-6 w-6"/>
                            </div>
-                           <span className="text-xs text-muted-foreground">More</span>
+                           <span className="text-xs text-gray-500">More</span>
                         </button>
                    </div>
                 </div>

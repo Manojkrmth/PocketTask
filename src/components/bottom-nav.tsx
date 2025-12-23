@@ -43,6 +43,26 @@ export function BottomNav() {
     <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-primary/90 border-t grid grid-cols-5 shadow-[0_-5px_15px_-5px_rgba(0,0,0,0.05)]">
       {navItems.map((item) => {
         const isActive = pathname === item.href;
+        const isTasksButton = item.href === '/tasks';
+
+        if (isTasksButton) {
+          return (
+            <div key={item.href} className="relative flex justify-center -translate-y-3">
+              <div className="absolute -inset-1.5 bg-gradient-to-r from-orange-400 to-yellow-400 rounded-full blur-sm animate-spin" style={{ animationDuration: '4s' }} />
+              <Link
+                href={item.href}
+                className={cn(
+                  "relative flex flex-col items-center justify-center gap-1 p-2 transition-colors duration-200 group rounded-full h-16 w-16",
+                  "bg-orange-500 text-white shadow-lg"
+                )}
+              >
+                <item.icon className="w-7 h-7 transition-transform group-hover:scale-110" />
+                <span className="text-xs font-bold">{item.label}</span>
+              </Link>
+            </div>
+          );
+        }
+
         return (
           <Link
             key={item.href}
