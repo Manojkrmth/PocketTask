@@ -243,24 +243,28 @@ export default function HomePage() {
 
         <div className="mt-6">
           <h3 className="font-bold text-lg text-gray-800 ml-1 mb-3">Quick Actions</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <Link href="#" className="block">
-              <Card className="p-3 flex flex-col items-center justify-center gap-1 text-center hover:bg-muted/50 transition-colors cursor-pointer h-full bg-primary/10">
-                <div className="p-2 bg-primary/20 rounded-full">
-                  <Rocket className="h-5 w-5 text-primary" />
+          <div className="grid grid-cols-2 gap-4">
+            <Link href="#" className="block group">
+              <Card className="p-4 flex items-center gap-4 hover:bg-primary/10 transition-colors duration-300 cursor-pointer h-full border-primary/20 hover:border-primary/50 shadow-sm">
+                <div className="p-3 bg-primary/20 rounded-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
+                  <Rocket className="h-6 w-6 text-primary group-hover:text-primary-foreground" />
                 </div>
-                <h4 className="font-semibold text-sm">Start Earning</h4>
-                <p className="text-xs text-muted-foreground">Complete tasks & earn</p>
+                <div>
+                  <h4 className="font-semibold text-md text-gray-800">Start Earning</h4>
+                  <p className="text-xs text-muted-foreground">Complete tasks</p>
+                </div>
               </Card>
             </Link>
 
             <ShareReferralDialog referralCode={userProfile?.referral_code}>
-              <Card className="p-3 flex flex-col items-center justify-center gap-1 text-center hover:bg-muted/50 transition-colors cursor-pointer h-full bg-accent/10">
-                <div className="p-2 bg-accent/20 rounded-full">
-                  <Users className="h-5 w-5 text-accent-foreground" />
+              <Card className="p-4 flex items-center gap-4 hover:bg-accent/10 transition-colors duration-300 cursor-pointer h-full border-accent/20 hover:border-accent/50 shadow-sm group">
+                 <div className="p-3 bg-accent/20 rounded-full group-hover:bg-accent group-hover:text-accent-foreground transition-colors duration-300">
+                  <Users className="h-6 w-6 text-accent-foreground" />
                 </div>
-                <h4 className="font-semibold text-sm">Invite Friends</h4>
-                <p className="text-xs text-muted-foreground">Earn referral bonuses</p>
+                <div>
+                  <h4 className="font-semibold text-md text-gray-800">Invite Friends</h4>
+                  <p className="text-xs text-muted-foreground">Earn bonuses</p>
+                </div>
               </Card>
             </ShareReferralDialog>
           </div>
