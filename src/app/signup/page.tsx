@@ -76,7 +76,7 @@ export default function SignupPage() {
       // 3. Set the session for the Supabase client
       const { error: sessionError } = await supabase.auth.setSession({
         access_token: idToken,
-        refresh_token: 'dummy-refresh-token', // You can use a dummy token here
+        refresh_token: 'dummy-refresh-token', // You can use a dummy token here as Firebase handles refresh
       });
 
       if (sessionError) {
@@ -97,7 +97,8 @@ export default function SignupPage() {
       });
 
       if (supabaseError) {
-        // Attempt to delete the Firebase user if Supabase insert fails to avoid orphaned auth accounts
+        // IMPORTANT: If Supabase insert fails, delete the just-created Firebase user
+        // to prevent orphaned auth accounts.
         await user.delete();
         throw new Error(`Supabase insert error: ${supabaseError.message}`);
       }
@@ -117,6 +118,7 @@ export default function SignupPage() {
         } else if (errorCode === 'auth/weak-password') {
             errorMessage = 'The password is too weak. Please use at least 8 characters.';
         } else if (error.message.includes('Supabase')) {
+            // Provide a more specific error for Supabase issues
             errorMessage = `Could not save user profile. ${error.message}`;
         }
         setError(errorMessage);
