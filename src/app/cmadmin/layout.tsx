@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LoadingScreen } from "@/components/loading-screen";
-import { ShieldAlert } from "lucide-react";
+import { ShieldAlert, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
@@ -59,6 +59,11 @@ export default function CmAdminLayout({
     checkUser();
   }, [router]);
   
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+  };
+
   if (loading) {
     return <LoadingScreen />;
   }
@@ -77,7 +82,10 @@ export default function CmAdminLayout({
         <header className="flex items-center justify-between p-4 border-b md:justify-end">
             <SidebarTrigger className="md:hidden" />
             <p className="font-bold text-lg md:hidden">Admin Panel</p>
-            <Button variant="outline" size="sm">Logout</Button>
+            <Button variant="outline" size="sm" onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </Button>
         </header>
         <main className="p-4 md:p-6 lg:p-8">
             {children}
