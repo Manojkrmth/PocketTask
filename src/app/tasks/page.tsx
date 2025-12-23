@@ -7,7 +7,6 @@ import {
   Instagram,
   Facebook,
   Coins,
-  Star,
   Download,
   ShoppingBag,
   MapPin,
