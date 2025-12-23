@@ -65,6 +65,7 @@ export default function HomePage() {
     }
     
     const checkSession = async () => {
+      setLoading(true);
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         router.push('/login');
@@ -75,9 +76,9 @@ export default function HomePage() {
 
     checkSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session && session.user) {
-         setupUser(session.user);
+         await setupUser(session.user);
       } else {
         setUser(null);
         setUserProfile(null);
@@ -98,7 +99,9 @@ export default function HomePage() {
       { id: '2', imageUrl: 'https://picsum.photos/seed/offer2/420/180', description: 'Special Offer 2', redirectLink: '#' }
     ]);
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [router]);
 
 
