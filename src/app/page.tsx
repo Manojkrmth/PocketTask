@@ -41,8 +41,7 @@ export default function DashboardPage() {
   }
 
   if (!user) {
-    // This state is briefly hit before the redirect in useEffect triggers.
-    // Returning a loader here prevents a flash of incorrect content.
+    // Auth state is not yet determined or user is not logged in, show loading.
     return <LoadingScreen />;
   }
 
