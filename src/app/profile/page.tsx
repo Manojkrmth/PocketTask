@@ -30,10 +30,10 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 
 const menuItems = [
-  { href: '/profile/edit', icon: Edit, label: 'Edit Profile' },
-  { href: '/profile/currency', icon: Globe, label: 'Currency' },
   { href: '/profile/task-history', icon: History, label: 'Task History', comingSoon: true },
   { href: '/withdraw/history', icon: Wallet, label: 'Wallet History' },
+  { href: '/profile/edit', icon: Edit, label: 'Edit Profile' },
+  { href: '/profile/currency', icon: Globe, label: 'Currency' },
   { href: '/update-password', icon: Lock, label: 'Change Password' },
 ];
 
