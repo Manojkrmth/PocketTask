@@ -354,7 +354,7 @@ export default function HomePage() {
             )}
         </div>
 
-        <div className="mb-6 flex flex-col gap-4">
+        <div className="mb-6 grid grid-cols-2 gap-4">
           <a href={socialLinks?.whatsapp || '#'} target="_blank" rel="noopener noreferrer" className="group block relative"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
@@ -404,3 +404,6 @@ export default function HomePage() {
     
 
 
+
+
+    
