@@ -7,19 +7,21 @@ import { BottomNav } from '@/components/bottom-nav';
 import { usePathname } from 'next/navigation';
 import { Suspense } from 'react';
 
-function NavWrapper({ children }: { children: React.ReactNode }) {
+function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAuthPage = ['/login', '/signup', '/forgot-password', '/update-password'].includes(pathname);
   
+  if (isAuthPage) {
+    return <>{children}</>;
+  }
+
   return (
-    <>
-      {children}
-      {!isAuthPage && (
+    <main className="max-w-md mx-auto bg-background min-h-screen relative pb-24 shadow-2xl">
+        {children}
         <Suspense fallback={null}>
           <BottomNav />
         </Suspense>
-      )}
-    </>
+    </main>
   );
 }
 
@@ -38,13 +40,11 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased bg-neutral-100">
         <CurrencyProvider>
-          <main className="max-w-md mx-auto bg-background min-h-screen relative pb-24 shadow-2xl">
             <Suspense fallback={children}>
-              <NavWrapper>
+              <LayoutWrapper>
                 {children}
-              </NavWrapper>
+              </LayoutWrapper>
             </Suspense>
-          </main>
         </CurrencyProvider>
         <Toaster />
       </body>
