@@ -7,15 +7,15 @@
 // Description:
 // This component creates the fixed bottom navigation bar for the user-facing
 // part of the app. It includes links to the main sections: Home, Tasks, 
-// Withdraw, Team, and Profile.
+// Withdraw, Team, and Profile. It also intelligently hides itself on auth pages.
 //
 // How it works:
 // 1. It defines an array of navigation items, each with a path, label, and icon.
 // 2. It uses the `usePathname` hook from Next.js to determine the current page's URL.
-// 3. It maps over the navigation items to create a button for each.
-// 4. If an item's `href` matches the current `pathname`, it applies an "active" style
-//    to highlight the current page's button.
-// 5. The entire bar is styled to be fixed at the bottom of the screen for easy access.
+// 3. It checks if the current path is one of the auth-related pages and hides itself if so.
+// 4. It maps over the navigation items to create a button for each.
+// 5. If an item's `href` matches the current `pathname`, it applies an "active" style.
+// 6. The "Tasks" button is specially styled to be highlighted and animated.
 //
 // Dependencies:
 // - next/link (for client-side navigation)
@@ -36,22 +36,27 @@ const navItems = [
   { href: "/profile", label: "Profile", icon: UserCircle },
 ];
 
+const HIDDEN_PATHS = ['/login', '/signup', '/forgot-password', '/update-password'];
+
 export function BottomNav() {
   const pathname = usePathname();
 
+  if (HIDDEN_PATHS.includes(pathname)) {
+    return null;
+  }
+
   return (
     <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-primary/90 border-t grid grid-cols-5 items-center shadow-[0_-5px_15px_-5px_rgba(0,0,0,0.05)]">
-      {navItems.map((item, index) => {
+      {navItems.map((item) => {
         const isActive = pathname === item.href;
         
-        // Special styling for the "Tasks" button
         if (item.href === '/tasks') {
           return (
-            <div key={item.href} className="relative -top-4 flex justify-center">
-              <Link
+            <div key={item.href} className="relative flex justify-center items-center h-full">
+               <Link
                 href={item.href}
                 className={cn(
-                  "flex flex-col items-center justify-center h-16 w-16 rounded-full text-white shadow-lg transition-transform hover:scale-105",
+                  "relative flex flex-col items-center justify-center h-16 w-16 -translate-y-4 rounded-full text-white shadow-lg transition-transform hover:scale-105",
                   "bg-gradient-to-br from-orange-400 via-red-500 to-yellow-400 animate-pulse-background"
                 )}
               >
