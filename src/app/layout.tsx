@@ -1,5 +1,4 @@
 'use client';
-import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { CurrencyProvider } from '@/context/currency-context';
@@ -10,8 +9,13 @@ import { Suspense } from 'react';
 function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAuthPage = ['/login', '/signup', '/forgot-password', '/update-password'].includes(pathname);
+  const isAdminPage = pathname.startsWith('/cmadmin');
   
   if (isAuthPage) {
+    return <>{children}</>;
+  }
+
+  if (isAdminPage) {
     return <>{children}</>;
   }
 
