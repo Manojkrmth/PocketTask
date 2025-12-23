@@ -24,6 +24,8 @@ import { supabase } from '@/lib/supabase';
 import { useState, useEffect, useCallback } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { useCurrency } from '@/context/currency-context';
+import { PageHeader } from '@/components/page-header';
+
 
 interface LevelData {
   level: number;
@@ -94,7 +96,7 @@ export default function TeamPage() {
         // Mock active members as 10% of the level size for demonstration
         totalActiveMembers += Math.floor(memberCount * 0.1);
 
-        codesToSearch = newReferrals.map(doc => doc.referral_code).filter(Boolean);
+        codesToSearch = newReferrals.map(doc => doc.referral_code).filter(Boolean) as string[];
       }
 
       setTeamData(newTeamData);
@@ -181,15 +183,7 @@ export default function TeamPage() {
 
   return (
     <div className="flex flex-col bg-muted/40 min-h-screen">
-      <header className="bg-primary/90 text-primary-foreground p-4 py-6 rounded-b-3xl text-center sticky top-0 z-10">
-        <div className="flex items-center justify-center relative">
-          <Button variant="ghost" size="icon" onClick={() => router.back()} className="absolute left-0 top-1/2 -translate-y-1/2">
-            <ArrowLeft className="h-6 w-6" />
-          </Button>
-          <h1 className="text-2xl font-bold">My Team</h1>
-        </div>
-        <p className="text-sm opacity-80">Manage your referral network</p>
-      </header>
+      <PageHeader title="My Team" description="Manage your referral network" />
 
       <main className="p-4 space-y-6">
         <div className="grid grid-cols-3 gap-3">
@@ -316,5 +310,3 @@ export default function TeamPage() {
     </div>
   );
 }
-
-    
