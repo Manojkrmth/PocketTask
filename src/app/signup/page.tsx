@@ -16,6 +16,7 @@ import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 
 
 export default function SignupPage() {
@@ -69,27 +70,33 @@ export default function SignupPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // 2. Since you're using Supabase, you would make an API call here to save user data.
-      // For example:
-      // const { data, error } = await supabase.from('users').insert([{ 
-      //   id: user.uid, 
-      //   email: user.email, 
-      //   full_name: fullName, 
-      //   mobile: mobile 
-      // }]);
-      // if (error) throw error;
+      // 2. Save the user's profile data to Supabase
+      const { error: supabaseError } = await supabase.from('users').insert({ 
+        id: user.uid, 
+        email: user.email, 
+        full_name: fullName, 
+        mobile: mobile,
+        referral_code: `CM${user.uid.substring(0, 6).toUpperCase()}`, // Generate a unique referral code
+        referred_by: referralCode || null,
+        balance_available: 0,
+        balance_hold: 0,
+        status: 'Active',
+      });
+
+      if (supabaseError) {
+        throw supabaseError;
+      }
       
-      console.log('User created in Firebase. Now you should save user data to Supabase.');
+      console.log('User created in Firebase and data saved to Supabase.');
       
       // 3. Redirect to the main dashboard on successful signup
       router.push('/');
 
     } catch (error: any) {
-        console.error("Auth error:", error);
+        console.error("Signup error:", error);
         const errorCode = error.code;
         let errorMessage = "An unexpected error occurred.";
 
-        // Provide user-friendly error messages
         if (errorCode === 'auth/email-already-in-use') {
             errorMessage = 'This email address is already in use.';
         } else if (errorCode === 'auth/weak-password') {
