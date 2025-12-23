@@ -99,7 +99,7 @@ export function InstallPWAButton() {
        <Button
         variant="ghost"
         size="sm"
-        className="h-8 gap-1 w-full text-primary-foreground hover:bg-white/20 hover:text-primary-foreground border border-white/50 rounded-md"
+        className="h-8 gap-1 text-primary-foreground hover:bg-white/20 hover:text-primary-foreground border border-white/50 rounded-md"
         onClick={handleInstallClick}
       >
         <Download className="h-4 w-4" />
