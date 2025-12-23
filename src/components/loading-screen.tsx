@@ -46,7 +46,7 @@ export function LoadingScreen() {
                 </svg>
                 <p className="text-lg font-medium text-neutral-800">Loading App...</p>
             </div>
-            <p className="text-sm text-neutral-600">Made with ❤️ in Bharat</p>
+            <p className="text-sm text-neutral-600">Made with <span className="text-red-500">❤️</span> in Bharat</p>
         </div>
       </div>
     );

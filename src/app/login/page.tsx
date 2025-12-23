@@ -122,8 +122,8 @@ export default function LoginPage() {
           </p>
           
         <div className="mt-12 w-full text-center">
-            <p className="text-sm text-muted-foreground animate-highlight">
-                Made with ❤️ in Bharat
+            <p className="text-sm text-muted-foreground">
+                <span className="animate-highlight inline-block">Made with <span className="text-red-500">❤️</span> in Bharat</span>
             </p>
         </div>
       </div>
