@@ -70,7 +70,20 @@ export default function SignupPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // 2. Save the user's profile data to Supabase
+      // 2. Get the Firebase ID token
+      const idToken = await user.getIdToken();
+
+      // 3. Set the session for the Supabase client
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: idToken,
+        refresh_token: 'dummy-refresh-token', // You can use a dummy token here
+      });
+
+      if (sessionError) {
+        throw new Error(`Supabase session error: ${sessionError.message}`);
+      }
+
+      // 4. Save the user's profile data to Supabase
       const { error: supabaseError } = await supabase.from('users').insert({ 
         id: user.uid, 
         email: user.email, 
@@ -84,25 +97,27 @@ export default function SignupPage() {
       });
 
       if (supabaseError) {
-        throw supabaseError;
+        // Attempt to delete the Firebase user if Supabase insert fails to avoid orphaned auth accounts
+        await user.delete();
+        throw new Error(`Supabase insert error: ${supabaseError.message}`);
       }
       
       console.log('User created in Firebase and data saved to Supabase.');
       
-      // 3. Redirect to the main dashboard on successful signup
+      // 5. Redirect to the main dashboard on successful signup
       router.push('/');
 
     } catch (error: any) {
         console.error("Signup error:", error);
         const errorCode = error.code;
-        let errorMessage = "An unexpected error occurred.";
+        let errorMessage = "An unexpected error occurred. Please try again.";
 
         if (errorCode === 'auth/email-already-in-use') {
             errorMessage = 'This email address is already in use.';
         } else if (errorCode === 'auth/weak-password') {
             errorMessage = 'The password is too weak. Please use at least 8 characters.';
-        } else {
-            errorMessage = error.message;
+        } else if (error.message.includes('Supabase')) {
+            errorMessage = `Could not save user profile. ${error.message}`;
         }
         setError(errorMessage);
     } finally {
