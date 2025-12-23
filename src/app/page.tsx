@@ -11,9 +11,11 @@ import {
   Loader2,
   Rocket,
   Users,
+  Copy,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { WhatsAppIcon, TelegramIcon } from '@/components/icons';
 import { ShareReferralDialog } from '@/components/share-referral-dialog';
 import { InstallPWAButton } from '@/components/install-pwa-button';
@@ -25,6 +27,8 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { LoadingScreen } from '@/components/loading-screen';
 import { useCurrency } from '@/context/currency-context';
+import { useToast } from '@/hooks/use-toast';
+
 
 export default function HomePage() {
   const [user, setUser] = React.useState<User | null>(null);
@@ -32,6 +36,7 @@ export default function HomePage() {
   const [loading, setLoading] = React.useState(true);
   const router = useRouter();
   const { formatCurrency } = useCurrency();
+  const { toast } = useToast();
   const [systemSettings, setSystemSettings] = React.useState<any>(null);
   const [featuredOffers, setFeaturedOffers] = React.useState<any[]>([]);
 
@@ -114,26 +119,54 @@ export default function HomePage() {
   
   const socialLinks = systemSettings?.socialLinks || {};
 
+  const getInitials = (name?: string, fallback?: string) => {
+    if (name) {
+      const parts = name.split(' ');
+      if (parts.length > 1) {
+        return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+      }
+      return name.substring(0, 2).toUpperCase();
+    }
+    if (fallback) {
+      return fallback[0].toUpperCase();
+    }
+    return 'U';
+  };
+  
+  const referralCode = (userProfile?.referral_code || user?.id.substring(0, 8) || '').toUpperCase();
+
+  const copyReferralCode = () => {
+    navigator.clipboard.writeText(referralCode);
+    toast({
+      title: "Copied!",
+      description: "Referral code copied to clipboard.",
+    });
+  };
+
   if (isLoading) {
     return <LoadingScreen />;
   }
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
-      <header className="bg-primary/90 p-6 rounded-b-3xl text-primary-foreground relative">
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex-1 overflow-hidden">
-            <p className="text-sm opacity-90">Welcome back,</p>
-            <p className="text-xs opacity-80 truncate">{user?.email || ''}</p>
-            <p className="text-xs opacity-75 truncate">
-              ID: {(userProfile?.referral_code || user?.id.substring(0, 8) || '').toUpperCase()}
-            </p>
+      <header className="bg-primary/90 p-4 rounded-b-3xl text-primary-foreground relative shadow-lg">
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex items-center gap-3">
+             <Avatar className="h-12 w-12 border-2 border-white/50">
+                <AvatarFallback className="bg-primary/80 text-lg font-bold">
+                    {getInitials(userProfile?.full_name, user?.email)}
+                </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 overflow-hidden">
+              <p className="text-md font-semibold opacity-95">Welcome back</p>
+              <p className="text-sm font-medium truncate">{userProfile?.full_name || user?.email}</p>
+            </div>
           </div>
-          <div className="flex flex-col items-center gap-2">
-             <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-white/20 relative" asChild>
+          <div className="flex items-center gap-2">
+             <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-white/20 relative h-9 w-9" asChild>
               <Link href="#">
-                <Bell className="h-6 w-6" />
-                <span className="absolute top-2 right-2 flex h-2 w-2">
+                <Bell className="h-5 w-5" />
+                <span className="absolute top-1 right-1 flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
                 </span>
@@ -142,6 +175,19 @@ export default function HomePage() {
             <InstallPWAButton />
           </div>
         </div>
+
+        <Card className="bg-white/10 border-0 p-3">
+            <div className="flex justify-between items-center">
+                <div>
+                    <p className="text-xs font-medium text-white/80">Referral ID</p>
+                    <p className="text-lg font-mono font-bold tracking-wider">{referralCode}</p>
+                </div>
+                <Button variant="ghost" size="icon" className="text-white/80 hover:bg-white/20 hover:text-white" onClick={copyReferralCode}>
+                    <Copy className="h-5 w-5"/>
+                </Button>
+            </div>
+        </Card>
+
         {systemSettings?.noticeBoardText && (
           <div className="relative mt-4 flex h-8 items-center overflow-hidden rounded-full bg-white/20 px-2 text-xs text-primary-foreground">
               <span className="flex-shrink-0 bg-red-500 text-white font-bold px-3 py-1 rounded-full text-xxs z-10">NOTICE</span>
