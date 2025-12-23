@@ -35,7 +35,7 @@ export default function HomePage() {
   const [systemSettings, setSystemSettings] = React.useState<any>(null);
   const [featuredOffers, setFeaturedOffers] = React.useState<any[]>([]);
 
-  // Fix for React Hook order error
+  // Fix for React Hook order error and TypeError
   const autoplay = React.useRef(
     Autoplay({ delay: 4000, stopOnInteraction: true })
   );
@@ -82,6 +82,10 @@ export default function HomePage() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
         setUser(session.user);
+        // fetch profile again if user changes
+        if (session.user) {
+            supabase.from('users').select('*').eq('id', session.user.id).single().then(({ data }) => setUserProfile(data));
+        }
       } else {
         router.push('/login');
       }
