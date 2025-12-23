@@ -1,5 +1,6 @@
 import { initializeApp, getApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
 
 // IMPORTANT: Replace this with your new Firebase project's configuration
 // You can find this in your Firebase project settings.
@@ -15,5 +16,6 @@ const firebaseConfig = {
 // Initialize Firebase for your new project
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
+const firestore = getFirestore(app);
 
-export { app, auth };
+export { app, auth, firestore };

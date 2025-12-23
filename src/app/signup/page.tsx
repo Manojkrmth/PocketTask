@@ -1,118 +1,171 @@
 'use client';
 
-import { useState } from 'react';
+// =================================================================
+// SIGNUP PAGE CODE (for your new project)
+// Path: app/signup/page.tsx
+// =================================================================
+
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, firestore } from '@/lib/firebase';
+
 
 export default function SignupPage() {
+  // State variables to hold form data
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [reenteredPassword, setReenteredPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [mobile, setMobile] = useState('');
+  const [referralCode, setReferralCode] = useState('');
+
+  // State for loading and error messages
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const router = useRouter();
+  const searchParams = useSearchParams();
 
+  // This effect checks if a referral code is present in the URL (e.g., /signup?ref=CM123)
+  // and pre-fills the input field.
+  useEffect(() => {
+    const refCode = searchParams.get('ref');
+    if (refCode) {
+      setReferralCode(refCode);
+    }
+  }, [searchParams]);
+  
+  // This function handles the signup process when the form is submitted.
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirmPassword) {
-      setError("Passwords don't match.");
+    setError(null);
+
+    // Basic client-side validation
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters long.");
       return;
     }
+    if (password !== reenteredPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+    if (mobile.trim().length !== 10) {
+      setError("Mobile number must be exactly 10 digits.");
+      return;
+    }
+    
     setIsLoading(true);
-    setError(null);
     
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      // 1. Create the user with Firebase Authentication
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // 2. Save the user's profile data to Firestore
+      const userProfileRef = doc(firestore, 'users', user.uid);
+      const userProfileData = {
+        userId: user.uid,
+        email: user.email,
+        fullName: fullName,
+        mobile: mobile,
+        referralCode: `CM${user.uid.substring(0, 6).toUpperCase()}`, // Generate a unique referral code
+        referredBy: referralCode || null,
+        createdAt: serverTimestamp(),
+        balanceAvailable: 0,
+        balanceHold: 0,
+        status: 'Active',
+      };
+      
+      await setDoc(userProfileRef, userProfileData);
+      
+      // 3. Redirect to the main dashboard on successful signup
       router.push('/');
+
     } catch (error: any) {
-      console.error(error);
-      const errorCode = error.code;
-      if (errorCode === 'auth/email-already-in-use') {
-        setError('This email address is already in use.');
-      } else if (errorCode === 'auth/weak-password') {
-        setError('The password is too weak. It should be at least 6 characters.');
-      }
-      else {
-        setError(error.message);
-      }
+        console.error("Auth error:", error);
+        const errorCode = error.code;
+        let errorMessage = "An unexpected error occurred.";
+
+        // Provide user-friendly error messages
+        if (errorCode === 'auth/email-already-in-use') {
+            errorMessage = 'This email address is already in use.';
+        } else if (errorCode === 'auth/weak-password') {
+            errorMessage = 'The password is too weak. Please use at least 8 characters.';
+        } else {
+            errorMessage = error.message;
+        }
+        setError(errorMessage);
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
   };
 
+  // The JSX for the signup form layout
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-neutral-900 p-6 text-white">
       <div className="w-full max-w-sm">
-        <div className="text-center mb-12">
-          <Image
-            src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjQeXPPDoYHtSI3CkEycSr99eEzj5eNNnXZkkzetdCk8G5qhltxgm9vXYe4O2nRb8eJIkTRvSW7WljNX1U4sgGJopouCKxTr_u6Vn6eG5mmZrFt9Fw2R9L_VgCzk4J3BLhQu9UG7uAuGy3INawPoZlC1j11YSD0TSRCnUglyTByJM2ajI_Ce8O2t1d9Ahk/s320/photo_2025-11-21_17-20-41.jpg"
-            alt="AuthNexus Logo"
-            width={80}
-            height={80}
-            className="mx-auto rounded-full mb-4 animate-pulse"
-          />
+        <div className="text-center mb-8">
+            <Image 
+                src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjQeXPPDoYHtSI3CkEycSr99eEzj5eNNnXZkkzetdCk8G5qhltxgm9vXYe4O2nRb8eJIkTRvSW7WljNX1U4sgGJopouCKxTr_u6Vn6eG5mmZrFt9Fw2R9L_VgCzk4J3BLhQu9UG7uAuGy3INawPoZlC1j11YSD0TSRCnUglyTByJM2ajI_Ce8O2t1d9Ahk/s320/photo_2025-11-21_17-20-41.jpg"
+                alt="CookieMail Logo"
+                width={80}
+                height={80}
+                className="mx-auto rounded-full mb-4 animate-pulse"
+            />
           <h1 className="text-3xl font-bold">Create an Account</h1>
-          <p className="text-neutral-300">Join AuthNexus to secure your access</p>
+          <p className="text-neutral-300">Join our community and start earning!</p>
         </div>
+        
+          <form onSubmit={handleSignup} className="space-y-4">
+             <div className="space-y-2">
+              <Label htmlFor="fullName" className="text-neutral-300">Full Name</Label>
+              <Input id="fullName" type="text" placeholder="Radhe Shyam" required value={fullName} onChange={(e) => setFullName(e.target.value)} className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500" />
+            </div>
+             <div className="space-y-2">
+              <Label htmlFor="mobile" className="text-neutral-300">Mobile Number (10 digits)</Label>
+              <Input id="mobile" type="tel" placeholder="9876543210" required value={mobile} onChange={(e) => setMobile(e.target.value)} className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500" maxLength={10} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-neutral-300">Email</Label>
+              <Input id="email" type="email" placeholder="user@gmail.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-neutral-300">Password</Label>
+              <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="8+ character password" className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500" />
+            </div>
+             <div className="space-y-2">
+              <Label htmlFor="reenter-password" className="text-neutral-300">Re-enter Password</Label>
+              <Input id="reenter-password" type="password" required value={reenteredPassword} onChange={(e) => setReenteredPassword(e.target.value)} className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500" />
+            </div>
+             <div className="space-y-2">
+              <Label htmlFor="referral-code" className="text-neutral-300">Referral Code (Optional)</Label>
+              <Input id="referral-code" type="text" placeholder="e.g., CM123456" value={referralCode} onChange={(e) => setReferralCode(e.target.value)} className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500" />
+            </div>
 
-        <form onSubmit={handleSignup} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email" className="text-neutral-300">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="you@example.com"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500 focus:ring-primary"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password" className="text-neutral-300">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="Create a strong password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500 focus:ring-primary"
-            />
-          </div>
-           <div className="space-y-2">
-            <Label htmlFor="confirm-password" className="text-neutral-300">Confirm Password</Label>
-            <Input
-              id="confirm-password"
-              type="password"
-              placeholder="Confirm your password"
-              required
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500 focus:ring-primary"
-            />
-          </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base h-12" disabled={isLoading}>
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Sign Up
-          </Button>
-        </form>
+            {/* Display error message if any */}
+            {error && <p className="text-sm text-destructive">{error}</p>}
+            
+            <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base h-12" disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Create Account
+            </Button>
+          </form>
 
-        <p className="mt-8 text-center text-sm text-neutral-400">
-          Already have an account?{' '}
-          <Link href="/login" className="font-semibold text-primary hover:underline">
-            Login
-          </Link>
-        </p>
+        <p className="mt-8 w-full text-center text-sm text-neutral-400">
+            Already have an account?{' '}
+            <Link href="/login" className="font-semibold text-primary hover:underline">
+              Log in
+            </Link>
+          </p>
       </div>
     </div>
   );
