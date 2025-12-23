@@ -84,7 +84,13 @@ export default function HomePage() {
         setUser(session.user);
         // fetch profile again if user changes
         if (session.user) {
-            supabase.from('users').select('*').eq('id', session.user.id).single().then(({ data }) => setUserProfile(data));
+            supabase.from('users').select('*').eq('id', session.user.id).single().then(({ data, error }) => {
+                if (error && error.code !== 'PGRST116') {
+                    console.error('Error fetching profile on auth change:', error);
+                } else {
+                    setUserProfile(data);
+                }
+            });
         }
       } else {
         router.push('/login');
@@ -274,5 +280,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-    
