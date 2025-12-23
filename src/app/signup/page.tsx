@@ -9,10 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
-import { createUserWithEmailAndPassword, deleteUser } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 import { supabase } from '@/lib/supabase';
-
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
@@ -24,6 +21,7 @@ export default function SignupPage() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -38,6 +36,7 @@ export default function SignupPage() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccess(null);
 
     if (password.length < 8) {
       setError("Password must be at least 8 characters long.");
@@ -53,60 +52,35 @@ export default function SignupPage() {
     }
     
     setIsLoading(true);
-    
-    let user;
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      user = userCredential.user;
-      
-      const { data: supabaseData, error: supabaseError } = await supabase.from('users').insert({ 
-        // DO NOT send `id`. Supabase will generate it.
-        // Send the firebase user id to the correct column.
-        firebase_uid: user.uid,
-        email: user.email, 
-        full_name: fullName, 
-        mobile: mobile,
-        referral_code: `CM${user.uid.substring(0, 6).toUpperCase()}`,
-        referred_by: referralCode || null,
-        balance_available: 0,
-        balance_hold: 0,
-        status: 'Active',
-      }).select();
 
-      if (supabaseError) {
-        throw new Error(`Supabase insert error: ${supabaseError.message}`);
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName,
+          mobile: mobile,
+          referred_by: referralCode || null,
+        }
       }
-      
-      console.log('User created in Firebase and data saved to Supabase:', supabaseData);
-      
-      router.push('/');
+    });
 
-    } catch (error: any) {
-        console.error("Signup error:", error);
+    setIsLoading(false);
 
-        // If Supabase insert fails, delete the Firebase user to prevent orphaned accounts
-        if (auth.currentUser) {
-           try {
-                await deleteUser(auth.currentUser);
-                console.log("Cleaned up Firebase user due to an error during signup process.");
-           } catch (deleteError) {
-                console.error("Failed to clean up Firebase user:", deleteError);
-           }
-        }
+    if (error) {
+      console.error("Signup error:", error);
+      setError(error.message);
+      return;
+    }
 
-        const errorCode = error.code;
-        let errorMessage = "An unexpected error occurred. Please try again.";
-
-        if (errorCode === 'auth/email-already-in-use') {
-            errorMessage = 'This email address is already in use.';
-        } else if (errorCode === 'auth/weak-password') {
-            errorMessage = 'The password is too weak. Please use at least 8 characters.';
-        } else if (error.message.includes('Supabase')) {
-            errorMessage = `Could not save user profile. ${error.message}`;
-        }
-        setError(errorMessage);
-    } finally {
-        setIsLoading(false);
+    if (data.user && data.user.identities && data.user.identities.length === 0) {
+      // This means email confirmation is required.
+       setSuccess("Please check your email to confirm your account.");
+    } else if (data.user) {
+      // User is signed up and logged in (e.g. if email confirmation is disabled)
+       router.push('/');
+    } else {
+       setError("An unexpected error occurred during signup. Please try again.");
     }
   };
 
@@ -125,6 +99,14 @@ export default function SignupPage() {
           <p className="text-neutral-300">Join our community!</p>
         </div>
         
+        {success ? (
+          <div className="text-center">
+            <p className="text-green-400">{success}</p>
+            <Link href="/login" className="mt-4 inline-block text-primary font-semibold hover:underline">
+              Back to Login
+            </Link>
+          </div>
+        ) : (
           <form onSubmit={handleSignup} className="space-y-4">
              <div className="space-y-2">
               <Label htmlFor="fullName" className="text-neutral-300">Full Name</Label>
@@ -158,6 +140,7 @@ export default function SignupPage() {
               Create Account
             </Button>
           </form>
+        )}
 
         <p className="mt-8 w-full text-center text-sm text-neutral-400">
             Already have an account?{' '}

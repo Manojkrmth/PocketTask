@@ -7,8 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, ArrowLeft } from 'lucide-react';
-import { sendPasswordResetEmail } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -22,19 +21,18 @@ export default function ForgotPasswordPage() {
     setError(null);
     setSuccess(null);
 
-    try {
-      await sendPasswordResetEmail(auth, email);
-      setSuccess('Password reset email sent. Please check your inbox.');
-    } catch (error: any) {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/update-password`,
+    });
+
+    if (error) {
       console.error(error);
-      if (error.code === 'auth/user-not-found') {
-        setError('No user found with this email address.');
-      } else {
-        setError('Failed to send password reset email. Please try again.');
-      }
-    } finally {
-      setIsLoading(false);
+      setError(error.message || 'Failed to send password reset email.');
+    } else {
+      setSuccess('Password reset email sent. Please check your inbox.');
     }
+    
+    setIsLoading(false);
   };
 
   return (

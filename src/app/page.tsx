@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import type { User } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 import { LoadingScreen } from '@/components/loading-screen';
 import { Button } from '@/components/ui/button';
 import { LogOut, Mail } from 'lucide-react';
@@ -15,21 +15,35 @@ export default function DashboardPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser) {
-        setUser(currentUser);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        setUser(session.user);
+        setLoading(false);
       } else {
         router.push('/login');
+        setLoading(false);
       }
-      setLoading(false);
     });
+    
+    // Check initial session
+    const checkSession = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+            setUser(session.user);
+        } else {
+            router.push('/login');
+        }
+        setLoading(false);
+    };
 
-    return () => unsubscribe();
+    checkSession();
+
+    return () => subscription.unsubscribe();
   }, [router]);
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
+      await supabase.auth.signOut();
       router.push('/login');
     } catch (error) {
       console.error('Error signing out: ', error);
@@ -41,7 +55,6 @@ export default function DashboardPage() {
   }
 
   if (!user) {
-    // Auth state is not yet determined or user is not logged in, show loading.
     return <LoadingScreen />;
   }
 

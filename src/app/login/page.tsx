@@ -8,8 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
 import { Loader2, ArrowLeft } from 'lucide-react';
-import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { LoadingScreen } from '@/components/loading-screen';
 
 export default function LoginPage() {
@@ -22,16 +21,25 @@ export default function LoginPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        // The onAuthStateChanged listener will handle the redirect after login
-        // The new Supabase client configuration handles auth automatically.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
         router.push('/');
       } else {
         setAuthLoading(false);
       }
     });
-    return () => unsubscribe();
+
+    const checkSession = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+            router.push('/');
+        } else {
+            setAuthLoading(false);
+        }
+    };
+    checkSession();
+
+    return () => subscription.unsubscribe();
   }, [router]);
   
   const handleLogin = async (e: React.FormEvent) => {
@@ -39,22 +47,19 @@ export default function LoginPage() {
     setIsLoading(true);
     setError(null);
     
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      // The onAuthStateChanged listener will handle the redirect and Supabase session
-    } catch (error: any) {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
       console.error("Login error:", error);
-      const errorCode = error.code;
-      let errorMessage = 'An unknown error occurred.';
-      if (errorCode === 'auth/user-not-found' || errorCode === 'auth/wrong-password' || errorCode === 'auth/invalid-credential') {
-        errorMessage = 'Invalid credentials. Please try again.';
-      } else {
-        errorMessage = 'An unknown login error occurred.';
-      }
-      setError(errorMessage);
-    } finally {
-        setIsLoading(false);
+      setError(error.message || 'An unknown login error occurred.');
+    } else {
+      // The onAuthStateChange listener will handle the redirect.
     }
+    
+    setIsLoading(false);
   };
 
   if (authLoading) {
