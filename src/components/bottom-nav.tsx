@@ -40,43 +40,25 @@ export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-primary/90 border-t grid grid-cols-5 shadow-[0_-5px_15px_-5px_rgba(0,0,0,0.05)]">
-      {navItems.map((item) => {
+    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-primary/90 border-t grid grid-cols-5 items-center shadow-[0_-5px_15px_-5px_rgba(0,0,0,0.05)]">
+      {navItems.map((item, index) => {
         const isActive = pathname === item.href;
-        const isTasksButton = item.href === '/tasks';
-
-        const buttonContent = (
-            <>
-              <item.icon className="w-6 h-6 transition-transform group-hover:scale-110" />
-              <span className="text-xs font-medium">{item.label}</span>
-            </>
-        );
-
-        if (isTasksButton) {
+        
+        // Special styling for the "Tasks" button
+        if (item.href === '/tasks') {
           return (
-             <div key={item.href} className="flex items-center justify-center p-1">
-                 <Link
-                    href={item.href}
-                    className={cn(
-                      "relative flex flex-col items-center justify-center gap-1 transition-colors duration-200 group h-full w-full rounded-md animate-border-spin",
-                      isActive 
-                        ? "bg-orange-400 text-white" 
-                        : "text-primary-foreground/70",
-                      "p-[2px]" 
-                    )}
-                    style={{
-                        borderImage: 'conic-gradient(from var(--angle), hsl(var(--primary)), hsl(var(--accent)), hsl(var(--primary))) 1',
-                        '--angle': '0deg',
-                    } as React.CSSProperties}
-                  >
-                    <div className={cn(
-                        "flex flex-col items-center justify-center gap-1 w-full h-full rounded-[4px]",
-                         isActive ? "bg-orange-400" : "bg-primary/90"
-                    )}>
-                        {buttonContent}
-                    </div>
-                  </Link>
-             </div>
+            <div key={item.href} className="relative -top-4 flex justify-center">
+              <Link
+                href={item.href}
+                className={cn(
+                  "flex flex-col items-center justify-center h-16 w-16 rounded-full text-white shadow-lg transition-transform hover:scale-105",
+                  "bg-gradient-to-br from-orange-400 via-red-500 to-yellow-400 animate-pulse-background"
+                )}
+              >
+                <item.icon className="w-7 h-7" />
+                <span className="text-xs font-bold">{item.label}</span>
+              </Link>
+            </div>
           );
         }
 
@@ -85,13 +67,14 @@ export function BottomNav() {
             key={item.href}
             href={item.href}
             className={cn(
-              "flex flex-col items-center justify-center gap-1 py-2 transition-colors duration-200 group",
+              "flex flex-col items-center justify-center gap-1 py-2 transition-colors duration-200 group h-full",
               isActive 
-                ? "bg-orange-400 text-white" 
+                ? "text-orange-300" 
                 : "text-primary-foreground/70"
             )}
           >
-            {buttonContent}
+            <item.icon className="w-6 h-6 transition-transform group-hover:scale-110" />
+            <span className="text-xs font-medium">{item.label}</span>
           </Link>
         );
       })}
