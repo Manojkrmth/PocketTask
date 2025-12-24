@@ -7,9 +7,10 @@ import { Button } from "./ui/button";
 interface PageHeaderProps {
     title: string;
     description?: string;
+    actionButton?: React.ReactNode;
 }
 
-export function PageHeader({ title, description }: PageHeaderProps) {
+export function PageHeader({ title, description, actionButton }: PageHeaderProps) {
     const router = useRouter();
 
     return (
@@ -22,6 +23,11 @@ export function PageHeader({ title, description }: PageHeaderProps) {
                     <h1 className="text-xl font-bold">{title}</h1>
                     {description && <p className="text-xs opacity-80">{description}</p>}
                 </div>
+                {actionButton && (
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2">
+                        {actionButton}
+                    </div>
+                )}
             </div>
         </header>
     );

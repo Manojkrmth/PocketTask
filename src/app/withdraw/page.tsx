@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { History, ChevronDown, Loader2, AlertTriangle, Info } from 'lucide-react';
+import { History, ChevronDown, Loader2, AlertTriangle, Info, Wallet, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -36,49 +36,84 @@ import { PageHeader } from '@/components/page-header';
 export default function WithdrawPage() {
   const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
-  const [userProfileData, setUserProfileData] = useState<any>(null);
+  const [balances, setBalances] = useState({ available: 0, hold: 0 });
   const [settingsData, setSettingsData] = useState<any>(null);
-  const [profileLoading, setProfileLoading] = useState(true);
-  const [settingsLoading, setSettingsLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(true);
 
   const [isSubmitting, startTransition] = useTransition();
   const { formatCurrency, currency } = useCurrency();
 
   useEffect(() => {
-    const fetchData = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setUser(session.user);
+    const fetchData = async (sessionUser: User) => {
+        setDataLoading(true);
         
-        const { data: profile, error: profileError } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
+        // Fetch wallet balances
+        const { data: walletData, error: walletError } = await supabase
+            .from('wallet_history')
+            .select('amount, status')
+            .eq('user_id', sessionUser.id);
         
-        if (profileError && profileError.code !== 'PGRST116') {
-          console.error('Error fetching profile:', profileError);
-        } else {
-          setUserProfileData(profile);
+        let availableBalance = 0;
+        if (walletData) {
+            availableBalance = walletData.reduce((acc, item) => {
+                if (item.status === 'Completed' && item.amount > 0) {
+                    return acc + item.amount;
+                }
+                if (item.amount < 0) {
+                    return acc + item.amount;
+                }
+                return acc;
+            }, 0);
         }
-        setProfileLoading(false);
-        
-        // Mocking settings data as there is no admin_settings table yet
-        setSettingsData({ withdrawal: { chargesPercent: 2, minAmount: 500, methods: { upi: true, bank: true } } });
-        setSettingsLoading(false);
 
-      } else {
-        setProfileLoading(false);
-        setSettingsLoading(false);
-      }
+        // Fetch hold balance
+        const { data: pendingTasks, error: pendingError } = await supabase
+            .from('usertasks')
+            .select('reward')
+            .eq('user_id', sessionUser.id)
+            .eq('status', 'Pending');
+            
+        let holdBalance = 0;
+        if (pendingTasks) {
+            holdBalance = pendingTasks.reduce((acc, task) => acc + task.reward, 0);
+        }
+
+        setBalances({ available: availableBalance, hold: holdBalance });
+        
+        // Mocking settings data
+        setSettingsData({ withdrawal: { chargesPercent: 2, minAmount: 500, methods: { upi: true, bank: true } } });
+        
+        setDataLoading(false);
     };
-    fetchData();
+
+    const getUser = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+            setUser(session.user);
+            fetchData(session.user);
+        } else {
+            setDataLoading(false);
+        }
+    };
+    
+    getUser();
   }, []);
 
 
   const [amount, setAmount] = useState('');
   const [paymentDetails, setPaymentDetails] = useState('');
   const [selectedMethod, setSelectedMethod] = useState('');
+  const [userProfileData, setUserProfileData] = useState<any>(null); // Still need this for block status
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+        if(user) {
+            const { data: profile } = await supabase.from('users').select('status').eq('id', user.id).single();
+            setUserProfileData(profile);
+        }
+    }
+    fetchProfile();
+  }, [user]);
 
   const withdrawalSettings = settingsData?.withdrawal || { chargesPercent: 2, minAmount: 500, methods: { upi: true } };
   const availableMethods = Object.entries(withdrawalSettings.methods || {})
@@ -118,17 +153,13 @@ export default function WithdrawPage() {
     }
     const numAmount = parseFloat(amount);
     const minWithdrawalInr = withdrawalSettings.minAmount;
-
-    // We need to convert currency for comparison if needed
-    // This logic assumes `formatCurrency` and a context can handle conversion if needed.
-    // For now, we will assume the entered amount is in the user's preferred currency.
     
     if (numAmount < (currency === 'USD' ? minWithdrawalInr / 85 : minWithdrawalInr)) { // Assuming a static rate for now
       toast({ variant: 'destructive', title: 'Amount too low', description: `Minimum withdrawal is ${formatCurrency(minWithdrawalInr)}.`});
       return false;
     }
 
-    const availableBalanceInr = userProfileData?.balance_available || 0;
+    const availableBalanceInr = balances.available;
     const availableBalanceCurrentCurrency = currency === 'USD' ? availableBalanceInr / 85 : availableBalanceInr;
     
     if (numAmount > availableBalanceCurrentCurrency) {
@@ -142,7 +173,6 @@ export default function WithdrawPage() {
     if (!isRequestValid() || !user) return;
     
     const numAmount = parseFloat(amount);
-    // Convert amount back to INR for storing
     const amountInr = currency === 'USD' ? numAmount * (settingsData?.usdToInrRate || 85) : numAmount;
 
     startTransition(async () => {
@@ -159,26 +189,13 @@ export default function WithdrawPage() {
 
             if (error) throw error;
             
-            // Deduct amount from user's balance
-            const newBalance = (userProfileData?.balance_available || 0) - amountInr;
-            const { error: updateError } = await supabase
-              .from('users')
-              .update({ balance_available: newBalance })
-              .eq('id', user.id);
-            
-            if (updateError) throw updateError;
+            const newBalance = balances.available - amountInr;
+            setBalances(prev => ({...prev, available: newBalance}));
 
 
             toast({ title: 'Success', description: 'Withdrawal request submitted.' });
             setAmount('');
             setPaymentDetails('');
-            // Manually re-fetch profile data to update balance display
-             const { data: profile } = await supabase
-              .from('users')
-              .select('*')
-              .eq('id', user.id)
-              .single();
-             setUserProfileData(profile);
         } catch(error: any) {
             console.error(error);
             toast({ variant: 'destructive', title: 'Error', description: error.message });
@@ -188,12 +205,12 @@ export default function WithdrawPage() {
 
   const charge = (parseFloat(amount) || 0) * (withdrawalSettings.chargesPercent / 100);
   const receiveAmount = (parseFloat(amount) || 0) - charge;
-  const isLoading = profileLoading || settingsLoading;
+  const isLoading = dataLoading;
   const isUserBlocked = userProfileData?.status === 'Blocked';
   
   const minWithdrawalDisplay = formatCurrency(withdrawalSettings.minAmount);
-  const availableBalanceDisplay = formatCurrency(userProfileData?.balance_available || 0);
-  const holdBalanceDisplay = formatCurrency(userProfileData?.balance_hold || 0);
+  const availableBalanceDisplay = formatCurrency(balances.available || 0);
+  const holdBalanceDisplay = formatCurrency(balances.hold || 0);
 
   const getUsdValue = () => {
     if (selectedMethod !== 'usdt_bep20' || !amount) return null;
@@ -207,21 +224,30 @@ export default function WithdrawPage() {
 
   return (
     <div>
-       <PageHeader title="Withdraw" />
+       <PageHeader 
+        title="Withdraw"
+        actionButton={
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full text-primary-foreground hover:bg-white/20" asChild>
+              <Link href="/withdraw/history">
+                <History className="h-5 w-5" />
+              </Link>
+            </Button>
+        }
+       />
 
       <main className="p-4">
         <div className="grid grid-cols-2 gap-4 mb-6">
           <Card className="bg-green-500 text-white text-center border-0">
-            <CardHeader className="pt-4 pb-1">
-              <CardTitle className="text-sm font-normal">Available</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between pb-1 pt-4">
+              <CardTitle className="text-sm font-medium flex items-center gap-2 pl-2"><Wallet /> Available</CardTitle>
             </CardHeader>
             <CardContent className="pb-4">
               {isLoading ? <Loader2 className="mx-auto h-6 w-6 animate-spin"/> : <p className="text-2xl font-bold">{availableBalanceDisplay}</p>}
             </CardContent>
           </Card>
           <Card className="bg-orange-400 text-white text-center border-0">
-            <CardHeader className="pt-4 pb-1">
-              <CardTitle className="text-sm font-normal">On Hold</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between pb-1 pt-4">
+              <CardTitle className="text-sm font-medium flex items-center gap-2 pl-2"><Lock /> On Hold</CardTitle>
             </CardHeader>
             <CardContent className="pb-4">
                {isLoading ? <Loader2 className="mx-auto h-6 w-6 animate-spin"/> : <p className="text-2xl font-bold">{holdBalanceDisplay}</p>}
