@@ -7,6 +7,7 @@ import { BottomNav } from '@/components/bottom-nav';
 import { usePathname } from 'next/navigation';
 import { Suspense, useState, useEffect } from 'react';
 import { SplashScreen } from '@/components/splash-screen';
+import { AnnouncementPopup } from '@/components/announcement-popup';
 
 function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -22,6 +23,9 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
         {children}
         <Suspense fallback={null}>
           <BottomNav />
+        </Suspense>
+        <Suspense fallback={null}>
+          <AnnouncementPopup />
         </Suspense>
     </main>
   );

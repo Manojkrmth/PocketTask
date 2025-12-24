@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,8 +15,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, PlusCircle, Trash2 } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Eye, EyeOff } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
+import { supabase } from '@/lib/supabase';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface PaymentMethod {
   id: string;
@@ -25,7 +28,6 @@ interface PaymentMethod {
   deletable: boolean;
 }
 
-// This is a dummy settings structure. In a real app, you'd fetch this from your database.
 const initialSettings = {
   general: {
     appName: 'CookieMail',
@@ -58,19 +60,46 @@ const initialSettings = {
     telegram: 'https://telegram.org',
     instagram: 'https://instagram.com',
   },
+  popupNotice: {
+    isEnabled: false,
+    displayType: 'text',
+    text: '',
+    imageUrl: '',
+    redirectLink: '',
+    styles: { container: '', text: '' }
+  }
 };
 
 export default function AdminSettingsPage() {
-  const [settings, setSettings] = useState(initialSettings);
-  const [isSaving, startTransition] = useTransition();
+  const [settings, setSettings] = useState<any>(initialSettings);
+  const [isSaving, startSaving] = useTransition();
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('settings')
+        .select('settings_data')
+        .single();
+      
+      if (data && data.settings_data) {
+        setSettings(data.settings_data);
+      } else if (error && error.code !== 'PGRST116') {
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to load settings.' });
+      }
+      setIsLoading(false);
+    };
+    fetchSettings();
+  }, [toast]);
 
   const handleInputChange = (
     section: keyof typeof settings,
     key: string,
     value: any
   ) => {
-    setSettings((prev) => ({
+    setSettings((prev: any) => ({
       ...prev,
       [section]: {
         ...prev[section],
@@ -92,24 +121,39 @@ export default function AdminSettingsPage() {
   };
 
   const removePaymentMethod = (index: number) => {
-      const newMethods = settings.withdrawal.methods.filter((_, i) => i !== index);
+      const newMethods = settings.withdrawal.methods.filter((_: any, i: number) => i !== index);
       handleInputChange('withdrawal', 'methods', newMethods);
   };
 
 
   const handleSave = () => {
-    startTransition(() => {
-      // In a real app, you would save this to your database (e.g., a 'settings' table)
-      console.log('Saving settings:', settings);
-      // Simulate API call
-      setTimeout(() => {
+    startSaving(async () => {
+      const { error } = await supabase
+        .from('settings')
+        .upsert({ id: 1, settings_data: settings }, { onConflict: 'id' });
+
+      if (error) {
+        toast({
+          variant: 'destructive',
+          title: 'Error Saving Settings',
+          description: error.message,
+        });
+      } else {
         toast({
           title: 'Settings Saved',
           description: 'Your changes have been saved successfully.',
         });
-      }, 1000);
+      }
     });
   };
+  
+  if (isLoading) {
+    return (
+        <div className="flex justify-center items-center h-screen">
+            <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -120,13 +164,102 @@ export default function AdminSettingsPage() {
             Manage global settings for your application.
           </p>
         </div>
-        <Button onClick={handleSave} disabled={isSaving}>
-          {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        <Button onClick={handleSave} disabled={isSaving || isLoading}>
+          {(isSaving || isLoading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Save Changes
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-3">
+          <CardHeader>
+            <CardTitle>Popup Notice</CardTitle>
+            <CardDescription>Configure a promotional popup for users.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+             <div className="flex items-center space-x-2">
+                <Switch 
+                  id="popup-enabled" 
+                  checked={settings.popupNotice?.isEnabled || false}
+                  onCheckedChange={(checked) => handleInputChange('popupNotice', 'isEnabled', checked)}
+                />
+                <Label htmlFor="popup-enabled" className="text-lg">
+                  {settings.popupNotice?.isEnabled ? <span className='flex items-center gap-2'><Eye/> Visible</span> : <span className='flex items-center gap-2'><EyeOff/> Hidden</span>}
+                </Label>
+            </div>
+             {settings.popupNotice?.isEnabled && (
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-lg'>
+                  <div className="space-y-2">
+                      <Label htmlFor="popup-type">Display Type</Label>
+                      <Select
+                          value={settings.popupNotice?.displayType || 'text'}
+                          onValueChange={(value) => handleInputChange('popupNotice', 'displayType', value)}
+                      >
+                          <SelectTrigger id="popup-type">
+                              <SelectValue placeholder="Select display type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                              <SelectItem value="text">Text Only</SelectItem>
+                              <SelectItem value="image">Image</SelectItem>
+                          </SelectContent>
+                      </Select>
+                  </div>
+                   <div className="space-y-2">
+                        <Label htmlFor="popup-redirect">Redirect Link (Optional)</Label>
+                        <Input
+                            id="popup-redirect"
+                            value={settings.popupNotice?.redirectLink || ''}
+                            onChange={(e) => handleInputChange('popupNotice', 'redirectLink', e.target.value)}
+                            placeholder="https://example.com"
+                        />
+                    </div>
+                  {settings.popupNotice?.displayType === 'image' ? (
+                     <div className="space-y-2 col-span-full">
+                        <Label htmlFor="popup-image">Image URL</Label>
+                        <Input
+                            id="popup-image"
+                            value={settings.popupNotice?.imageUrl || ''}
+                            onChange={(e) => handleInputChange('popupNotice', 'imageUrl', e.target.value)}
+                            placeholder="https://your-image-url.com/image.png"
+                        />
+                         {settings.popupNotice?.imageUrl && <img src={settings.popupNotice.imageUrl} alt="preview" className="mt-2 rounded-lg max-h-48"/>}
+                    </div>
+                  ) : (
+                    <>
+                       <div className="space-y-2">
+                          <Label htmlFor="popup-text">Popup Text</Label>
+                          <Textarea
+                              id="popup-text"
+                              value={settings.popupNotice?.text || ''}
+                              onChange={(e) => handleInputChange('popupNotice', 'text', e.target.value)}
+                              placeholder="BIG SALE! 50% OFF!"
+                          />
+                      </div>
+                       <div className="space-y-2">
+                          <Label>Styling</Label>
+                           <Alert>
+                              <AlertDescription>
+                                For advanced styling, use Tailwind CSS classes below.
+                              </AlertDescription>
+                          </Alert>
+                           <Input
+                              value={settings.popupNotice?.styles?.container || ''}
+                              onChange={(e) => handleInputChange('popupNotice', 'styles', {...settings.popupNotice?.styles, container: e.target.value})}
+                              placeholder="Container classes (e.g., bg-blue-500)"
+                          />
+                           <Input
+                              value={settings.popupNotice?.styles?.text || ''}
+                              onChange={(e) => handleInputChange('popupNotice', 'styles', {...settings.popupNotice?.styles, text: e.target.value})}
+                              placeholder="Text classes (e.g., text-white font-bold)"
+                          />
+                      </div>
+                    </>
+                  )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Withdrawal Settings</CardTitle>
@@ -175,7 +308,7 @@ export default function AdminSettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-             {settings.withdrawal.methods.map((method, index) => (
+             {settings.withdrawal.methods.map((method: any, index: number) => (
                 <div key={method.id} className="flex items-end gap-2 rounded-lg border p-3">
                     <div className="flex-1 grid grid-cols-2 gap-2">
                         <div className="space-y-1">
