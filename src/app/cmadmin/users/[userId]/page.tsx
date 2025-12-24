@@ -117,7 +117,7 @@ export default function UserDetailsPage() {
         const modificationAmount = balanceAction === 'debit' ? -amount : amount;
 
         try {
-            // 1. Insert record into wallet_history
+            // Insert record into wallet_history. The available balance is derived from this table via an RPC.
             const { error: historyError } = await supabase.from('wallet_history').insert({
                 user_id: userId,
                 amount: modificationAmount,
@@ -128,26 +128,11 @@ export default function UserDetailsPage() {
 
             if (historyError) throw historyError;
 
-            // 2. Update the user's balance in the users table
-            const currentBalance = financials.available_balance || 0;
-            const newBalance = currentBalance + modificationAmount;
-
-            const { error: userUpdateError } = await supabase
-              .from('users')
-              .update({ balance_available: newBalance })
-              .eq('id', userId);
-            
-            if (userUpdateError) {
-              // Attempt to rollback or log the inconsistency
-              console.error("CRITICAL: User balance update failed after history was written.", userUpdateError);
-              throw new Error("Failed to update user's main balance. The record was logged but the balance could not be updated.");
-            }
-
-            toast({ title: 'Balance Updated', description: 'The user wallet has been updated successfully.' });
+            toast({ title: 'Balance Updated', description: 'The user wallet history has been updated. Refreshing data...' });
             setIsBalanceDialogOpen(false);
             setBalanceAmount('');
             setBalanceDescription('');
-            await fetchAllData(); // Refresh data
+            await fetchAllData(); // Refresh all data from the database
 
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Update Failed', description: error.message });
@@ -324,5 +309,7 @@ export default function UserDetailsPage() {
     </>
   );
 }
+
+    
 
     
