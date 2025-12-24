@@ -9,13 +9,9 @@ import {
   Instagram,
   Facebook,
   Coins,
-  Download,
-  MapPin,
   ChevronRight,
   MousePointerClick,
   PlayCircle,
-  UserCheck,
-  AppWindow,
   MailOpen,
   Flame,
   History,
@@ -81,20 +77,6 @@ const taskTypes = [
     badge: 'HOT',
   },
   {
-    id: 'kyc-task',
-    name: 'KYC Task',
-    icon: <UserCheck className="h-8 w-8 text-teal-500" />,
-    description: 'Complete KYC verification.',
-    badge: 'HIGH PAY',
-  },
-   {
-    id: 'app-install',
-    name: 'App Install Task',
-    icon: <AppWindow className="h-8 w-8 text-cyan-500" />,
-    description: 'Install apps and get paid.',
-    badge: 'POPULAR',
-  },
-  {
     id: 'niva-coin',
     name: 'Niva Coin',
     icon: <Coins className="h-8 w-8 text-yellow-500" />,
@@ -106,18 +88,6 @@ const taskTypes = [
     name: 'Top Coin',
     icon: <Coins className="h-8 w-8 text-amber-600" />,
     description: 'High value coin offers.',
-  },
-  {
-    id: 'google-map-review',
-    name: 'Google Map Review',
-    icon: <MapPin className="h-8 w-8 text-green-600" />,
-    description: 'Review places you have visited.',
-  },
-  {
-    id: 'playstore-app-review',
-    name: 'Playstore App Review',
-    icon: <Download className="h-8 w-8 text-sky-500" />,
-    description: 'Review apps on Playstore.',
   },
 ];
 

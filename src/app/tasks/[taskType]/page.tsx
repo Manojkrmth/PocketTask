@@ -31,12 +31,8 @@ const getTaskTypeDetails = (taskType: string) => {
         'outlook-mail': { name: 'Outlook Mail Task', available: true },
         'visit-earn': { name: 'Visit & Earn Task', available: true },
         'watch-earn': { name: 'Watch & Earn Task', available: true },
-        'kyc-task': { name: 'KYC Task', available: true },
-        'app-install': { name: 'App Install Task', available: true },
         'niva-coin': { name: 'Niva Coin Task', available: true },
         'top-coin': { name: 'Top Coin Task', available: true },
-        'google-map-review': { name: 'Google Map Review Task', available: true },
-        'playstore-app-review': { name: 'Playstore App Review Task', available: true },
     };
     return details[taskType] || { name: 'Unknown Task', available: false };
 };
@@ -94,12 +90,6 @@ export default function StartTaskPage() {
         router.push('/tasks/visit-earn/play');
       } else if (taskType === 'used-mails') {
         router.push('/tasks/used-mails/play');
-      } else if (taskType === 'app-install') {
-        router.push('/tasks/app-install/play');
-      } else if (taskType === 'kyc-task') {
-        router.push('/tasks/kyc/play');
-      } else if (['google-map-review', 'playstore-app-review'].includes(taskType)) {
-        router.push(`/tasks/review/play?type=${taskType}`);
       } else if (['hot-mail', 'outlook-mail', 'facebook', 'instagram'].includes(taskType)) {
         router.push(`/tasks/social/play?type=${taskType}`);
       } else if (['niva-coin', 'top-coin'].includes(taskType)) {
