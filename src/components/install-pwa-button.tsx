@@ -1,3 +1,4 @@
+
 'use client';
 
 // =================================================================
@@ -114,22 +115,22 @@ export function InstallPWAButton() {
           </DialogDescription>
         </DialogHeader>
         <div className="py-4 space-y-4 text-sm text-gray-800">
-          <p>
-            <strong>For Android (Chrome):</strong>
+          <div>
+            <strong className="font-semibold">For Android (Chrome):</strong>
             <ol className="list-decimal list-inside space-y-2 mt-2 pl-2">
               <li>Tap the <MoreVertical className="inline-block h-4 w-4" /> menu button.</li>
               <li>Select <strong>'Install app'</strong> or <strong>'Add to Home screen'</strong>.</li>
               <li>Follow the on-screen instructions.</li>
             </ol>
-          </p>
-           <p>
-            <strong>For iOS (Safari):</strong>
+          </div>
+           <div>
+            <strong className="font-semibold">For iOS (Safari):</strong>
              <ol className="list-decimal list-inside space-y-2 mt-2 pl-2">
               <li>Tap the <Share className="inline-block h-4 w-4" /> Share button.</li>
               <li>Scroll down and select <strong>'Add to Home Screen'</strong>.</li>
               <li>Tap 'Add' in the top right corner.</li>
             </ol>
-          </p>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
