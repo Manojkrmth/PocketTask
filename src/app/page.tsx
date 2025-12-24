@@ -15,6 +15,8 @@ import {
   ShoppingCart,
   Phone,
   PlusSquare,
+  Repeat,
+  Trophy
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -352,6 +354,35 @@ export default function HomePage() {
                     <p>No special offers available right now.</p>
                 </div>
             )}
+        </div>
+
+        <div className="my-6 grid grid-cols-2 gap-4">
+            <div className="group block relative" onClick={handleComingSoon}>
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-400 to-sky-500 rounded-lg blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
+              <Card className="relative p-4 flex items-center gap-4 h-full bg-white transition-all duration-200 group-hover:scale-105 overflow-visible">
+                 <Badge variant="destructive" className="absolute -top-2 -right-2 text-xs">Soon</Badge>
+                <div className="p-3 bg-white/80 backdrop-blur-sm rounded-full shadow-md">
+                  <Repeat className="h-6 w-6 text-sky-600" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-md text-gray-700">BUY/SELL USDT</h4>
+                  <p className="text-xs text-gray-500">Crypto exchange</p>
+                </div>
+              </Card>
+            </div>
+            <div className="group block relative" onClick={handleComingSoon}>
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-amber-400 to-orange-500 rounded-lg blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
+              <Card className="relative p-4 flex items-center gap-4 h-full bg-white transition-all duration-200 group-hover:scale-105 overflow-visible">
+                 <Badge variant="destructive" className="absolute -top-2 -right-2 text-xs">Soon</Badge>
+                <div className="p-3 bg-white/80 backdrop-blur-sm rounded-full shadow-md">
+                  <Trophy className="h-6 w-6 text-amber-600" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-md text-gray-700">Scratch Reward</h4>
+                  <p className="text-xs text-gray-500">Win prizes</p>
+                </div>
+              </Card>
+            </div>
         </div>
 
         <div className="mb-6 grid grid-cols-2 gap-4">
