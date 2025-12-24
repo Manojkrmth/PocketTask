@@ -62,7 +62,7 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
 
   return (
     <div className="relative w-[340px] h-[360px] flex items-center justify-center flex-col">
-       <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1.5 z-20 drop-shadow-lg">
+       <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1 z-20 drop-shadow-lg">
            <svg width="40" height="50" viewBox="0 0 42 52" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M21 52L0.812826 0.25L41.1872 0.250004L21 52Z" fill="#FDD835"/>
            </svg>
@@ -120,7 +120,7 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
                             dy="0.35em"
                             textAnchor="middle"
                             fill="white"
-                            fontSize="16"
+                            fontSize="20"
                             fontWeight="bold"
                             transform={`rotate(${textAngle + 90}, ${x}, ${y})`}
                             style={{textShadow: '1px 1px 2px rgba(0,0,0,0.7)'}}

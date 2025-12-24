@@ -12,16 +12,16 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Image from 'next/image';
 
 const segments: WheelSegment[] = [
-  { text: '10 Points', color: '#D81B60' },
-  { text: '5 Points', color: '#43A047' },
+  { text: '5', color: '#D81B60' },
+  { text: '10', color: '#43A047' },
   { text: 'Try Again', color: '#1E88E5' },
-  { text: '15 Points', color: '#6A1B9A' },
+  { text: '8', color: '#6A1B9A' },
   { text: 'Bonus', color: '#FB8C00' },
-  { text: '8 Points', color: '#D81B60' },
-  { text: '12 Points', color: '#43A047' },
-  { text: 'Try Again', color: '#FB8C00' },
-  { text: '6 Points', color: '#1E88E5' },
-  { text: 'Bonus', color: '#6A1B9A' },
+  { text: '15', color: '#d32f2f' },
+  { text: '7', color: '#00796b' },
+  { text: 'Try Again', color: '#512da8' },
+  { text: '9', color: '#c2185b' },
+  { text: 'Bonus', color: '#fbc02d' },
 ];
 
 const DAILY_SPIN_CHANCES = 50;
@@ -68,17 +68,19 @@ export default function SpinRewardPage() {
     let timer: NodeJS.Timeout;
     if (countdown > 0) {
       timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+    } else if (countdown === 0 && showAd) {
+      // Timer is done, but ad hasn't been clicked. Do nothing.
     }
     return () => clearTimeout(timer);
-  }, [countdown]);
+  }, [countdown, showAd]);
 
   const handleSpinClick = () => {
-    if (isSpinning || spinChances <= 0 || (countdown > 0 && !adClicked)) return;
-    if (!adClicked && countdown > 0) return;
+    if (isSpinning || spinChances <= 0) return;
+    if (countdown > 0 || (showAd && !adClicked)) return;
+
 
     setIsSpinning(true);
     setResult(null);
-    setAdClicked(false);
     setShowConfetti(false);
     
     const today = new Date().toISOString().split('T')[0];
@@ -111,6 +113,7 @@ export default function SpinRewardPage() {
     if (chancesLeft > 0) {
       setTimeout(() => {
         setShowAd(true);
+        setAdClicked(false);
         setCountdown(COUNTDOWN_SECONDS);
       }, 1000);
     }
@@ -118,12 +121,21 @@ export default function SpinRewardPage() {
 
   const handleAdClick = () => {
       setShowAd(false);
-      setAdClicked(true);
-      setResult(null);
+      setResult(null); // Hide previous result
+      setAdClicked(true); // Mark ad as clicked
   }
 
   const allSpinsUsedToday = spinChances <= 0;
-  const isSpinButtonDisabled = isSpinning || allSpinsUsedToday || (countdown > 0 && !adClicked);
+  
+  const getButtonState = () => {
+      if (isSpinning) return { text: 'Spinning...', disabled: true };
+      if (allSpinsUsedToday) return { text: 'Come back tomorrow', disabled: true};
+      if (showAd && countdown > 0) return { text: `Next Spin in ${countdown}s`, disabled: true };
+      if (showAd && countdown === 0) return { text: 'Click Ad to Spin', disabled: true };
+      return { text: 'SPIN NOW', disabled: false };
+  }
+
+  const buttonState = getButtonState();
 
 
   return (
@@ -149,7 +161,7 @@ export default function SpinRewardPage() {
                 <Award className="h-4 w-4" />
                 <AlertTitle>You Won:</AlertTitle>
                 <AlertDescription className="text-lg font-bold">
-                    {result.text}
+                    {result.text.toLowerCase().includes('try') || result.text.toLowerCase().includes('bonus') ? result.text : `${result.text} Points`}
                 </AlertDescription>
             </Alert>
           )}
@@ -168,9 +180,6 @@ export default function SpinRewardPage() {
                             className="object-cover"
                             data-ai-hint="advertisement banner"
                         />
-                         <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                            {/* No text on ad */}
-                        </div>
                     </div>
                 </Card>
                  <p className="text-center text-sm font-bold text-primary animate-pulse">
@@ -183,12 +192,9 @@ export default function SpinRewardPage() {
         
         <div className="text-center space-y-4 pt-4">
             {!allSpinsUsedToday ? (
-                 <Button onClick={handleSpinClick} size="lg" className="w-full max-w-sm h-14 text-xl font-bold" disabled={isSpinButtonDisabled}>
+                 <Button onClick={handleSpinClick} size="lg" className="w-full max-w-sm h-14 text-xl font-bold" disabled={buttonState.disabled}>
                     {isSpinning && <Loader2 className="h-6 w-6 animate-spin"/>}
-                    {!isSpinning && countdown > 0 && `Next Spin in ${countdown}s`}
-                    {!isSpinning && countdown === 0 && adClicked && 'SPIN NOW'}
-                    {!isSpinning && countdown > 0 && !adClicked && 'Click Ad to Spin'}
-                    {!isSpinning && countdown === 0 && !adClicked && 'Click Ad to Spin'}
+                    {buttonState.text}
                 </Button>
             ) : (
                 <Alert className="max-w-sm mx-auto">
