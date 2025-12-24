@@ -31,7 +31,7 @@ const segments: WheelSegment[] = [
 ];
 
 const DAILY_SPIN_CHANCES = 50;
-const AD_VIEW_COUNTDOWN_SECONDS = 10;
+const AD_VIEW_COUNTDOWN_SECONDS = 20;
 const MIN_TRANSFER_POINTS = 1000; // 1000 points = 10 INR
 
 interface SpinRewardData {
@@ -160,7 +160,7 @@ export default function SpinRewardPage() {
                 .upsert({ 
                     user_id: user.id, 
                     spin_points: (spinData?.spin_points || 0) + pointsWon,
-                    spins_used_today: (spinData?.spins_used_today || 0) + 1, // Already optimistically updated, this just confirms
+                    spins_used_today: (spinData?.spins_used_today || 0), // This is now handled by the optimistic update, but let's confirm
                     last_spin_date: new Date().toISOString().split('T')[0],
                     updated_at: new Date().toISOString(),
                  }, { onConflict: 'user_id' })
