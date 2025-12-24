@@ -5,7 +5,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
-import Link from 'next/link';
 
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
@@ -20,6 +19,7 @@ import {
   LogOut,
   ExternalLink,
   ShieldCheck,
+  XCircle
 } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
@@ -27,16 +27,6 @@ import { LoadingScreen } from '@/components/loading-screen';
 import Confetti from 'react-confetti';
 import { useWindowSize } from '@/hooks/use-mobile';
 
-
-// Mock data for a single watch task
-const getMockTask = () => ({
-    id: `WATCH-${Date.now()}`,
-    title: 'Watch Video & Get Code',
-    reward: 2,
-    description: 'Click the link below to watch a short video. At the end of the video, a verification code will be displayed. Enter that code below to claim your reward.',
-    redirectUrl: 'https://www.google.com', // In a real app, this would be a unique link
-    correctCode: 'VERIFY123', // The code the user needs to enter
-});
 
 const TASK_STORAGE_KEY = 'watchEarnTask';
 
@@ -49,40 +39,63 @@ export default function WatchAndEarnPage() {
     const [user, setUser] = useState<User | null>(null);
     const [task, setTask] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [noTasksAvailable, setNoTasksAvailable] = useState(false);
     const [isVerifying, setIsVerifying] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [verificationCode, setVerificationCode] = useState('');
 
-    const loadNewTask = () => {
+    const loadNewTask = async (userId: string) => {
         setIsLoading(true);
-        setTimeout(() => {
-            const newTask = getMockTask();
+        setNoTasksAvailable(false);
+        setTask(null);
+        sessionStorage.removeItem(TASK_STORAGE_KEY);
+        
+        const { data, error } = await supabase.rpc('get_and_assign_watch_earn_task', {
+            user_id_input: userId
+        });
+
+        if (error) {
+            console.error("Error fetching watch-earn task:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch a new task.' });
+            setNoTasksAvailable(true);
+            setIsLoading(false);
+            return;
+        }
+
+        const newTask = data && data.length > 0 ? data[0] : null;
+
+        if (newTask) {
             sessionStorage.setItem(TASK_STORAGE_KEY, JSON.stringify(newTask));
             setTask(newTask);
-            setIsLoading(false);
-        }, 500);
+        } else {
+            setNoTasksAvailable(true);
+        }
+        setIsLoading(false);
     };
     
     useEffect(() => {
-        const storedTask = sessionStorage.getItem(TASK_STORAGE_KEY);
-        if (storedTask) {
-            try {
-                setTask(JSON.parse(storedTask));
-            } catch {
-                sessionStorage.removeItem(TASK_STORAGE_KEY);
-                loadNewTask();
-            }
-        } else {
-            loadNewTask();
-        }
-
-        const getUser = async () => {
+        const initialize = async () => {
             const { data: { session } } = await supabase.auth.getSession();
-            if(!session) router.push('/login');
-            else setUser(session.user);
-        }
-        getUser();
-        setIsLoading(false);
+            if(!session) {
+                router.push('/login');
+                return;
+            }
+            
+            setUser(session.user);
+            const storedTask = sessionStorage.getItem(TASK_STORAGE_KEY);
+            
+            if (storedTask) {
+                try {
+                    setTask(JSON.parse(storedTask));
+                    setIsLoading(false);
+                } catch {
+                    await loadNewTask(session.user.id);
+                }
+            } else {
+                await loadNewTask(session.user.id);
+            }
+        };
+        initialize();
     }, [router]);
 
 
@@ -92,49 +105,80 @@ export default function WatchAndEarnPage() {
             return;
         }
 
-        setIsVerifying(true);
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        if (verificationCode.trim().toUpperCase() === task.correctCode.toUpperCase()) {
-            
-            setIsSubmitting(true);
-            try {
-                if(!user) throw new Error("User not found");
-
-                // In a real app, you would add the reward to the user's balance
-                // For now, we just show a success message
-                
-                toast({
-                    title: 'Verification Successful!',
-                    description: `Reward of ₹${task.reward} will be added soon.`,
-                });
-                
-                // Show confetti and success screen for a few seconds
-                await new Promise(resolve => setTimeout(resolve, 4000));
-
-                handleSkip(); // Load a new task after success
-            } catch (error: any) {
-                 toast({ variant: 'destructive', title: 'Submission Failed', description: error.message });
-            } finally {
-                setIsSubmitting(false);
-            }
-            
-        } else {
+        if (verificationCode.trim().toUpperCase() !== task.correct_code.toUpperCase()) {
             toast({
                 variant: 'destructive',
                 title: 'Verification Failed',
                 description: 'The code you entered is incorrect. Please try again.',
             });
+            return;
         }
 
-        setIsVerifying(false);
+        setIsVerifying(true);
+        setIsSubmitting(true);
+        
+        try {
+            if (!user) throw new Error("User not found");
+
+            const { data: profile, error: profileError } = await supabase
+                .from('users')
+                .select('balance_available')
+                .eq('id', user.id)
+                .single();
+
+            if (profileError) throw profileError;
+
+            const newBalance = profile.balance_available + task.reward;
+
+            const { error: balanceError } = await supabase
+                .from('users')
+                .update({ balance_available: newBalance })
+                .eq('id', user.id);
+
+            if (balanceError) throw balanceError;
+            
+            const { error: taskError } = await supabase.from('usertasks').insert({
+                user_id: user.id,
+                task_type: 'watch-earn',
+                reward: task.reward,
+                status: 'Approved',
+                submission_data: { code: verificationCode.trim().toUpperCase(), taskId: task.id }
+            });
+
+            if (taskError) throw taskError;
+
+            const { error: walletError } = await supabase.from('wallet_history').insert({
+                user_id: user.id,
+                amount: task.reward,
+                type: 'task_reward',
+                status: 'Completed',
+                description: `Reward for ${task.title}`
+            });
+
+            if (walletError) throw walletError;
+
+            toast({
+                title: 'Verification Successful!',
+                description: `Reward of ₹${task.reward} has been added to your balance.`,
+            });
+            
+            await new Promise(resolve => setTimeout(resolve, 4000));
+            if (user) handleSkip();
+
+        } catch (error: any) {
+             toast({ variant: 'destructive', title: 'Submission Failed', description: error.message });
+             setIsSubmitting(false);
+        } finally {
+            setIsVerifying(false);
+        }
     };
 
     const handleSkip = () => {
         setVerificationCode('');
-        sessionStorage.removeItem(TASK_STORAGE_KEY);
-        loadNewTask();
+        setIsSubmitting(false);
+        if (user) {
+            loadNewTask(user.id);
+        }
     };
 
     const handleExit = () => {
@@ -142,20 +186,38 @@ export default function WatchAndEarnPage() {
         router.push('/tasks');
     };
 
-    if (isLoading || !task) {
+    if (isLoading) {
         return <LoadingScreen />;
+    }
+
+    if (noTasksAvailable) {
+      return (
+        <div>
+            <PageHeader title="Watch & Earn" />
+            <div className="flex flex-col items-center justify-center h-[calc(100vh-150px)] text-center p-4">
+                <XCircle className="h-16 w-16 text-muted-foreground mb-4" />
+                <h2 className="text-2xl font-bold text-gray-800 mb-2">No New Tasks Available</h2>
+                <p className="text-muted-foreground mb-6">You have completed all available videos for now. Please check back later.</p>
+                <Button onClick={() => router.push('/tasks')}>Back to Tasks</Button>
+            </div>
+        </div>
+      );
     }
     
      if (isSubmitting) {
         return (
             <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-br from-green-400 to-cyan-500 text-white">
-                <Confetti width={width} height={height} recycle={false} numberOfPieces={500} />
+                <Confetti width={width || 0} height={height || 0} recycle={false} numberOfPieces={500} onConfettiComplete={() => {}} />
                 <div className="text-center animate-in fade-in-0 zoom-in-95">
-                    <h1 className="text-4xl font-bold tracking-tight">Task Verified!</h1>
-                    <p className="mt-2 text-lg opacity-80">Your reward is being processed.</p>
+                    <h1 className="text-4xl font-bold tracking-tight">Task Approved!</h1>
+                    <p className="mt-2 text-lg opacity-80">Your reward has been added to your balance.</p>
                 </div>
             </div>
         );
+    }
+
+    if (!task) {
+        return <LoadingScreen />; // Task लोड होने तक लोडिंग दिखाएँ
     }
 
 
@@ -178,10 +240,10 @@ export default function WatchAndEarnPage() {
                         </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <a href={task.redirectUrl} target="_blank" rel="noopener noreferrer" className="block">
+                        <a href={task.redirect_url} target="_blank" rel="noopener noreferrer" className="block">
                             <Button className="w-full h-12 text-base font-bold bg-blue-500 hover:bg-blue-600">
                                 <ExternalLink className="mr-2 h-5 w-5" />
-                                Go to Link & Get Code
+                                Go to Video & Get Code
                             </Button>
                         </a>
                         <Alert>
