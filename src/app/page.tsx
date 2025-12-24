@@ -62,8 +62,13 @@ export default function HomePage() {
         let availableBalance = 0;
         if (walletData) {
             availableBalance = walletData.reduce((acc, item) => {
-                if (item.status === 'Completed') {
+                // Only completed credits add to the balance
+                if (item.status === 'Completed' && item.amount > 0) {
                     return acc + item.amount;
+                }
+                // All debits (withdrawals) are subtracted, regardless of status (as they are 'held' from balance)
+                 if (item.amount < 0) {
+                    return acc + item.amount; // amount is already negative
                 }
                 return acc;
             }, 0);
@@ -485,5 +490,7 @@ export default function HomePage() {
       </main>
     </div>
   );
+
+    
 
     
