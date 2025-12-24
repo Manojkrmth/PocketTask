@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -175,7 +176,7 @@ export default function ManageUsersPage() {
                       </div>
                     </TableCell>
                      <TableCell>
-                      <div className="font-semibold text-green-600">₹{user.balance_available.toLocaleString('en-IN')}</div>
+                      <div className="font-semibold text-green-600">₹{(user.balance_available || 0).toLocaleString('en-IN')}</div>
                     </TableCell>
                     <TableCell>
                       <Badge
