@@ -53,7 +53,8 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
       const pointerAngle = 270; // Pointer is at the top (270 degrees)
       const offsetToCenter = pointerAngle - centerOfSegmentAngle;
       
-      const totalRotation = (finalRotation - (finalRotation % 360)) + (360 * 6) + offsetToCenter;
+      // Add more rotations for a longer spin
+      const totalRotation = (finalRotation - (finalRotation % 360)) + (360 * 10) + offsetToCenter;
 
       setRotation(totalRotation);
       setFinalRotation(totalRotation); 
@@ -79,7 +80,7 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
       >
         <div
           className={cn(
-            "w-full h-full rounded-full transition-transform duration-[6000ms] ease-out",
+            "w-full h-full rounded-full transition-transform duration-[6000ms] ease-in-out",
             "select-none" 
           )}
           style={{ transform: `rotate(${rotation}deg)` }}
