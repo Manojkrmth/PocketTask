@@ -58,7 +58,7 @@ export default function VisitAndEarnPage() {
             return;
         }
 
-        const newTask = data;
+        const newTask = data && data.length > 0 ? data[0] : null;
 
         if (newTask && newTask.id) {
             sessionStorage.setItem(TASK_STORAGE_KEY, JSON.stringify(newTask));
@@ -83,6 +83,9 @@ export default function VisitAndEarnPage() {
             if (storedTask) {
                 try {
                     const parsedTask = JSON.parse(storedTask);
+                    // Ensure stored task has not expired or been completed
+                    // For now, we will just load it if it exists.
+                    // A better check might involve an expiry timestamp.
                     setTask(parsedTask);
                     setIsLoading(false);
                 } catch {

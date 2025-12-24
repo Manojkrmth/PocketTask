@@ -61,7 +61,7 @@ export default function WatchAndEarnPage() {
             return;
         }
 
-        const newTask = data;
+        const newTask = data && data.length > 0 ? data[0] : null;
 
         if (newTask && newTask.id) {
             sessionStorage.setItem(TASK_STORAGE_KEY, JSON.stringify(newTask));
