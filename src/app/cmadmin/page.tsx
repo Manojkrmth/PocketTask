@@ -65,37 +65,22 @@ export default function AdminDashboardPage() {
     const fetchData = async () => {
       setIsLoading(true);
 
-      const { count: totalUsers, error: usersError } = await supabase
-        .from('users')
-        .select('id', { count: 'exact', head: true });
-
-      const { count: pendingTasks } = await supabase
-        .from('usertasks')
-        .select('id', { count: 'exact' })
-        .eq('status', 'Pending');
-
-      const { count: pendingWithdrawalsCount, data: pendingWithdrawalsData } = await supabase
-        .from('payments')
-        .select('*, users(full_name)', { count: 'exact' })
-        .eq('status', 'Pending')
-        .limit(5)
-        .order('created_at', { ascending: false });
-
-      const { data: paidData } = await supabase
-        .from('payments')
-        .select('amount')
-        .eq('status', 'Completed');
-      const totalPaid = paidData ? paidData.reduce((sum, item) => sum + item.amount, 0) : 0;
+      const { data: statsData, error: statsError } = await supabase.rpc('get_dashboard_stats');
       
-      const { count: completedTasks } = await supabase
-        .from('usertasks')
-        .select('id', { count: 'exact' })
-        .eq('status', 'Approved');
-        
-      const { count: pendingCoins } = await supabase
-        .from('coinsubmissions')
-        .select('id', { count: 'exact' })
-        .eq('status', 'Pending');
+      if (statsError) {
+        console.error('Error fetching dashboard stats:', statsError);
+        // Handle error appropriately
+      } else if (statsData && statsData.length > 0) {
+        const fetchedStats = statsData[0];
+         setStats({
+            totalUsers: fetchedStats.total_users,
+            pendingTasks: fetchedStats.pending_tasks,
+            pendingWithdrawals: fetchedStats.pending_withdrawals,
+            totalPaid: fetchedStats.total_paid,
+            completedTasks: fetchedStats.completed_tasks,
+            pendingCoins: fetchedStats.pending_coins
+        });
+      }
 
       const { data: recentUsersData } = await supabase
         .from('users')
@@ -103,17 +88,7 @@ export default function AdminDashboardPage() {
         .order('created_at', { ascending: false })
         .limit(5);
 
-      setStats({
-        totalUsers: totalUsers || 0,
-        pendingTasks: pendingTasks || 0,
-        pendingWithdrawals: pendingWithdrawalsCount || 0,
-        totalPaid: totalPaid,
-        completedTasks: completedTasks || 0,
-        pendingCoins: pendingCoins || 0
-      });
-
       setRecentUsers(recentUsersData || []);
-      setPendingWithdrawals(pendingWithdrawalsData || []);
       setIsLoading(false);
     };
 
