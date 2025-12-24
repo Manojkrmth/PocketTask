@@ -31,13 +31,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, Loader2, User as UserIcon, Mail, Phone, Calendar, UserX, UserCheck, Eye } from 'lucide-react';
+import { MoreHorizontal, Loader2, Mail, Phone, UserX, UserCheck, Eye, Edit } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { useCurrency } from '@/context/currency-context';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 interface AppUser {
@@ -84,7 +83,7 @@ export default function UsersPage() {
   
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [toast]);
 
   const handleUpdateUserStatus = (user: AppUser, newStatus: 'Active' | 'Blocked') => {
     startUpdateTransition(async () => {
@@ -97,7 +96,6 @@ export default function UsersPage() {
         toast({ variant: "destructive", title: "Update Failed", description: error.message });
       } else {
         toast({ title: "Success", description: `${user.full_name}'s status has been updated to ${newStatus}.` });
-        // Refresh users list
         await fetchUsers();
       }
     });
@@ -143,7 +141,7 @@ export default function UsersPage() {
           />
         </div>
 
-        <div className="border rounded-lg">
+        <div className="border rounded-lg bg-card">
           <Table>
             <TableHeader>
               <TableRow>
@@ -171,11 +169,11 @@ export default function UsersPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2 mb-1">
-                          <Mail className="h-3 w-3"/>
+                          <Mail className="h-3 w-3 text-muted-foreground"/>
                           <span className="text-xs">{user.email}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                          <Phone className="h-3 w-3"/>
+                          <Phone className="h-3 w-3 text-muted-foreground"/>
                           <span className="text-xs">{user.mobile || 'N/A'}</span>
                       </div>
                     </TableCell>
@@ -193,7 +191,7 @@ export default function UsersPage() {
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0" disabled={isUpdating}>
+                          <Button variant="ghost" className="h-8 w-8 p-0" disabled={isUpdating && selectedUser?.id === user.id}>
                             <span className="sr-only">Open menu</span>
                             {isUpdating && selectedUser?.id === user.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <MoreHorizontal className="h-4 w-4" />}
                           </Button>
@@ -204,7 +202,8 @@ export default function UsersPage() {
                             <Eye className="mr-2 h-4 w-4"/>
                             View Details
                           </DropdownMenuItem>
-                          <DropdownMenuItem disabled>
+                          <DropdownMenuItem onSelect={() => router.push(`/cmadmin/users/${user.id}/edit`)}>
+                            <Edit className="mr-2 h-4 w-4"/>
                             Edit User
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
