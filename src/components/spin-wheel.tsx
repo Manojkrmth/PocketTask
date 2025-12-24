@@ -54,7 +54,7 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
       const offsetToCenter = pointerAngle - centerOfSegmentAngle;
       
       // Add more rotations for a longer spin
-      const totalRotation = (finalRotation - (finalRotation % 360)) + (360 * 30) + offsetToCenter;
+      const totalRotation = (finalRotation - (finalRotation % 360)) + (360 * 100) + offsetToCenter;
 
       setRotation(totalRotation);
       setFinalRotation(totalRotation); 
@@ -69,7 +69,7 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
 
   return (
     <div className="relative w-[340px] h-[360px] flex items-center justify-center flex-col">
-       <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1 z-20 drop-shadow-lg">
+       <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1 z-10 drop-shadow-lg">
            <svg width="40" height="50" viewBox="0 0 42 52" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M21 52L0.812826 0.25L41.1872 0.250004L21 52Z" fill="#FDD835"/>
            </svg>
