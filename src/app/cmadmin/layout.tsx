@@ -77,8 +77,8 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-muted/40 dark:bg-black admin-panel">
-      <aside className="w-64 flex-shrink-0 bg-background dark:bg-gray-900/50 border-r p-4 flex flex-col">
+    <div className="flex min-h-screen bg-background admin-panel">
+      <aside className="w-64 flex-shrink-0 bg-card border-r p-4 flex flex-col">
         <div className="text-center py-4 mb-8 flex items-center justify-center gap-2">
             <Image 
                 src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjQeXPPDoYHtSI3CkEycSr99eEzj5eNNnXZkkzetdCk8G5qhltxgm9vXYe4O2nRb8eJIkTRvSW7WljNX1U4sgGJopouCKxTr_u6Vn6eG5mmZrFt9Fw2R9L_VgCzk4J3BLhQu9UG7uAuGy3INawPoZlC1j11YSD0TSRCnUglyTByJM2ajI_Ce8O2t1d9Ahk/s320/photo_2025-11-21_17-20-41.jpg"
@@ -94,7 +94,7 @@ export default function AdminLayout({
             <Link key={item.href} href={item.href} passHref>
                <Button
                 variant={pathname.startsWith(item.href) ? 'secondary' : 'ghost'}
-                className="w-full justify-start text-base py-6"
+                className="w-full justify-start text-sm h-11"
               >
                 <item.icon className="mr-3 h-5 w-5" />
                 {item.label}
@@ -105,7 +105,7 @@ export default function AdminLayout({
         <div className="mt-auto">
              <Button
                 variant='ghost'
-                className="w-full justify-start text-base py-6 hover:bg-destructive/10 hover:text-destructive"
+                className="w-full justify-start text-sm h-11 hover:bg-destructive/10 hover:text-destructive"
                 onClick={handleLogout}
               >
                 <LogOut className="mr-3 h-5 w-5" />
@@ -115,7 +115,7 @@ export default function AdminLayout({
       </aside>
       
       <div className="flex-1 flex flex-col">
-        <header className="bg-background dark:bg-gray-900/50 shadow-sm border-b">
+        <header className="bg-card shadow-sm border-b">
             <div className="p-4 flex justify-end items-center">
                  {user && (
                     <div className="text-sm text-right">
