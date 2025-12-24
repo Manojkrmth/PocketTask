@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -72,6 +73,9 @@ export default function SignupPage() {
     }
 
     if (authData.user) {
+      // Generate a unique referral code for the new user
+      const newReferralCode = `CM${authData.user.id.substring(0, 6).toUpperCase()}`;
+
       const { error: insertError } = await supabase
         .from('users')
         .insert([
@@ -80,7 +84,8 @@ export default function SignupPage() {
             email: email,
             full_name: fullName, 
             mobile: mobile,
-            referred_by: referralCode || null, // Changed from referral_code to referred_by
+            referral_code: newReferralCode, // Save the new referral code
+            referred_by: referralCode.trim().toUpperCase() || null,
           }
         ]);
 
