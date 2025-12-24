@@ -39,7 +39,7 @@ const menuItems = [
   { href: '/profile/edit', icon: Edit, label: 'Edit Profile' },
   { href: '/profile/currency', icon: Globe, label: 'Currency' },
   { href: '/update-password', icon: Lock, label: 'Change Password' },
-  { href: '/support-ticket', icon: Contact, label: 'Create Support Ticket', badge: 'NEW' },
+  { href: '/support-ticket', icon: Contact, label: 'Support Ticket', badge: 'NEW' },
 ];
 
 const legalItems = [
@@ -103,13 +103,7 @@ export default function ProfilePage() {
   const [userProfile, setUserProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  const [systemSettings, setSystemSettings] = useState<any>({
-      socialLinks: {
-        instagram: "#",
-        whatsapp: "#",
-        telegram: "#",
-      }
-  });
+  const [systemSettings, setSystemSettings] = useState<any>(null);
 
   const fetchProfileData = useCallback(async (sessionUser: SupabaseUser) => {
     setIsLoading(true);
@@ -129,6 +123,11 @@ export default function ProfilePage() {
     } else {
       setUserProfile(profile);
     }
+    
+    // Fetch system settings
+    const { data: settings } = await supabase.from('settings').select('settings_data').single();
+    setSystemSettings(settings?.settings_data || {});
+
     setIsLoading(false);
   }, [router]);
 
@@ -150,14 +149,6 @@ export default function ProfilePage() {
     await supabase.auth.signOut();
     router.push('/login');
   }
-
-  const handleComingSoon = (e: React.MouseEvent) => {
-    e.preventDefault();
-    toast({
-      title: "Coming Soon!",
-      description: "This feature is under development.",
-    });
-  };
   
   const hasReferrer = !!userProfile?.referred_by;
   const socialLinks = systemSettings?.socialLinks || {};

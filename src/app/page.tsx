@@ -130,6 +130,11 @@ export default function HomePage() {
       
       setUserProfile(profile);
 
+      // Fetch system settings
+      const { data: settings } = await supabase.from('settings').select('settings_data').single();
+      setSystemSettings(settings?.settings_data || {});
+
+
       await Promise.all([
         fetchWalletBalances(sessionUser.id),
         fetchNotificationCount(),
@@ -162,14 +167,7 @@ export default function HomePage() {
       }
     });
 
-    // Mock data for settings and offers - can be replaced with real backend calls
-    setSystemSettings({
-      noticeBoardText: "Welcome to AuthNexus! Complete tasks and earn rewards.",
-      socialLinks: {
-        whatsapp: "#",
-        telegram: "#",
-      }
-    });
+    // Mock data for offers - can be replaced with real backend calls
     setFeaturedOffers([
       { id: '1', imageUrl: 'https://picsum.photos/seed/offer1/420/180', description: 'Special Offer 1', redirectLink: '#' },
       { id: '2', imageUrl: 'https://picsum.photos/seed/offer2/420/180', description: 'Special Offer 2', redirectLink: '#' }
@@ -455,4 +453,5 @@ export default function HomePage() {
     
 
     
+
 
