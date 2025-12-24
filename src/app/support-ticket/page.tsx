@@ -2,13 +2,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Loader2, Send, MessageSquare } from 'lucide-react';
+import { Loader2, Send, MessageSquare, History } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
@@ -79,7 +80,17 @@ export default function SupportTicketPage() {
 
     return (
         <div className="flex flex-col min-h-screen bg-muted/40">
-            <PageHeader title="Create Support Ticket" description="Need help? Let us know." />
+            <PageHeader
+                title="Create Support Ticket"
+                description="Need help? Let us know."
+                actionButton={
+                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full text-primary-foreground hover:bg-white/20" asChild>
+                        <Link href="/support-ticket/history">
+                            <History className="h-5 w-5" />
+                        </Link>
+                    </Button>
+                }
+            />
             <main className="p-4 space-y-6 flex-1">
                 <Card className="shadow-lg border-primary/20">
                     <CardHeader>

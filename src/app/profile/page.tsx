@@ -201,11 +201,6 @@ export default function ProfilePage() {
                 <ChevronRight className="h-5 w-5 ml-2 text-muted-foreground" />
               </Link>
             ))}
-             <Link href="/support-ticket/history" className="flex items-center py-4 text-md font-medium">
-                <MessageSquare className="h-5 w-5 mr-4 text-primary" />
-                <span className="flex-1">View Ticket History</span>
-                <ChevronRight className="h-5 w-5 ml-2 text-muted-foreground" />
-              </Link>
           </CardContent>
         </Card>
 
