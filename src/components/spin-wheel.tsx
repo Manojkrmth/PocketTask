@@ -24,10 +24,12 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
     if (isSpinning) {
       // Determine the winning segment
       const winningSegmentIndex = Math.floor(Math.random() * numSegments);
-      const randomOffset = (Math.random() - 0.5) * anglePerSegment * 0.8; // Spin to a random point within the segment
+      // Spin to a random point *within* the segment, not on the edge.
+      // -0.4 to 0.4 ensures it's away from the lines.
+      const randomOffset = (Math.random() - 0.5) * anglePerSegment * 0.8;
       
-      // Calculate rotation: 5 full spins + rotation to the winning segment
-      const targetRotation = (360 * 5) + (360 - (winningSegmentIndex * anglePerSegment)) + randomOffset;
+      // Calculate rotation: 5 full spins + rotation to the winning segment's middle
+      const targetRotation = (360 * 5) + (360 - (winningSegmentIndex * anglePerSegment)) - (anglePerSegment / 2) + randomOffset;
       
       setRotation(prev => prev + targetRotation);
 
@@ -40,10 +42,11 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
 
   return (
     <div className="relative w-72 h-72 md:w-80 md:h-80">
+      {/* The Wheel */}
       <div 
         className={cn(
             "absolute w-full h-full rounded-full transition-transform duration-[5000ms] ease-out",
-            isSpinning ? "" : "duration-0" // No transition when not spinning
+            "select-none"
         )}
         style={{ 
             transform: `rotate(${rotation}deg)`,
@@ -63,7 +66,7 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
               style={{ transform: `rotate(${rotateAngle}deg)` }}
             >
               <span 
-                className="transform -rotate-90 text-sm font-bold text-white"
+                className="transform -rotate-90 text-sm font-bold text-white pl-8"
                 style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.5)'}}
               >
                   {segment.text}

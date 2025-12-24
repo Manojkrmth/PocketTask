@@ -22,6 +22,10 @@ const segments: WheelSegment[] = [
   { text: 'Try Again', color: '#E0E0E0' },
   { text: '₹2', color: '#C0C0C0' },
   { text: '₹50', color: '#FFD700' },
+  { text: '₹1', color: '#C0C0C0' },
+  { text: 'Try Again', color: '#E0E0E0' },
+  { text: '₹100', color: '#FFD700' },
+  { text: 'Bonus Spin', color: '#CD7F32' },
 ];
 
 const DAILY_SPIN_CHANCES = 3;
@@ -38,7 +42,7 @@ export default function SpinRewardPage() {
   const [showConfetti, setShowConfetti] = useState(false);
   const { width, height } = useWindowSize();
   const [spinChances, setSpinChances] = useState(DAILY_SPIN_CHANCES);
-  const [isFinished, setIsFinished] = useState(false);
+  const [isFinished, setIsFinished]_useState(false);
   const [showAd, setShowAd] = useState(false);
   const [adClicked, setAdClicked] = useState(false);
 
@@ -108,7 +112,8 @@ export default function SpinRewardPage() {
       setShowConfetti(true);
     }
     // Show ad after spin if there are chances left
-    if (spinChances > 0) {
+    const chancesLeft = spinChances - 1; // Calculate based on the spin that just completed
+    if (chancesLeft > 0) {
         setTimeout(() => {
             setShowAd(true);
         }, 1000); // show ad 1 second after result
@@ -117,14 +122,13 @@ export default function SpinRewardPage() {
 
   const handleAdClick = () => {
     setShowAd(false);
-    setAdClicked(true); // This now allows the user to spin again
-    // In a real scenario, you might navigate to the ad's link.
-    // For this example, we just hide the ad.
+    setAdClicked(true); 
   };
 
   const hasSpinsLeft = spinChances > 0 && !isFinished;
   // Spin button should be disabled if spinning, or if an ad is shown and not yet clicked.
-  const isSpinButtonDisabled = isSpinning || (showAd && !adClicked) || !hasSpinsLeft;
+  const isSpinButtonDisabled = isSpinning || showAd || !hasSpinsLeft;
+
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -156,9 +160,6 @@ export default function SpinRewardPage() {
 
           {showAd && (
             <div className="w-full max-w-sm animate-in fade-in-50 space-y-2">
-                <p className="text-center text-sm font-bold text-primary animate-pulse">
-                    Click the ad below to unlock your next spin!
-                </p>
                 <Card 
                     className="overflow-hidden border-2 border-primary shadow-lg cursor-pointer hover:border-green-500 transition-all"
                     onClick={handleAdClick}
@@ -171,16 +172,11 @@ export default function SpinRewardPage() {
                             className="object-cover"
                             data-ai-hint="advertisement banner"
                         />
-                         <div className="absolute inset-0 bg-black/30 flex items-center justify-center flex-col text-white p-4 text-center">
-                            <h3 className="font-bold text-xl drop-shadow-md">Special Offer!</h3>
-                            <p className="text-sm drop-shadow-sm">Click to learn more and unlock your spin!</p>
-                            <div className="mt-4 px-4 py-2 bg-green-500 rounded-full flex items-center gap-2">
-                                <MousePointerClick className="h-4 w-4" />
-                                <span>Click Here</span>
-                            </div>
-                        </div>
                     </div>
                 </Card>
+                 <p className="text-center text-sm font-bold text-primary animate-pulse">
+                    Click the ad above to unlock your next spin!
+                </p>
             </div>
           )}
 
