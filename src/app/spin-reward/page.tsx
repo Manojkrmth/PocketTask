@@ -69,15 +69,14 @@ export default function SpinRewardPage() {
     let timer: NodeJS.Timeout;
     if (countdown > 0) {
       timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-    } else if (countdown === 0 && showAd) {
-      // Timer is done, but ad hasn't been clicked. Do nothing.
     }
     return () => clearTimeout(timer);
-  }, [countdown, showAd]);
+  }, [countdown]);
 
   const handleSpinClick = () => {
     if (isSpinning || spinChances <= 0) return;
-    if (countdown > 0 || (showAd && !adClicked)) return;
+    if (showAd && !adClicked) return;
+    if (countdown > 0) return;
 
 
     setIsSpinning(true);
@@ -128,8 +127,8 @@ export default function SpinRewardPage() {
   const getButtonState = () => {
       if (isSpinning) return { text: 'Spinning...', disabled: true };
       if (allSpinsUsedToday) return { text: 'Come back tomorrow', disabled: true};
-      if (showAd && countdown > 0) return { text: `Next Spin in ${countdown}s`, disabled: true };
-      if (showAd && countdown === 0) return { text: 'Click Ad to Spin Again', disabled: true };
+      if (countdown > 0) return { text: `Next Spin in ${countdown}s`, disabled: true };
+      if (showAd && !adClicked) return { text: 'Click Ad to Spin Again', disabled: true };
       return { text: 'SPIN NOW', disabled: false };
   }
 
@@ -212,5 +211,7 @@ export default function SpinRewardPage() {
     </div>
   );
 }
+
+    
 
     
