@@ -66,17 +66,16 @@ export default function SpinRewardPage() {
   }, []);
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
     if (countdown > 0) {
-      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
     }
-    return () => clearTimeout(timer);
   }, [countdown]);
 
   const handleSpinClick = () => {
     if (isSpinning || spinChances <= 0) return;
-    if (showAd && !adClicked) return;
     if (countdown > 0) return;
+    if (showAd && !adClicked) return;
 
 
     setIsSpinning(true);
@@ -211,7 +210,3 @@ export default function SpinRewardPage() {
     </div>
   );
 }
-
-    
-
-    
