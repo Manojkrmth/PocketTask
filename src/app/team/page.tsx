@@ -63,68 +63,54 @@ export default function TeamPage() {
       systemSettings?.referralLevel5Percentage || 0,
   ];
 
- const fetchTeamData = useCallback(async (currentUserId: string, currentReferralEarnings: number) => {
-    // Note: No need to set isLoading(true) here, it's handled by the calling useEffect
-    
+ const fetchTeamData = useCallback(async (currentUserId: string) => {
+    setIsLoading(true);
     try {
-        const { data, error } = await supabase
-            .from('referrals')
-            .select('level', { count: 'exact' })
-            .eq('referrer_id', currentUserId);
+        const { data, error } = await supabase.rpc('get_user_team_data', {
+            user_id_input: currentUserId
+        });
 
         if (error) {
-            console.error("Error fetching team data:", error);
-            // Even if there's an error, initialize with empty data
-            setTeamData(commissionRates.map((commission, index) => ({
-                level: index + 1,
-                commission,
-                members: 0,
-                earnings: 0,
-            })));
-            setTeamStats({
-                totalTeamSize: 0,
-                activeMembers: 0, 
-                myEarning: currentReferralEarnings,
-            });
-            return;
-        };
-        
-        const newTeamData: LevelData[] = commissionRates.map((commission, index) => ({
-            level: index + 1,
-            commission,
-            members: 0,
-            earnings: 0, // This can be calculated later if needed
-        }));
+            console.error("Error fetching team data via RPC:", error);
+            throw error;
+        }
 
+        const newTeamData: LevelData[] = [];
         let totalTeamSize = 0;
         
-        if (data) {
-             const levelCounts: { [key: number]: number } = {};
-             for (const referral of data) {
-                if (referral.level) {
-                   levelCounts[referral.level] = (levelCounts[referral.level] || 0) + 1;
-                }
-             }
-             
-             newTeamData.forEach(levelItem => {
-                levelItem.members = levelCounts[levelItem.level] || 0;
-             });
-
-            totalTeamSize = data.length;
+        for (let i = 0; i < 5; i++) {
+            const level = i + 1;
+            const levelKey = `level${level}`;
+            const levelInfo = data[levelKey] || { members: 0, earnings: 0 };
+            
+            newTeamData.push({
+                level: level,
+                commission: commissionRates[i],
+                members: levelInfo.members || 0,
+                earnings: levelInfo.earnings || 0,
+            });
+            totalTeamSize += levelInfo.members || 0;
         }
-       
+        
         setTeamData(newTeamData);
-        setTeamStats({
-            totalTeamSize,
-            activeMembers: Math.floor(totalTeamSize * 0.1), // Mocking active members
-            myEarning: currentReferralEarnings,
-        });
+        setTeamStats(prev => ({
+            ...prev,
+            totalTeamSize: totalTeamSize,
+            // Active members logic can be added to RPC if needed
+            activeMembers: Math.floor(totalTeamSize * 0.1) // Mocking active members for now
+        }));
 
     } catch (error) {
         console.error("Caught error in fetchTeamData:", error);
-        // Ensure UI doesn't hang on error
+        // Initialize with empty data on error to avoid UI hanging
+        setTeamData(commissionRates.map((commission, index) => ({
+            level: index + 1,
+            commission,
+            members: 0,
+            earnings: 0,
+        })));
     } finally {
-        // The finally block to set isLoading to false is in the useEffect
+        setIsLoading(false);
     }
 }, [commissionRates]);
 
@@ -154,11 +140,13 @@ export default function TeamPage() {
 
         if (profile) {
           setUserProfile(profile);
-          await fetchTeamData(profile.id, profile.referral_earnings || 0);
+          setTeamStats(prev => ({ ...prev, myEarning: profile.referral_earnings || 0 }));
+          await fetchTeamData(profile.id);
+        } else {
+          setIsLoading(false);
         }
       } catch (e) {
           console.error("Error in checkSession:", e);
-      } finally {
           setIsLoading(false);
       }
     };
