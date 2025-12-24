@@ -31,7 +31,7 @@ const segments: WheelSegment[] = [
 ];
 
 const DAILY_SPIN_CHANCES = 50;
-const COUNTDOWN_SECONDS = 10;
+const AD_VIEW_COUNTDOWN_SECONDS = 10;
 const MIN_TRANSFER_POINTS = 1000; // 1000 points = 10 INR
 
 interface SpinRewardData {
@@ -54,8 +54,7 @@ export default function SpinRewardPage() {
   const [showConfetti, setShowConfetti] = useState(false);
   
   const [showAd, setShowAd] = useState(false);
-  const [adConfirmed, setAdConfirmed] = useState(false);
-  const [countdown, setCountdown] = useState(0);
+  const [adCountdown, setAdCountdown] = useState(0);
 
   // Load user and spin data from Supabase
   useEffect(() => {
@@ -94,7 +93,18 @@ export default function SpinRewardPage() {
           setSpinData(data);
         }
       } else if (error && error.code === 'PGRST116') {
-        setSpinData(null); // No record exists, which is fine. It will be created on first spin.
+        // No record exists, create one for the new user
+        const { data: newData, error: insertError } = await supabase
+            .from('spin_rewards')
+            .insert({ user_id: session.user.id, last_spin_date: today, spin_points: 0, spins_used_today: 0 })
+            .select()
+            .single();
+        
+        if (insertError) {
+            toast({ variant: "destructive", title: "Error", description: "Could not initialize spin data." });
+        } else {
+            setSpinData(newData);
+        }
       } else if (error) {
         toast({ variant: "destructive", title: "Error", description: "Could not fetch your spin data." });
       }
@@ -105,26 +115,26 @@ export default function SpinRewardPage() {
     initialize();
   }, [router, toast]);
 
-  // Countdown timer effect
+  // Ad Countdown timer effect
   useEffect(() => {
     let timer: NodeJS.Timeout;
-    if (countdown > 0) {
-      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-    } else if (countdown === 0 && result && spinData && spinData.spins_used_today < DAILY_SPIN_CHANCES) {
-      // Countdown finished, show ad for next spin
-      setShowAd(true);
+    if (adCountdown > 0) {
+      timer = setTimeout(() => setAdCountdown(adCountdown - 1), 1000);
+    } else if (adCountdown === 0 && showAd) {
+      // Countdown finished, hide ad and allow next spin
+      setShowAd(false);
+      setResult(null);
     }
     return () => clearTimeout(timer);
-  }, [countdown, result, spinData]);
+  }, [adCountdown, showAd]);
 
   const handleSpinClick = async () => {
-    if (!user || isSpinning || (spinData && spinData.spins_used_today >= DAILY_SPIN_CHANCES) || countdown > 0 || (showAd && !adConfirmed)) return;
+    if (!user || isSpinning || (spinData && spinData.spins_used_today >= DAILY_SPIN_CHANCES) || adCountdown > 0 || showAd) return;
 
     setIsSpinning(true);
     setResult(null);
     setShowConfetti(false);
     setShowAd(false);
-    setAdConfirmed(false);
     
     // Optimistically update spins used
     const newSpinsUsed = (spinData?.spins_used_today || 0) + 1;
@@ -142,46 +152,47 @@ export default function SpinRewardPage() {
     setShowConfetti(true);
 
     const pointsWon = parseInt(selectedSegment.text, 10);
-    const today = new Date().toISOString().split('T')[0];
     
     if (!isNaN(pointsWon)) {
-        const { data: updatedData, error } = await supabase
-            .from('spin_rewards')
-            .upsert({ 
-                user_id: user.id, 
-                spin_points: (spinData?.spin_points || 0) + pointsWon,
-                spins_used_today: (spinData?.spins_used_today || 0) + 1,
-                last_spin_date: today,
-                updated_at: new Date().toISOString(),
-             }, { onConflict: 'user_id' })
-            .select()
-            .single();
-      
-      if (error) {
-         toast({ variant: "destructive", title: "Error", description: "Failed to update points." });
-         // Revert optimistic update if DB fails
-         setSpinData(prev => prev ? { ...prev, spin_points: (prev.spin_points || 0) - pointsWon, spins_used_today: prev.spins_used_today -1 } : null);
-      } else {
-         if (updatedData) setSpinData(updatedData);
-         setCountdown(COUNTDOWN_SECONDS);
-      }
+        try {
+            const { data: updatedData, error } = await supabase
+                .from('spin_rewards')
+                .upsert({ 
+                    user_id: user.id, 
+                    spin_points: (spinData?.spin_points || 0) + pointsWon,
+                    spins_used_today: (spinData?.spins_used_today || 0) + 1, // Already optimistically updated, this just confirms
+                    last_spin_date: new Date().toISOString().split('T')[0],
+                    updated_at: new Date().toISOString(),
+                 }, { onConflict: 'user_id' })
+                .select()
+                .single();
+          
+          if (error) throw error;
+          
+          setSpinData(updatedData);
+          
+          // Show the ad and start the countdown
+          if (updatedData.spins_used_today < DAILY_SPIN_CHANCES) {
+             setShowAd(true);
+             setAdCountdown(AD_VIEW_COUNTDOWN_SECONDS);
+          }
+
+        } catch (error: any) {
+             toast({ variant: "destructive", title: "Error", description: "Failed to update points." });
+             // Revert optimistic update if DB fails
+             setSpinData(prev => prev ? { ...prev, spins_used_today: prev.spins_used_today - 1 } : null);
+        }
     }
   }, [user, toast, spinData]);
 
-  const handleAdConfirmation = () => {
-      setShowAd(false);
-      setResult(null); // Clear previous prize
-      setAdConfirmed(true); // Mark ad as "clicked"
-  }
 
   const handleTransfer = async () => {
     if (!user || !spinData || spinData.spin_points < MIN_TRANSFER_POINTS) return;
 
     setIsTransferring(true);
-    const amountInr = (spinData.spin_points / 100) * 1; // 100 points = 1 INR
+    const amountInr = (spinData.spin_points / 100); // 100 points = 1 INR
 
     try {
-        // Step 1: Deduct points from spin_rewards table
         const { error: updateError } = await supabase
             .from('spin_rewards')
             .update({ spin_points: 0 })
@@ -189,7 +200,6 @@ export default function SpinRewardPage() {
 
         if (updateError) throw new Error("Failed to deduct spin points. " + updateError.message);
 
-        // Step 2: Add credit to wallet_history table
         const { error: creditError } = await supabase
             .from('wallet_history')
             .insert({
@@ -200,9 +210,15 @@ export default function SpinRewardPage() {
                 description: `${spinData.spin_points} spin points converted to balance`
             });
 
-        if (creditError) throw new Error("Failed to credit main balance. " + creditError.message);
-
-        // Manually update state as the transaction was successful
+        if (creditError) {
+            // Rollback: Try to add points back if wallet credit fails
+            await supabase
+                .from('spin_rewards')
+                .update({ spin_points: spinData.spin_points })
+                .eq('user_id', user.id);
+            throw new Error("Failed to credit main balance. " + creditError.message);
+        }
+        
         setSpinData(prev => prev ? { ...prev, spin_points: 0 } : null);
 
         toast({
@@ -227,8 +243,8 @@ export default function SpinRewardPage() {
   const getButtonState = () => {
       if (isSpinning) return { text: 'Spinning...', disabled: true };
       if (allSpinsUsedToday && !isSpinning) return { text: 'Come back tomorrow', disabled: true };
-      if (countdown > 0) return { text: `Next Spin in ${countdown}s`, disabled: true };
-      if (showAd && !adConfirmed) return { text: 'SPIN NOW', disabled: true }; // Disabled until ad is confirmed
+      if (adCountdown > 0) return { text: `Next Spin in ${adCountdown}s`, disabled: true };
+      if (showAd) return { text: `Wait ${adCountdown}s...`, disabled: true };
       return { text: 'SPIN NOW', disabled: false };
   }
 
@@ -250,7 +266,7 @@ export default function SpinRewardPage() {
             <CardContent className="p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Gift className="h-6 w-6 text-primary" />
-                <p className="font-semibold">Spins Left Today</p>
+                <p className="font-semibold">Spins Left</p>
               </div>
               <p className="text-2xl font-bold">{spinsLeft}</p>
             </CardContent>
@@ -271,14 +287,14 @@ export default function SpinRewardPage() {
         
         <Alert>
           <AlertTitle className="font-bold">Note: 100 Points = 1 INR</AlertTitle>
-          <AlertDescription>Minimum transfer is {MIN_TRANSFER_POINTS} points (₹{ (MIN_TRANSFER_POINTS/100) * 1 }).</AlertDescription>
+          <AlertDescription>Minimum transfer is {MIN_TRANSFER_POINTS} points (₹{ (MIN_TRANSFER_POINTS/100) }).</AlertDescription>
         </Alert>
 
         <div className="flex-1 flex flex-col items-center justify-center space-y-4">
           <SpinWheel segments={segments} isSpinning={isSpinning} onSpinComplete={onSpinComplete} />
 
           {result && !showAd && (
-             <Alert className={'bg-yellow-100 border-yellow-300'}>
+             <Alert className={'bg-yellow-100 border-yellow-300 animate-in fade-in-0'}>
                 <Award className="h-4 w-4" />
                 <AlertTitle>You Won:</AlertTitle>
                 <AlertDescription className="text-lg font-bold">
@@ -290,17 +306,13 @@ export default function SpinRewardPage() {
           {showAd && (
             <div className="w-full max-w-sm space-y-2 flex flex-col items-center">
                 <p className="text-center text-sm font-bold text-primary animate-pulse">
-                    Please view the ad to unlock your next spin.
+                    Please wait for the timer to unlock your next spin.
                 </p>
                 <div 
                     className="overflow-hidden border-2 border-primary shadow-lg"
                 >
                     <AdComponent />
                 </div>
-                <Button onClick={handleAdConfirmation} className="w-full bg-green-500 hover:bg-green-600">
-                    <Check className="mr-2 h-5 w-5" />
-                    I have viewed the ad, Spin again!
-                </Button>
             </div>
           )}
 
@@ -310,6 +322,7 @@ export default function SpinRewardPage() {
             {!allSpinsUsedToday ? (
                  <Button onClick={handleSpinClick} size="lg" className="w-full max-w-sm h-14 text-xl font-bold" disabled={buttonState.disabled}>
                     {isSpinning && <Loader2 className="h-6 w-6 animate-spin mr-2"/>}
+                    {adCountdown > 0 && <Clock className="h-6 w-6 mr-2" />}
                     {buttonState.text}
                 </Button>
             ) : (
