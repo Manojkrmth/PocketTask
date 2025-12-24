@@ -85,7 +85,8 @@ export default function WatchAndEarnPage() {
             
             if (storedTask) {
                 try {
-                    setTask(JSON.parse(storedTask));
+                    const parsedTask = JSON.parse(storedTask);
+                    setTask(parsedTask);
                     setIsLoading(false);
                 } catch {
                     await loadNewTask(session.user.id);
@@ -167,14 +168,14 @@ export default function WatchAndEarnPage() {
         } catch (error: any) {
              toast({ variant: 'destructive', title: 'Submission Failed', description: error.message });
              setIsSubmitting(false);
-        } finally {
-            setIsVerifying(false);
+             setIsVerifying(false);
         }
     };
 
     const handleSkip = () => {
         setVerificationCode('');
         setIsSubmitting(false);
+        setIsVerifying(false);
         if (user) {
             loadNewTask(user.id);
         }
@@ -206,7 +207,7 @@ export default function WatchAndEarnPage() {
      if (isSubmitting) {
         return (
             <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-br from-green-400 to-cyan-500 text-white">
-                <Confetti width={width || 0} height={height || 0} recycle={false} numberOfPieces={500} onConfettiComplete={() => {}} />
+                <Confetti width={width || 0} height={height || 0} recycle={false} numberOfPieces={500} />
                 <div className="text-center animate-in fade-in-0 zoom-in-95">
                     <h1 className="text-4xl font-bold tracking-tight">Task Approved!</h1>
                     <p className="mt-2 text-lg opacity-80">Your reward has been added to your balance.</p>
