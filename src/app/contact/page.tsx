@@ -8,11 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Loader2, Send, Mail, User, MessageSquare } from 'lucide-react';
+import { Loader2, Send, Mail, User, MessageSquare, Phone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function ContactUsPage() {
     const [name, setName] = useState('');
+    const [mobile, setMobile] = useState('');
     const [email, setEmail] = useState('');
     const [subject, setSubject] = useState('');
     const [message, setMessage] = useState('');
@@ -21,6 +22,16 @@ export default function ContactUsPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (mobile && mobile.length !== 10) {
+            toast({
+                variant: 'destructive',
+                title: 'Invalid Mobile Number',
+                description: 'Please enter a valid 10-digit mobile number.',
+            });
+            return;
+        }
+
         setIsLoading(true);
 
         // Simulate API call
@@ -34,6 +45,7 @@ export default function ContactUsPage() {
 
         // Clear form
         setName('');
+        setMobile('');
         setEmail('');
         setSubject('');
         setMessage('');
@@ -65,6 +77,18 @@ export default function ContactUsPage() {
                                     value={name} 
                                     onChange={(e) => setName(e.target.value)}
                                     disabled={isLoading}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="mobile" className="flex items-center gap-2"><Phone className="h-4 w-4" /> Mobile Number</Label>
+                                <Input 
+                                    id="mobile" 
+                                    type="tel" 
+                                    placeholder="e.g. 9876543210" 
+                                    value={mobile} 
+                                    onChange={(e) => setMobile(e.target.value.replace(/[^0-9]/g, ''))}
+                                    disabled={isLoading}
+                                    maxLength={10}
                                 />
                             </div>
                             <div className="space-y-2">
