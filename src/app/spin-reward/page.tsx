@@ -145,16 +145,15 @@ export default function SpinRewardPage() {
     const pointsWon = parseInt(selectedSegment.text, 10);
     
     if (!isNaN(pointsWon)) {
-      const { data: rpcData, error } = await supabase.rpc('update_spin_reward', {
-          p_userid: user.id,
-          p_pointstoadd: pointsWon
-      });
+      // Calling RPC with positional parameters
+      const { data: rpcData, error } = await supabase.rpc('update_spin_reward', [user.id, pointsWon]);
       
       if (error) {
          toast({ variant: "destructive", title: "Error", description: "Failed to update points." });
          // Revert optimistic update if DB fails
          setSpinData(prev => prev ? { ...prev, spins_used_today: prev.spins_used_today -1 } : null);
       } else {
+         // The RPC function now returns the updated row
          const updatedData = rpcData && rpcData.length > 0 ? rpcData[0] : null;
          if (updatedData) setSpinData(updatedData);
 
