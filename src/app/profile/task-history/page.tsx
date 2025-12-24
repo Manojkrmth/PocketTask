@@ -363,18 +363,24 @@ export default function TaskHistoryPage() {
 
     useEffect(() => {
         const fetchTaskCounts = async (userId: string) => {
-            const { data, error } = await supabase
+            const { data: usertasksData, error: usertasksError } = await supabase
                 .from('usertasks')
                 .select('status')
                 .eq('user_id', userId);
+            
+            const { data: coinsubmissionsData, error: coinsubmissionsError } = await supabase
+                .from('coinsubmissions')
+                .select('status')
+                .eq('user_id', userId);
 
-            if (error) {
-                console.error("Error fetching task counts for stats:", error);
-            } else if (data) {
+            if (usertasksError || coinsubmissionsError) {
+                console.error("Error fetching task counts for stats:", usertasksError || coinsubmissionsError);
+            } else {
+                const combinedData = [...(usertasksData || []), ...(coinsubmissionsData || [])];
                 const counts = {
-                    approved: data.filter(t => t.status === 'Approved').length,
-                    pending: data.filter(t => t.status === 'Pending').length,
-                    rejected: data.filter(t => t.status === 'Rejected').length,
+                    approved: combinedData.filter(t => t.status === 'Approved').length,
+                    pending: combinedData.filter(t => t.status === 'Pending').length,
+                    rejected: combinedData.filter(t => t.status === 'Rejected').length,
                 };
                 setTaskCounts(counts);
             }
