@@ -455,7 +455,7 @@ export default function TasksPage() {
             <div className="ml-auto flex gap-2">
                  <Button size="sm" variant="default" className="bg-green-600 hover:bg-green-700" onClick={() => handleBulkActionClick('approve')}><CheckCircle className="mr-2 h-4 w-4"/> Bulk Approve</Button>
                  <Button size="sm" variant="destructive" onClick={() => handleBulkActionClick('reject')}><XCircle className="mr-2 h-4 w-4"/> Bulk Reject</Button>
-                 <Button size="sm" variant="secondary" onClick={() => setDownloadDialogOpen(true)}>
+                 <Button size="sm" variant="secondary" className="bg-yellow-400 hover:bg-yellow-500 text-black" onClick={() => setDownloadDialogOpen(true)}>
                     <Download className="mr-2 h-4 w-4"/> Download as CSV
                 </Button>
             </div>
@@ -684,12 +684,12 @@ export default function TasksPage() {
           </div>
           <DialogFooter>
             <DialogClose asChild><Button type="button" variant="secondary" disabled={isUpdating}>Cancel</Button></DialogClose>
-            {bulkCsvData.length > 0 && (
+            {bulkCsvData.length > 0 && identifierColumn && (
                 <Button 
                     type="button" 
                     onClick={handleBulkUpdate} 
                     disabled={isUpdating || !identifierColumn || (bulkActionType === 'reject' && !bulkReason.trim())}
-                    className={cn(bulkActionType === 'approve' && 'bg-green-600 hover:bg-green-700')}
+                    className={cn(bulkActionType === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-destructive hover:bg-destructive/90')}
                 >
                 {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
                 {isUpdating ? 'Updating...' : `Confirm Bulk ${bulkActionType?.charAt(0).toUpperCase()}${bulkActionType?.slice(1)}`}
@@ -701,3 +701,5 @@ export default function TasksPage() {
     </>
   );
 }
+
+    
