@@ -85,14 +85,14 @@ function CoinTaskComponent() {
         setIsSubmitting(true);
         try {
             const submissionData = {
-                userId: user.id,
-                taskId: task.id,
-                coinType: taskType,
-                instaId: instaId,
-                coinAmount: parseInt(coinAmount),
-                rewardInr: parseInt(coinAmount) * task.rewardRate,
-                orderId: orderId,
-                submissionTime: new Date(dateTime).toISOString(),
+                user_id: user.id,
+                task_id: task.id,
+                coin_type: taskType,
+                insta_id: instaId,
+                coin_amount: parseInt(coinAmount),
+                reward_inr: parseInt(coinAmount) * task.rewardRate,
+                order_id: orderId,
+                submission_time: new Date(dateTime).toISOString(),
                 status: 'Pending',
             };
 
