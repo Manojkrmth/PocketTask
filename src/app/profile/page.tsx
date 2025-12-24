@@ -38,9 +38,10 @@ const menuItems = [
 ];
 
 const legalItems = [
-  { href: '/disclaimer', label: 'Disclaimer' },
-  { href: '/privacy', label: 'Privacy Policy' },
-  { href: '/terms', label: 'Terms & Conditions' },
+  { href: '/contact', icon: Contact, label: 'Contact Us' },
+  { href: '/disclaimer', icon: Info, label: 'Disclaimer' },
+  { href: '/privacy', icon: Info, label: 'Privacy Policy' },
+  { href: '/terms', icon: Info, label: 'Terms & Conditions' },
 ];
 
 function ReferrerInfoCard({ referralCode }: { referralCode: string }) {
@@ -236,7 +237,7 @@ export default function ProfilePage() {
           <CardContent className="divide-y">
              {legalItems.map(item => (
               <Link href={item.href} key={item.label} className="flex items-center py-4 text-md font-medium">
-                <Info className="h-5 w-5 mr-4 text-primary" />
+                <item.icon className="h-5 w-5 mr-4 text-primary" />
                 <span>{item.label}</span>
                 <ChevronRight className="h-5 w-5 ml-auto text-muted-foreground" />
               </Link>
