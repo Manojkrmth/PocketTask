@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import Image from 'next/image';
@@ -445,11 +443,4 @@ export default function HomePage() {
       </main>
     </div>
   );
-
-    
-
-    
-
-
-
-
+}
