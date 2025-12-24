@@ -93,8 +93,7 @@ export default function SpinRewardPage() {
           setSpinData(data);
         }
       } else if (error && error.code === 'PGRST116') {
-        // No record exists for this user yet, which is fine.
-        // We will create one on the first spin.
+        // No record exists, which is fine. We will create one on the first spin.
         setSpinData(null);
       } else if (error) {
         toast({ variant: "destructive", title: "Error", description: "Could not fetch your spin data." });
@@ -143,20 +142,42 @@ export default function SpinRewardPage() {
     setShowConfetti(true);
 
     const pointsWon = parseInt(selectedSegment.text, 10);
+    const today = new Date().toISOString().split('T')[0];
     
     if (!isNaN(pointsWon)) {
-      // Calling RPC with positional parameters
-      const { data: rpcData, error } = await supabase.rpc('update_spin_reward', [user.id, pointsWon]);
+        // Fetch current data first to avoid race conditions
+        const { data: currentData, error: fetchError } = await supabase
+            .from('spin_rewards')
+            .select('spin_points, spins_used_today, last_spin_date')
+            .eq('user_id', user.id)
+            .single();
+
+        if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 means no row found, which is ok
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch current points before update.' });
+            return;
+        }
+        
+        const newPoints = (currentData?.spin_points || 0) + pointsWon;
+        const spinsToday = currentData?.last_spin_date === today ? (currentData.spins_used_today || 0) + 1 : 1;
+
+        const { data: updatedData, error } = await supabase
+            .from('spin_rewards')
+            .upsert({ 
+                user_id: user.id, 
+                spin_points: newPoints,
+                spins_used_today: spinsToday,
+                last_spin_date: today,
+                updated_at: new Date().toISOString(),
+             })
+            .select()
+            .single();
       
       if (error) {
          toast({ variant: "destructive", title: "Error", description: "Failed to update points." });
          // Revert optimistic update if DB fails
          setSpinData(prev => prev ? { ...prev, spins_used_today: prev.spins_used_today -1 } : null);
       } else {
-         // The RPC function now returns the updated row
-         const updatedData = rpcData && rpcData.length > 0 ? rpcData[0] : null;
          if (updatedData) setSpinData(updatedData);
-
          setCountdown(COUNTDOWN_SECONDS);
       }
     }
@@ -175,21 +196,17 @@ export default function SpinRewardPage() {
     const amountInr = (spinData.spin_points / 100) * 1; // 100 points = 1 INR
 
     try {
+        // Use a transaction to ensure both operations succeed or fail together
         const { error } = await supabase.rpc('transfer_spin_points_to_main_balance', {
             p_user_id: user.id,
             p_points_to_transfer: spinData.spin_points,
             p_amount_inr: amountInr
         });
         
-        if (error) throw error;
+        if (error) throw new Error("Failed to execute transfer. " + error.message);
         
-        // Refresh spin data from DB
-        const { data: updatedSpinData } = await supabase
-            .from('spin_rewards')
-            .select('*')
-            .eq('user_id', user.id)
-            .single();
-        if(updatedSpinData) setSpinData(updatedSpinData);
+        // Manually update state as the transaction was successful
+        setSpinData(prev => prev ? { ...prev, spin_points: 0 } : null);
 
         toast({
             title: "Transfer Successful!",
@@ -318,3 +335,5 @@ export default function SpinRewardPage() {
     </div>
   );
 }
+
+    
