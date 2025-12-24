@@ -15,6 +15,7 @@ import { useCurrency } from '@/context/currency-context';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 interface AppUser {
   id: string;
