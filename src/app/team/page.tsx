@@ -18,10 +18,8 @@ import {
   BadgePercent,
   UserRound,
   CheckCircle,
-  ArrowLeft,
   Loader2,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import { useState, useEffect, useCallback } from 'react';
 import type { User } from '@supabase/supabase-js';
@@ -40,125 +38,23 @@ export default function TeamPage() {
   const router = useRouter();
   const { formatCurrency } = useCurrency();
 
-  const [user, setUser] = useState<User | null>(null);
-  const [userProfile, setUserProfile] = useState<any>(null);
-  const [teamData, setTeamData] = useState<LevelData[]>([]);
-  const [teamStats, setTeamStats] = useState({ totalTeamSize: 0, activeMembers: 0, myEarning: 0 });
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Mock settings, replace with actual data fetching if needed
-  const systemSettings = {
-    referralLevel1Percentage: 10,
-    referralLevel2Percentage: 5,
-    referralLevel3Percentage: 3,
-    referralLevel4Percentage: 2,
-    referralLevel5Percentage: 1,
-  };
-  
-  const commissionRates = [
-      systemSettings?.referralLevel1Percentage || 0,
-      systemSettings?.referralLevel2Percentage || 0,
-      systemSettings?.referralLevel3Percentage || 0,
-      systemSettings?.referralLevel4Percentage || 0,
-      systemSettings?.referralLevel5Percentage || 0,
-  ];
+  // --- Start of Dummy Data ---
+  const [teamStats, setTeamStats] = useState({
+    totalTeamSize: 1234,
+    activeMembers: 56,
+    myEarning: 750.50,
+  });
 
- const fetchTeamData = useCallback(async (currentUserId: string) => {
-    setIsLoading(true);
-    try {
-        const { data, error } = await supabase.rpc('get_user_team_data', {
-            user_id_input: currentUserId
-        });
-
-        if (error) {
-            console.error("Error fetching team data via RPC:", error);
-            // On error, set empty data to prevent UI hanging
-            setTeamData(commissionRates.map((commission, index) => ({
-                level: index + 1,
-                commission,
-                members: 0,
-                earnings: 0,
-            })));
-            setTeamStats(prev => ({ ...prev, totalTeamSize: 0, activeMembers: 0 }));
-            return; // Stop execution here
-        }
-
-        const newTeamData: LevelData[] = [];
-        let totalTeamSize = 0;
-        
-        for (let i = 0; i < 5; i++) {
-            const level = i + 1;
-            const levelKey = `level${level}`;
-            const levelInfo = data[levelKey] || { members: 0, earnings: 0 };
-            
-            newTeamData.push({
-                level: level,
-                commission: commissionRates[i],
-                members: levelInfo.members || 0,
-                earnings: levelInfo.earnings || 0,
-            });
-            totalTeamSize += levelInfo.members || 0;
-        }
-        
-        setTeamData(newTeamData);
-        setTeamStats(prev => ({
-            ...prev,
-            totalTeamSize: totalTeamSize,
-            activeMembers: Math.floor(totalTeamSize * 0.1) 
-        }));
-
-    } catch (error) {
-        console.error("Caught error in fetchTeamData:", error);
-        setTeamData(commissionRates.map((commission, index) => ({
-            level: index + 1,
-            commission,
-            members: 0,
-            earnings: 0,
-        })));
-    } finally {
-        setIsLoading(false);
-    }
-}, [commissionRates]);
-
-    
-  useEffect(() => {
-    const checkSession = async () => {
-      setIsLoading(true);
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          router.push('/login');
-          return;
-        }
-        setUser(session.user);
-
-        const { data: profile, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-        
-        if (error && error.code !== 'PGRST116') {
-          console.error('Error fetching user profile:', error);
-          router.push('/login');
-          return;
-        }
-
-        if (profile) {
-          setUserProfile(profile);
-          setTeamStats(prev => ({ ...prev, myEarning: profile.referral_earnings || 0 }));
-          await fetchTeamData(profile.id);
-        } else {
-          setIsLoading(false);
-        }
-      } catch (e) {
-          console.error("Error in checkSession:", e);
-          setIsLoading(false);
-      }
-    };
-    checkSession();
-  }, [router, fetchTeamData]);
-
+  const [teamData, setTeamData] = useState<LevelData[]>([
+    { level: 1, commission: 10, members: 10, earnings: 250 },
+    { level: 2, commission: 5, members: 78, earnings: 180.75 },
+    { level: 3, commission: 3, members: 245, earnings: 155.25 },
+    { level: 4, commission: 2, members: 511, earnings: 114.50 },
+    { level: 5, commission: 1, members: 390, earnings: 50.00 },
+  ]);
+  // --- End of Dummy Data ---
 
   const statCards = [
     {
