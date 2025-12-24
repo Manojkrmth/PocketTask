@@ -26,7 +26,7 @@ const taskTypes = [
   {
     name: 'Gmail',
     icon: <Mail className="h-8 w-8 text-red-500" />,
-    href: '#',
+    href: '/tasks/gmail',
     description: 'Read emails & earn rewards.',
     badge: 'HOT',
   },
