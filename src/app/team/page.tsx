@@ -64,15 +64,30 @@ export default function TeamPage() {
   ];
 
  const fetchTeamData = useCallback(async (currentUserId: string, currentReferralEarnings: number) => {
-    setIsLoading(true);
+    // Note: No need to set isLoading(true) here, it's handled by the calling useEffect
     
     try {
         const { data, error } = await supabase
             .from('referrals')
-            .select('level, referee_id', { count: 'exact' })
+            .select('level', { count: 'exact' })
             .eq('referrer_id', currentUserId);
 
-        if (error) throw error;
+        if (error) {
+            console.error("Error fetching team data:", error);
+            // Even if there's an error, initialize with empty data
+            setTeamData(commissionRates.map((commission, index) => ({
+                level: index + 1,
+                commission,
+                members: 0,
+                earnings: 0,
+            })));
+            setTeamStats({
+                totalTeamSize: 0,
+                activeMembers: 0, 
+                myEarning: currentReferralEarnings,
+            });
+            return;
+        };
         
         const newTeamData: LevelData[] = commissionRates.map((commission, index) => ({
             level: index + 1,
@@ -84,11 +99,17 @@ export default function TeamPage() {
         let totalTeamSize = 0;
         
         if (data) {
-             data.forEach(referral => {
-                if (referral.level && referral.level >= 1 && referral.level <= newTeamData.length) {
-                    newTeamData[referral.level - 1].members += 1;
+             const levelCounts: { [key: number]: number } = {};
+             for (const referral of data) {
+                if (referral.level) {
+                   levelCounts[referral.level] = (levelCounts[referral.level] || 0) + 1;
                 }
-            });
+             }
+             
+             newTeamData.forEach(levelItem => {
+                levelItem.members = levelCounts[levelItem.level] || 0;
+             });
+
             totalTeamSize = data.length;
         }
        
@@ -100,9 +121,10 @@ export default function TeamPage() {
         });
 
     } catch (error) {
-        console.error("Error fetching team data:", error);
+        console.error("Caught error in fetchTeamData:", error);
+        // Ensure UI doesn't hang on error
     } finally {
-        setIsLoading(false);
+        // The finally block to set isLoading to false is in the useEffect
     }
 }, [commissionRates]);
 
@@ -110,30 +132,34 @@ export default function TeamPage() {
   useEffect(() => {
     const checkSession = async () => {
       setIsLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push('/login');
-        return;
-      }
-      setUser(session.user);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          router.push('/login');
+          return;
+        }
+        setUser(session.user);
 
-      const { data: profile, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
-      
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching user profile:', error);
-        router.push('/login');
-        return;
-      }
+        const { data: profile, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+        
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error fetching user profile:', error);
+          router.push('/login');
+          return;
+        }
 
-      if (profile) {
-        setUserProfile(profile);
-        await fetchTeamData(profile.id, profile.referral_earnings || 0);
-      } else {
-        setIsLoading(false);
+        if (profile) {
+          setUserProfile(profile);
+          await fetchTeamData(profile.id, profile.referral_earnings || 0);
+        }
+      } catch (e) {
+          console.error("Error in checkSession:", e);
+      } finally {
+          setIsLoading(false);
       }
     };
     checkSession();
