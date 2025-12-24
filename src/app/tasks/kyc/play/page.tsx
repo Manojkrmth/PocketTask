@@ -25,9 +25,11 @@ import {
   KeyRound,
   Mail,
   Smartphone,
+  AlertTriangle,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { LoadingScreen } from '@/components/loading-screen';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const getMockTask = () => ({
     id: `KYC-${Date.now()}`,
@@ -59,12 +61,13 @@ export default function KycTaskPage() {
     useEffect(() => {
         const getUser = async () => {
             const { data: { session } } = await supabase.auth.getSession();
-            if(!session) router.push('/login');
-            else {
-              setUser(session.user);
-              setName(session.user.user_metadata?.full_name || '');
-              setEmail(session.user.email || '');
+            if(!session) {
+                router.push('/login');
+                return;
             }
+            setUser(session.user);
+            setName(session.user.user_metadata?.full_name || '');
+            setEmail(session.user.email || '');
             setIsLoading(false);
         }
         getUser();
@@ -92,8 +95,8 @@ export default function KycTaskPage() {
             toast({ variant: 'destructive', title: 'Missing Information', description: 'Please fill all required fields and upload a proof.' });
             return;
         }
-        if (mobile.length !== 10) {
-            toast({ variant: 'destructive', title: 'Invalid Mobile Number', description: 'Mobile number must be exactly 10 digits.' });
+        if (!/^\d{10}$/.test(mobile)) {
+            toast({ variant: 'destructive', title: 'Invalid Mobile Number', description: 'Mobile number must be exactly 10 digits and contain only numbers.' });
             return;
         }
 
@@ -113,7 +116,6 @@ export default function KycTaskPage() {
 
             const submissionData = {
                 user_id: user.id,
-                task_type: 'kyc-task',
                 reward: task.reward,
                 status: 'Pending',
                 submission_data: { 
@@ -126,7 +128,7 @@ export default function KycTaskPage() {
                 }
             };
             
-            const { error: insertError } = await supabase.from('usertasks').insert(submissionData);
+            const { error: insertError } = await supabase.from('kyc_submissions').insert(submissionData);
             if(insertError) throw insertError;
 
             toast({
@@ -269,3 +271,5 @@ export default function KycTaskPage() {
         </div>
     );
 }
+
+    
