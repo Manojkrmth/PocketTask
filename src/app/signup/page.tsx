@@ -80,7 +80,7 @@ export default function SignupPage() {
         .from('users')
         .insert([
           { 
-            id: authData.user.id, 
+            id: authData.user.id, // Use the user's UUID directly
             email: email,
             full_name: fullName, 
             mobile: mobile,
@@ -210,3 +210,5 @@ export default function SignupPage() {
     </div>
   );
 }
+
+    
