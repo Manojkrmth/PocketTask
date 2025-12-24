@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -68,7 +69,7 @@ export default function TeamPage() {
     try {
         const { data, error } = await supabase
             .from('referrals')
-            .select('level, referee_id')
+            .select('level, referee_id', { count: 'exact' })
             .eq('referrer_id', currentUserId);
 
         if (error) throw error;
@@ -77,18 +78,18 @@ export default function TeamPage() {
             level: index + 1,
             commission,
             members: 0,
-            earnings: 0, 
+            earnings: 0, // This can be calculated later if needed
         }));
 
         let totalTeamSize = 0;
         
         if (data) {
              data.forEach(referral => {
-                if (referral.level && referral.level >= 1 && referral.level <= 5) {
+                if (referral.level && referral.level >= 1 && referral.level <= newTeamData.length) {
                     newTeamData[referral.level - 1].members += 1;
-                    totalTeamSize += 1;
                 }
             });
+            totalTeamSize = data.length;
         }
        
         setTeamData(newTeamData);
@@ -130,7 +131,7 @@ export default function TeamPage() {
 
       if (profile) {
         setUserProfile(profile);
-        await fetchTeamData(profile.id, profile.referral_earnings);
+        await fetchTeamData(profile.id, profile.referral_earnings || 0);
       } else {
         setIsLoading(false);
       }
