@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Upload, Trash2, FileDown, CheckCircle, XCircle, Play, Pause, List, Clock, BarChart, Edit, Save } from 'lucide-react';
+import { Loader2, Upload, Trash2, FileDown, CheckCircle, XCircle, Play, Pause, List, Clock, Edit, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Papa from 'papaparse';
 import {
@@ -33,7 +33,7 @@ interface Batch {
   batch_name: string;
   status: 'active' | 'paused' | 'archived';
   total_tasks: number;
-  file_path: string;
+  file_path: string | null; // Can be null now
   task_category: string;
   reward_price: number;
   stats?: {
@@ -101,10 +101,6 @@ export default function TaskManagerPage() {
 
     startUploading(async () => {
       try {
-        const filePath = `gmail_batches/${Date.now()}-${csvFile.name}`;
-        const { error: uploadError } = await supabase.storage.from('tasks').upload(filePath, csvFile);
-        if (uploadError) throw new Error(`Storage Error: ${uploadError.message}`);
-
         const parseResult = await new Promise<any>((resolve, reject) => {
           Papa.parse(csvFile, { header: true, skipEmptyLines: true, complete: resolve, error: reject });
         });
@@ -123,10 +119,10 @@ export default function TaskManagerPage() {
           .insert({ 
               batch_name: batchName, 
               total_tasks: tasksData.length, 
-              file_path: filePath, 
               status: 'paused',
               task_category: taskCategory,
-              reward_price: price
+              reward_price: price,
+              file_path: null // No longer storing the file
           })
           .select()
           .single();
@@ -142,6 +138,7 @@ export default function TaskManagerPage() {
 
         const { error: tasksError } = await supabase.from('gmail_tasks').insert(tasksToInsert);
         if (tasksError) {
+          // If inserting tasks fails, roll back the batch creation
           await supabase.from('gmail_task_batches').delete().eq('id', batch.id);
           throw new Error(`Failed to insert tasks: ${tasksError.message}`);
         }
@@ -189,6 +186,7 @@ export default function TaskManagerPage() {
   }
 
   const handleDeleteBatch = async (batch: Batch) => {
+      // Deleting the batch will also delete associated tasks due to ON DELETE CASCADE
       const { error: deleteError } = await supabase
         .from('gmail_task_batches')
         .delete()
@@ -199,10 +197,7 @@ export default function TaskManagerPage() {
           return;
       }
       
-      const { error: storageError } = await supabase.storage.from('tasks').remove([batch.file_path]);
-      if (storageError) {
-          toast({ variant: 'destructive', title: 'Storage Cleanup Failed', description: `Could not delete CSV from storage: ${storageError.message}` });
-      }
+      // No need to delete from storage anymore
 
       toast({ title: 'Batch Deleted', description: `Batch "${batch.batch_name}" and its tasks have been removed.` });
       await fetchBatches();
@@ -415,7 +410,5 @@ export default function TaskManagerPage() {
     </>
   );
 }
-
-    
 
     
