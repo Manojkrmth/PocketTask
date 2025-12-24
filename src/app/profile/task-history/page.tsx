@@ -27,20 +27,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { ListFilter, Loader2, CheckCircle2, XCircle, Hourglass, Mail, Type } from "lucide-react";
+import { ListFilter, Loader2, CheckCircle2, XCircle, Hourglass, Mail, Type, User } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/page-header';
 import { useCurrency } from '@/context/currency-context';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/lib/supabase';
-import type { User } from '@supabase/supabase-js';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { useEffect } from 'react';
 
 const ITEMS_PER_PAGE = 10;
 type Status = 'Approved' | 'Pending' | 'Rejected';
 
 function TaskSubmissions() {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
   const [taskHistory, setTaskHistory] = useState<any[]>([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
   
@@ -106,6 +106,22 @@ function TaskSubmissions() {
     return 'Unknown Task';
   };
 
+  const getSubmissionDetail = (task: any) => {
+    const data = task.submission_data;
+    if (!data) return null;
+
+    if (data.gmail) {
+      return <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1"><Mail className="h-3 w-3"/> {data.gmail}</div>;
+    }
+    if (data.name) {
+      return <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1"><User className="h-3 w-3"/> {data.name}</div>;
+    }
+    if (data.appName) {
+        return <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1"><Type className="h-3 w-3"/> {data.appName}</div>;
+    }
+    return null;
+  };
+
   return (
       <Card>
           <CardHeader className="flex flex-row items-center justify-between">
@@ -144,11 +160,7 @@ function TaskSubmissions() {
                       <div className="font-medium flex items-center gap-2">
                         <Type className="h-4 w-4 text-muted-foreground"/> {getTaskDisplayType(task)}
                       </div>
-                      {task.submission_data?.gmail && (
-                         <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1">
-                           <Mail className="h-3 w-3"/> {task.submission_data.gmail}
-                         </div>
-                      )}
+                      {getSubmissionDetail(task)}
                     </TableCell>
                     <TableCell><div className="font-medium text-green-600">{task.reward ? formatCurrency(task.reward) : 'N/A'}</div></TableCell>
                     <TableCell>
@@ -177,7 +189,7 @@ function TaskSubmissions() {
 }
 
 function CoinSubmissions() {
-    const [user, setUser] = useState<User | null>(null);
+    const [user, setUser] = useState<SupabaseUser | null>(null);
     const [coinHistory, setCoinHistory] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -267,7 +279,7 @@ function CoinSubmissions() {
 }
 
 export default function TaskHistoryPage() {
-    const [user, setUser] = useState<User | null>(null);
+    const [user, setUser] = useState<SupabaseUser | null>(null);
     const [userProfile, setUserProfile] = useState<any>(null);
     const [isProfileLoading, setIsProfileLoading] = useState(true);
 
