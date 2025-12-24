@@ -12,7 +12,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  PlayCircle,
   Loader2,
   CheckCircle,
   SkipForward,
@@ -26,9 +25,7 @@ import { LoadingScreen } from '@/components/loading-screen';
 import Confetti from 'react-confetti';
 import { useWindowSize } from '@/hooks/use-mobile';
 
-
 const TASK_STORAGE_KEY = 'visitEarnTask';
-
 
 export default function VisitAndEarnPage() {
     const router = useRouter();
@@ -61,7 +58,6 @@ export default function VisitAndEarnPage() {
             return;
         }
 
-        // The RPC function returns a single object, not an array
         const newTask = data;
 
         if (newTask && newTask.id) {
@@ -86,7 +82,8 @@ export default function VisitAndEarnPage() {
             
             if (storedTask) {
                 try {
-                    setTask(JSON.parse(storedTask));
+                    const parsedTask = JSON.parse(storedTask);
+                    setTask(parsedTask);
                     setIsLoading(false);
                 } catch {
                     await loadNewTask(session.user.id);
@@ -217,7 +214,7 @@ export default function VisitAndEarnPage() {
     }
 
     if (!task) {
-        return <LoadingScreen />; // Task लोड होने तक लोडिंग दिखाएँ
+        return <LoadingScreen />;
     }
 
 
