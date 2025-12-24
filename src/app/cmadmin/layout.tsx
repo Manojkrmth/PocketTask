@@ -2,6 +2,7 @@
 'use client';
 
 import * as React from 'react';
+import Image from 'next/image';
 import {
   Bell,
   Users,
@@ -48,13 +49,19 @@ function AdminSidebar({
   return (
     <div
       className={cn(
-        'flex h-full flex-col bg-neutral-900 text-neutral-100',
+        'flex h-full flex-col bg-primary/90 text-primary-foreground',
         className
       )}
     >
-      <div className="border-b border-neutral-700 p-4">
-        <Link href="/cmadmin" className="flex items-center gap-2">
-          <ShieldCheck className="h-8 w-8 text-primary" />
+      <div className="border-b border-primary/50 p-4">
+        <Link href="/cmadmin" className="flex items-center gap-3">
+           <Image
+              src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjQeXPPDoYHtSI3CkEycSr99eEzj5eNNnXZkkzetdCk8G5qhltxgm9vXYe4O2nRb8eJIkTRvSW7WljNX1U4sgGJopouCKxTr_u6Vn6eG5mmZrFt9Fw2R9L_VgCzk4J3BLhQu9UG7uAuGy3INawPoZlC1j11YSD0TSRCnUglyTByJM2ajI_Ce8O2t1d9Ahk/s320/photo_2025-11-21_17-20-41.jpg"
+              alt="CookieMail Logo"
+              width={40}
+              height={40}
+              className="rounded-full"
+            />
           <h1 className="text-xl font-bold">Admin Panel</h1>
         </Link>
       </div>
@@ -65,10 +72,10 @@ function AdminSidebar({
             href={item.href}
             onClick={onLinkClick}
             className={cn(
-              'flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:bg-neutral-700 hover:text-white',
+              'flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:bg-white/20',
               pathname === item.href
-                ? 'bg-primary text-white'
-                : 'text-neutral-400'
+                ? 'bg-white/30 text-white font-semibold'
+                : 'text-primary-foreground/80'
             )}
           >
             <item.icon className="h-5 w-5" />
@@ -76,10 +83,10 @@ function AdminSidebar({
           </Link>
         ))}
       </nav>
-      <div className="border-t border-neutral-700 p-4">
+      <div className="border-t border-primary/50 p-4">
         <Button
           variant="ghost"
-          className="w-full justify-start gap-3"
+          className="w-full justify-start gap-3 hover:bg-white/20 text-primary-foreground"
           onClick={async () => {
             await supabase.auth.signOut();
             window.location.href = '/login';
