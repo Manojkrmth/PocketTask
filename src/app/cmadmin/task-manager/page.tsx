@@ -157,6 +157,21 @@ export default function TaskManagerPage() {
       }
     });
   };
+  
+   const handleDownloadSample = () => {
+    const csvContent = "full_name,gmail_user,password,recovery_mail\nJohn Doe,johndoe123,strongpassword,recovery@example.com\nJane Smith,janesmith456,anotherpassword,";
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", "gmail_batch_sample.csv");
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+  };
 
   const handleStatusToggle = async (batch: Batch) => {
     const newStatus = batch.status === 'active' ? 'paused' : 'active';
@@ -227,7 +242,7 @@ export default function TaskManagerPage() {
     <>
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Task Manager</h1>
+        <h1 className="text-3xl font-bold">Gmail Task Manager</h1>
         <p className="text-muted-foreground">Upload and manage batches of Gmail tasks.</p>
       </div>
 
@@ -263,10 +278,16 @@ export default function TaskManagerPage() {
               <Input id="csv-file" type="file" accept=".csv" onChange={e => setCsvFile(e.target.files ? e.target.files[0] : null)} disabled={isUploading}/>
             </div>
           </div>
-          <Button onClick={handleFileUpload} disabled={isUploading || !batchName || !csvFile || !rewardPrice}>
-            {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-            Upload Batch
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={handleFileUpload} disabled={isUploading || !batchName || !csvFile || !rewardPrice}>
+              {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+              Upload Batch
+            </Button>
+            <Button variant="secondary" onClick={handleDownloadSample}>
+                <FileDown className="mr-2 h-4 w-4" />
+                Download Sample CSV
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -394,5 +415,7 @@ export default function TaskManagerPage() {
     </>
   );
 }
+
+    
 
     
