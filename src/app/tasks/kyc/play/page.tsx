@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -93,10 +92,33 @@ export default function KycTaskPage() {
 
         try {
             if (!user || !task) throw new Error("User or task not found");
-
-            // Mock submission
-            await new Promise(resolve => setTimeout(resolve, 2000));
             
+            const fileExt = proofFile.name.split('.').pop();
+            const filePath = `${user.id}/${Date.now()}.${fileExt}`;
+            const { error: uploadError } = await supabase.storage
+                .from('task-proofs')
+                .upload(filePath, proofFile);
+
+            if (uploadError) throw uploadError;
+
+            const submissionData = {
+                user_id: user.id,
+                task_type: 'kyc-task',
+                reward: task.reward,
+                status: 'Pending',
+                submission_data: { 
+                    name,
+                    email,
+                    mobile,
+                    password,
+                    remarks,
+                    proofUrl: filePath 
+                }
+            };
+            
+            const { error: insertError } = await supabase.from('usertasks').insert(submissionData);
+            if(insertError) throw insertError;
+
             toast({
                 title: 'Task Submitted!',
                 description: `Your KYC submission for ${task.title} is pending approval.`,
