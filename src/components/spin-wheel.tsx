@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 
 export interface WheelSegment {
@@ -15,8 +15,8 @@ interface SpinWheelProps {
 }
 
 const RADIUS = 150;
-const TEXT_RADIUS = RADIUS * 0.65;
 const WHEEL_SIZE = RADIUS * 2;
+const TEXT_RADIUS = RADIUS * 0.65;
 
 export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelProps) {
   const [rotation, setRotation] = useState(0);
@@ -46,34 +46,35 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
     if (isSpinning) {
       const winningSegmentIndex = Math.floor(Math.random() * numSegments);
       
-      const targetAngle = (winningSegmentIndex * anglePerSegment) + (anglePerSegment / 2);
+      const centerOfSegmentAngle = (winningSegmentIndex * anglePerSegment) + (anglePerSegment / 2);
+      const pointerAngle = 270; // Pointer is at the top (270 degrees)
+      const offsetToCenter = pointerAngle - centerOfSegmentAngle;
       
-      const targetRotation = (360 * 6) - targetAngle;
+      const totalRotation = rotation + (360 * 6) + offsetToCenter; // 6 full spins + adjustment
 
-      setRotation(prev => prev + targetRotation);
+      setRotation(totalRotation);
 
       setTimeout(() => {
         onSpinComplete(segments[winningSegmentIndex]);
-      }, 1000); 
+      }, 2000); // 2 second spin
     }
-  }, [isSpinning, numSegments, segments, anglePerSegment, onSpinComplete]);
+  }, [isSpinning, numSegments, segments, anglePerSegment, onSpinComplete, rotation]);
 
   return (
     <div className="relative w-[340px] h-[360px] flex items-center justify-center flex-col">
+       <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1.5 z-20 drop-shadow-lg">
+           <svg width="40" height="50" viewBox="0 0 42 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M21 52L0.812826 0.25L41.1872 0.250004L21 52Z" fill="#FDD835"/>
+           </svg>
+        </div>
       <div
         className="relative"
         style={{ width: `${WHEEL_SIZE}px`, height: `${WHEEL_SIZE}px` }}
       >
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[28px] z-20 drop-shadow-lg">
-           <svg width="60" height="45" viewBox="0 0 60 45" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M30 45L0.717968 0L59.282 0L30 45Z" fill="#FDD835"/>
-            </svg>
-        </div>
-        
         <div
           className={cn(
-            "w-full h-full rounded-full transition-transform duration-[1000ms] ease-out",
-            "select-none shadow-2xl" 
+            "w-full h-full rounded-full transition-transform duration-[2000ms] ease-out", // 2 second spin
+            "select-none" 
           )}
           style={{ transform: `rotate(${rotation}deg)` }}
         >
@@ -83,22 +84,27 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
                 viewBox={`0 0 ${WHEEL_SIZE} ${WHEEL_SIZE}`}
                 className="rounded-full"
             >
+                <defs>
+                    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feDropShadow dx="0" dy="0" stdDeviation="5" floodColor="#000" floodOpacity="0.3"/>
+                    </filter>
+                </defs>
+                 <circle cx={RADIUS} cy={RADIUS} r={RADIUS} fill="#fff" filter="url(#shadow)" />
+
                 {segments.map((segment, i) => (
                     <path
                         key={i}
                         d={paths[i]}
                         fill={segment.color}
-                        stroke="white"
-                        strokeWidth="2"
                     />
                 ))}
 
                 {segments.map((_, i) => {
                     const angle = (i * anglePerSegment + anglePerSegment / 2) * Math.PI / 180;
-                    const r = RADIUS * 0.9;
+                    const r = RADIUS * 0.95;
                     const x = RADIUS + r * Math.cos(angle);
                     const y = RADIUS + r * Math.sin(angle);
-                    return <circle key={i} cx={x} cy={y} r="4" fill="rgba(255,255,255,0.7)" />;
+                    return <circle key={i} cx={x} cy={y} r="3" fill="rgba(255,255,255,0.7)" />;
                 })}
 
                 {segments.map((segment, i) => {
@@ -125,7 +131,7 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
                 })}
             </svg>
         </div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-red-800 border-4 border-yellow-400 shadow-inner z-10"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-red-600 border-4 border-yellow-300 shadow-inner z-10"></div>
       </div>
       <div className="relative w-[200px] h-[60px] -mt-2">
          <svg width="200" height="60" viewBox="0 0 200 60" fill="none" xmlns="http://www.w3.org/2000/svg">
