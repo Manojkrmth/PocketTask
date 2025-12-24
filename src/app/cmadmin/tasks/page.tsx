@@ -119,7 +119,9 @@ export default function TasksPage() {
         console.error("Error fetching tasks:", error);
         toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch tasks.' });
       } else {
-        setTasks(data as AppTask[]);
+        // Filter out Niva and Top coin tasks
+        const filteredData = (data as AppTask[]).filter(task => task.task_type !== 'niva-coin' && task.task_type !== 'top-coin');
+        setTasks(filteredData);
       }
       setLoading(false);
     };
@@ -245,16 +247,42 @@ export default function TasksPage() {
           return;
       }
       
-      const csvData = tasksToDownload.map(task => ({
-          ...task.submission_data,
-          task_id: task.id,
-          user_id: task.user_id,
-          user_email: task.users?.email,
-          user_name: task.users?.full_name,
-          status: task.status,
-          reward: task.reward,
-          submission_time: task.submission_time,
-      }));
+      let csvData: any[];
+
+      if (selectedCategory === 'gmail') {
+          csvData = tasksToDownload.map(task => {
+              const {
+                  gmail,
+                  password,
+                  recoveryMailSubmission,
+                  ...restSubmissionData
+              } = task.submission_data;
+              return {
+                  gmail: gmail,
+                  password: password,
+                  recoveryMailSubmission: recoveryMailSubmission,
+                  ...restSubmissionData,
+                  task_id: task.id,
+                  user_id: task.user_id,
+                  user_email: task.users?.email,
+                  user_name: task.users?.full_name,
+                  status: task.status,
+                  reward: task.reward,
+                  submission_time: task.submission_time,
+              };
+          });
+      } else {
+         csvData = tasksToDownload.map(task => ({
+              ...task.submission_data,
+              task_id: task.id,
+              user_id: task.user_id,
+              user_email: task.users?.email,
+              user_name: task.users?.full_name,
+              status: task.status,
+              reward: task.reward,
+              submission_time: task.submission_time,
+          }));
+      }
 
       const csv = Papa.unparse(csvData);
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
