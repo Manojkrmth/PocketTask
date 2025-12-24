@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase, supabaseUrl } from '@/lib/supabase';
 import {
   Card,
   CardContent,
@@ -69,7 +69,7 @@ export default function AdminDashboardPage() {
       // IMPORTANT: Use service_role for counts to bypass RLS.
       // This is safe because this page is admin-only and the key is not exposed to the client browser.
       const supabaseAdmin = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        supabaseUrl,
         process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY!,
       );
 
