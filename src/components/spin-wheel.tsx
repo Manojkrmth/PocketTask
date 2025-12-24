@@ -46,8 +46,11 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
     if (isSpinning) {
       const winningSegmentIndex = Math.floor(Math.random() * numSegments);
       const randomOffset = (Math.random() * 0.8 + 0.1) * anglePerSegment;
-      const centeredRotation = (winningSegmentIndex * anglePerSegment) + anglePerSegment / 2;
-      const targetRotation = (360 * 6) + (360 - centeredRotation) - randomOffset;
+      
+      // Target the middle of the segment
+      const centeredRotation = (winningSegmentIndex * anglePerSegment) + (anglePerSegment / 2);
+
+      const targetRotation = (360 * 6) - centeredRotation - randomOffset + (anglePerSegment / 2);
       
       setRotation(prev => prev + targetRotation);
 
@@ -117,17 +120,16 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
                     const textAngle = i * anglePerSegment + anglePerSegment / 2;
                     const pathId = `text-path-${i}`;
                     
-                    // Create an invisible arc path for text to follow
-                    const startAngleRad = (textAngle - anglePerSegment / 3) * Math.PI / 180;
-                    const endAngleRad = (textAngle + anglePerSegment / 3) * Math.PI / 180;
+                    const arcStartAngle = textAngle - 25;
+                    const arcEndAngle = textAngle + 25;
                     
                     const arcStart = {
-                        x: RADIUS + TEXT_RADIUS * Math.cos(startAngleRad),
-                        y: RADIUS + TEXT_RADIUS * Math.sin(startAngleRad)
+                        x: RADIUS + TEXT_RADIUS * Math.cos(arcStartAngle * Math.PI / 180),
+                        y: RADIUS + TEXT_RADIUS * Math.sin(arcStartAngle * Math.PI / 180)
                     };
                     const arcEnd = {
-                        x: RADIUS + TEXT_RADIUS * Math.cos(endAngleRad),
-                        y: RADIUS + TEXT_RADIUS * Math.sin(endAngleRad)
+                        x: RADIUS + TEXT_RADIUS * Math.cos(arcEndAngle * Math.PI / 180),
+                        y: RADIUS + TEXT_RADIUS * Math.sin(arcEndAngle * Math.PI / 180)
                     };
 
                     return (
@@ -159,11 +161,25 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full bg-red-800 border-8 border-yellow-400 shadow-inner z-10"></div>
       </div>
        {/* Stand */}
-      <div className="relative w-full h-[60px] -mt-2">
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-12 bg-gray-700"></div>
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-24 h-4 bg-gray-800 rounded-t-sm"></div>
-          <div className="absolute bottom-0 left-1/2 -translate-x-[70px] w-4 h-8 bg-gray-700 -rotate-45"></div>
-          <div className="absolute bottom-0 left-1/2 translate-x-[54px] w-4 h-8 bg-gray-700 rotate-45"></div>
+      <div className="relative w-[200px] h-[60px] -mt-2">
+         <svg width="200" height="60" viewBox="0 0 200 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="standGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style={{stopColor: '#616161', stopOpacity: 1}} />
+                    <stop offset="100%" style={{stopColor: '#212121', stopOpacity: 1}} />
+                </linearGradient>
+                <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+                    <feOffset dx="2" dy="4"/>
+                    <feMerge>
+                        <feMergeNode/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+            </defs>
+            <path d="M0 60 H200 L180 40 H20 L0 60 Z" fill="#424242" />
+            <path d="M70 40 L80 10 H120 L130 40 H70 Z" fill="url(#standGradient)" filter="url(#dropShadow)" />
+         </svg>
       </div>
     </div>
   );

@@ -12,22 +12,16 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Image from 'next/image';
 
 const segments: WheelSegment[] = [
-  { text: '$100', color: '#D81B60' },    // Pink
-  { text: '$1,500', color: '#43A047' },  // Green
-  { text: '$2,500', color: '#1E88E5' },  // Blue
-  { text: '$100', color: '#D81B60' },    // Pink
-  { text: '$500', color: '#1E88E5' },  // Blue
-  { text: '$1,500', color: '#43A047' },  // Green
-  { text: '$250', color: '#6A1B9A' },   // Purple
-  { text: '$5,000', color: '#D81B60' },   // Pink
-  { text: '$750', color: '#6A1B9A' },   // Purple
-  { text: '$2,500', color: '#1E88E5' },  // Blue
-  { text: '$500', color: '#43A047' },  // Green
-  { text: '$1,000', color: '#6A1B9A' },   // Purple
-  { text: '$100', color: '#D81B60' },    // Pink
-  { text: '$750', color: '#6A1B9A' }, // Purple
-  { text: '$250', color: '#43A047' },    // Green
-  { text: '$10,000', color: '#FB8C00' }, // Orange
+  { text: '$100', color: '#D81B60' },
+  { text: '$1,500', color: '#43A047' },
+  { text: '$2,500', color: '#1E88E5' },
+  { text: '$500', color: '#6A1B9A' },
+  { text: '$5,000', color: '#FB8C00' },
+  { text: '$750', color: '#D81B60' },
+  { text: '$250', color: '#43A047' },
+  { text: '$10,000', color: '#FB8C00' },
+  { text: '$1,000', color: '#1E88E5' },
+  { text: 'Bonus', color: '#6A1B9A' },
 ];
 
 const DAILY_SPIN_CHANCES = 50;
@@ -46,7 +40,7 @@ export default function SpinRewardPage() {
   const { width, height } = useWindowSize();
   const [spinChances, setSpinChances] = useState(DAILY_SPIN_CHANCES);
   const [showAd, setShowAd] = useState(false);
-  const [adClicked, setAdClicked] = useState(true); // True for the first spin
+  const [adClicked, setAdClicked] = useState(true);
   const [countdown, setCountdown] = useState(0);
 
   useEffect(() => {
@@ -79,7 +73,8 @@ export default function SpinRewardPage() {
   }, [countdown]);
 
   const handleSpinClick = () => {
-    if (isSpinning || spinChances <= 0 || countdown > 0 || !adClicked) return;
+    if (isSpinning || spinChances <= 0 || (countdown > 0 && !adClicked)) return;
+    if (!adClicked && countdown === 0) return;
 
     setIsSpinning(true);
     setResult(null);
@@ -108,7 +103,7 @@ export default function SpinRewardPage() {
     setIsSpinning(false);
     setResult(selectedSegment);
 
-    if (selectedSegment.text !== 'Try Again') { // Assuming 'Try Again' is a possible outcome
+    if (selectedSegment.text !== 'Try Again') {
       setShowConfetti(true);
     }
 
@@ -124,11 +119,12 @@ export default function SpinRewardPage() {
   const handleAdClick = () => {
       setShowAd(false);
       setAdClicked(true);
-      setResult(null); // Clear previous result
+      setResult(null);
   }
 
   const allSpinsUsedToday = spinChances <= 0;
-  const isSpinButtonDisabled = isSpinning || allSpinsUsedToday || countdown > 0 || !adClicked;
+  const isSpinButtonDisabled = isSpinning || allSpinsUsedToday || (countdown > 0 || !adClicked);
+
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -173,7 +169,7 @@ export default function SpinRewardPage() {
                             data-ai-hint="advertisement banner"
                         />
                          <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                            <p className="text-white text-lg font-bold text-center drop-shadow-md">Your Ad Here</p>
+                            {/* No text on ad */}
                         </div>
                     </div>
                 </Card>
