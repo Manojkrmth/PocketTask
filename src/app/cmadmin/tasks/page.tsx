@@ -39,6 +39,8 @@ import { Input } from '@/components/ui/input';
 import { useCurrency } from '@/context/currency-context';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 
 type TaskStatus = 'Pending' | 'Approved' | 'Rejected';
@@ -63,12 +65,13 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState<AppTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState(preselectedUserId || '');
-  const [statusFilters, setStatusFilters] = useState<TaskStatus[]>([]);
+  const [statusFilters, setStatusFilters] = useState<TaskStatus[]>(['Pending']);
   const [isUpdating, startUpdateTransition] = useTransition();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<AppTask | null>(null);
   const [newStatus, setNewStatus] = useState<TaskStatus | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
 
   const { formatCurrency } = useCurrency();
   const { toast } = useToast();
@@ -107,9 +110,14 @@ export default function TasksPage() {
   const handleUpdateTaskStatus = (task: AppTask, status: TaskStatus) => {
     startUpdateTransition(async () => {
         try {
+            const updatePayload: { status: TaskStatus; metadata?: any } = { status };
+            if (status === 'Rejected' && rejectionReason) {
+                updatePayload.metadata = { reason: rejectionReason };
+            }
+
             const { error: updateError } = await supabase
                 .from('usertasks')
-                .update({ status: status })
+                .update(updatePayload)
                 .eq('id', task.id);
 
             if (updateError) throw updateError;
@@ -150,15 +158,21 @@ export default function TasksPage() {
     setSelectedTask(task);
     setNewStatus(status);
     setDialogOpen(true);
+    setRejectionReason(''); // Reset reason
   };
   
   const confirmAction = () => {
     if (selectedTask && newStatus) {
+        if (newStatus === 'Rejected' && !rejectionReason.trim()) {
+            toast({ variant: 'destructive', title: 'Reason Required', description: 'Please provide a reason for rejection.' });
+            return;
+        }
       handleUpdateTaskStatus(selectedTask, newStatus);
     }
     setDialogOpen(false);
     setSelectedTask(null);
     setNewStatus(null);
+    setRejectionReason('');
   };
 
   const filteredTasks = useMemo(() => {
@@ -311,9 +325,23 @@ export default function TasksPage() {
               You are about to <span className={cn("font-bold", newStatus === 'Approved' ? "text-green-600" : "text-red-600")}>{newStatus?.toLowerCase()}</span> this task. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
+            {newStatus === 'Rejected' && (
+                <div className="space-y-2 pt-2">
+                    <Label htmlFor="rejection-reason" className="font-semibold">Reason for Rejection</Label>
+                    <Textarea 
+                        id="rejection-reason"
+                        placeholder="Provide a clear reason for rejecting this task..."
+                        value={rejectionReason}
+                        onChange={(e) => setRejectionReason(e.target.value)}
+                    />
+                </div>
+            )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmAction}>
+            <AlertDialogAction 
+                onClick={confirmAction}
+                disabled={newStatus === 'Rejected' && !rejectionReason.trim()}
+            >
               Confirm
             </AlertDialogAction>
           </AlertDialogFooter>

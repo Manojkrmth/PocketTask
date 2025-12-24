@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useState, useTransition, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
@@ -66,7 +66,7 @@ export default function UserDetailsPage() {
   const [balanceDescription, setBalanceDescription] = useState('');
   const [isUpdatingBalance, startBalanceUpdate] = useTransition();
 
-  const fetchAllData = async () => {
+  const fetchAllData = useCallback(async () => {
       setLoading(true);
       
       const { data: userData, error: userError } = await supabase
@@ -77,6 +77,7 @@ export default function UserDetailsPage() {
       
       if (userError) {
         console.error('Error fetching user:', userError);
+        toast({ variant: 'destructive', title: 'Error', description: 'User not found.' });
         router.push('/cmadmin/users');
         return;
       }
@@ -85,6 +86,7 @@ export default function UserDetailsPage() {
       const { data: finData, error: finError } = await supabase.rpc('get_user_financials', { p_user_id: userId });
        if (finError) {
         console.error('Error fetching financials:', finError);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch financial stats.' });
       } else {
         setFinancials(finData[0]);
       }
@@ -97,12 +99,12 @@ export default function UserDetailsPage() {
       }
       
       setLoading(false);
-  };
+  }, [userId, router, toast]);
 
   useEffect(() => {
     if (!userId) return;
     fetchAllData();
-  }, [userId, router]);
+  }, [userId, fetchAllData]);
 
   const handleBalanceUpdate = () => {
     if (!balanceAmount || !balanceDescription) {
