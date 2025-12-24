@@ -14,7 +14,8 @@ import {
     TrendingUp,
     UserPlus,
     Crown,
-    Copy
+    Copy,
+    Coins
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -35,6 +36,8 @@ export default function AdminDashboardPage() {
   const [pendingTasks, setPendingTasks] = useState<number | null>(null);
   const [pendingTickets, setPendingTickets] = useState<number | null>(null);
   const [totalWithdrawals, setTotalWithdrawals] = useState<number | null>(null);
+  const [pendingWithdrawals, setPendingWithdrawals] = useState<number | null>(null);
+  const [pendingCoins, setPendingCoins] = useState<number | null>(null);
   
   const [topBalanceUsers, setTopBalanceUsers] = useState<TopUser[]>([]);
   const [topReferralUsers, setTopReferralUsers] = useState<TopUser[]>([]);
@@ -61,6 +64,8 @@ export default function AdminDashboardPage() {
         tasksCountRes, 
         ticketsCountRes,
         withdrawalsRes,
+        pendingWithdrawalsRes,
+        pendingCoinsRes,
         topBalanceRes,
         topReferralRes,
       ] = await Promise.all([
@@ -68,6 +73,8 @@ export default function AdminDashboardPage() {
         supabase.from('usertasks').select('*', { count: 'exact', head: true }).eq('status', 'Pending'),
         supabase.from('support_tickets').select('*', { count: 'exact', head: true }).in('status', ['Open', 'In Progress']),
         supabase.from('payments').select('amount', { count: 'exact' }).eq('status', 'Approved'),
+        supabase.from('payments').select('*', { count: 'exact', head: true }).eq('status', 'Pending'),
+        supabase.from('coinsubmissions').select('*', { count: 'exact', head: true }).eq('status', 'Pending'),
         supabase.rpc('get_top_users_by_balance', { limit_count: 10 }),
         supabase.rpc('get_top_referral_users', { limit_count: 10 }),
       ]);
@@ -76,6 +83,8 @@ export default function AdminDashboardPage() {
       setPendingTasks(tasksCountRes.count);
       setPendingTickets(ticketsCountRes.count);
       setTotalWithdrawals(withdrawalsRes.data?.reduce((sum, { amount }) => sum + amount, 0) || 0);
+      setPendingWithdrawals(pendingWithdrawalsRes.count);
+      setPendingCoins(pendingCoinsRes.count);
 
       if (topBalanceRes.data) setTopBalanceUsers(topBalanceRes.data);
       if (topReferralRes.data) setTopReferralUsers(topReferralRes.data);
@@ -104,7 +113,7 @@ export default function AdminDashboardPage() {
         </div>
       </div>
        
-       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card className="bg-blue-50 border-blue-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-blue-800">Total Users</CardTitle>
@@ -144,6 +153,27 @@ export default function AdminDashboardPage() {
                 {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : <div className="text-2xl font-bold text-green-900">{formatCurrency(totalWithdrawals || 0)}</div>}
             </CardContent>
         </Card>
+
+        <Card className="bg-red-50 border-red-200">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-red-800">Pending Withdrawals</CardTitle>
+                <Wallet className="h-4 w-4 text-red-600" />
+            </CardHeader>
+            <CardContent>
+                {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : <div className="text-2xl font-bold text-red-900">{pendingWithdrawals}</div>}
+            </CardContent>
+        </Card>
+
+        <Card className="bg-orange-50 border-orange-200">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-orange-800">Pending Coin Submissions</CardTitle>
+                <Coins className="h-4 w-4 text-orange-600" />
+            </CardHeader>
+            <CardContent>
+                {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : <div className="text-2xl font-bold text-orange-900">{pendingCoins}</div>}
+            </CardContent>
+        </Card>
+
        </div>
 
        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -221,3 +251,5 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
+    
