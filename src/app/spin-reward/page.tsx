@@ -2,14 +2,17 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from '@/components/page-header';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Gift, Loader2, Award, Clock } from 'lucide-react';
+import { Gift, Loader2, Award, Clock, Banknote, IndianRupee } from 'lucide-react';
 import { SpinWheel, type WheelSegment } from '@/components/spin-wheel';
 import Confetti from 'react-confetti';
 import { useWindowSize } from '@/hooks/use-mobile';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Image from 'next/image';
+import { supabase } from '@/lib/supabase';
+import { useToast } from '@/hooks/use-toast';
+import type { User } from '@supabase/supabase-js';
 
 const segments: WheelSegment[] = [
   { text: '5', color: '#D81B60' },
@@ -25,8 +28,10 @@ const segments: WheelSegment[] = [
 ];
 
 const DAILY_SPIN_CHANCES = 50;
-const SPIN_STORAGE_KEY = 'spinRewardData';
+const SPIN_DATA_KEY = 'spinRewardData';
+const SPIN_POINTS_KEY = 'spinPointsBalance';
 const COUNTDOWN_SECONDS = 15;
+const MIN_TRANSFER_POINTS = 1000; // 1000 points = 10 INR
 
 interface SpinData {
   lastSpinDate: string;
@@ -34,6 +39,8 @@ interface SpinData {
 }
 
 export default function SpinRewardPage() {
+  const [user, setUser] = useState<User | null>(null);
+  const { toast } = useToast();
   const [isSpinning, setIsSpinning] = useState(false);
   const [result, setResult] = useState<WheelSegment | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -43,27 +50,46 @@ export default function SpinRewardPage() {
   const [adClicked, setAdClicked] = useState(false);
   const [countdown, setCountdown] = useState(0);
 
+  const [spinPoints, setSpinPoints] = useState(0);
+  const [isLoadingPoints, setIsLoadingPoints] = useState(true);
+  const [isTransferring, setIsTransferring] = useState(false);
+
+  // Load user and persistent data from localStorage
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
-    const storedData = localStorage.getItem(SPIN_STORAGE_KEY);
     
-    if (storedData) {
+    // Load spin chances
+    const storedSpinData = localStorage.getItem(SPIN_DATA_KEY);
+    if (storedSpinData) {
       try {
-        const data: SpinData = JSON.parse(storedData);
+        const data: SpinData = JSON.parse(storedSpinData);
         if (data.lastSpinDate === today) {
-          const chancesLeft = DAILY_SPIN_CHANCES - data.spinsUsed;
-          setSpinChances(chancesLeft);
+          setSpinChances(DAILY_SPIN_CHANCES - data.spinsUsed);
         } else {
-          // Reset for the new day
-          localStorage.removeItem(SPIN_STORAGE_KEY);
-          setSpinChances(DAILY_SPIN_CHANCES);
+          localStorage.removeItem(SPIN_DATA_KEY);
         }
       } catch (e) {
-        localStorage.removeItem(SPIN_STORAGE_KEY);
+        localStorage.removeItem(SPIN_DATA_KEY);
       }
     }
+    
+    // Load spin points
+    const storedPoints = localStorage.getItem(SPIN_POINTS_KEY);
+    if (storedPoints) {
+      setSpinPoints(parseInt(storedPoints, 10));
+    }
+    setIsLoadingPoints(false);
+
+    // Get Supabase user
+    const getUser = async () => {
+        const {data: {user}} = await supabase.auth.getUser();
+        setUser(user);
+    }
+    getUser();
+
   }, []);
 
+  // Countdown timer effect
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (countdown > 0) {
@@ -73,30 +99,23 @@ export default function SpinRewardPage() {
   }, [countdown]);
 
   const handleSpinClick = () => {
-    if (isSpinning || spinChances <= 0) return;
-    if (countdown > 0) return;
-    if (showAd && !adClicked) return;
-
+    if (isSpinning || spinChances <= 0 || countdown > 0 || (showAd && !adClicked)) return;
 
     setIsSpinning(true);
     setResult(null);
     setShowConfetti(false);
     
     const today = new Date().toISOString().split('T')[0];
-    const storedData = localStorage.getItem(SPIN_STORAGE_KEY);
+    const storedData = localStorage.getItem(SPin_DATA_KEY);
     let currentSpins = 0;
     if(storedData) {
         try {
             const data: SpinData = JSON.parse(storedData);
-            if(data.lastSpinDate === today) {
-                currentSpins = data.spinsUsed;
-            }
-        } catch (e) {
-            currentSpins = 0;
-        }
+            if(data.lastSpinDate === today) currentSpins = data.spinsUsed;
+        } catch (e) { currentSpins = 0; }
     }
     const newSpinsUsed = currentSpins + 1;
-    localStorage.setItem(SPIN_STORAGE_KEY, JSON.stringify({ lastSpinDate: today, spinsUsed: newSpinsUsed }));
+    localStorage.setItem(SPIN_DATA_KEY, JSON.stringify({ lastSpinDate: today, spinsUsed: newSpinsUsed }));
     setSpinChances(DAILY_SPIN_CHANCES - newSpinsUsed);
   };
   
@@ -105,21 +124,71 @@ export default function SpinRewardPage() {
     setResult(selectedSegment);
     setShowConfetti(true);
 
+    const pointsWon = parseInt(selectedSegment.text, 10);
+    if (!isNaN(pointsWon)) {
+      const newTotalPoints = spinPoints + pointsWon;
+      setSpinPoints(newTotalPoints);
+      localStorage.setItem(SPIN_POINTS_KEY, newTotalPoints.toString());
+    }
+    
     const chancesLeft = spinChances - 1;
     if (chancesLeft > 0) {
       setTimeout(() => {
         setShowAd(true);
         setAdClicked(false);
         setCountdown(COUNTDOWN_SECONDS);
-      }, 2000); // Wait for confetti
+      }, 2000);
     }
-  }, [spinChances]);
+  }, [spinChances, spinPoints]);
 
   const handleAdClick = () => {
       setShowAd(false);
-      setResult(null); // Hide previous result
-      setAdClicked(true); // Mark ad as clicked
+      setResult(null);
+      setAdClicked(true);
   }
+
+  const handleTransfer = async () => {
+    if (!user || spinPoints < MIN_TRANSFER_POINTS) return;
+
+    setIsTransferring(true);
+    const amountInr = (spinPoints / 1000) * 10;
+
+    try {
+        const { data: profile, error: fetchError } = await supabase
+            .from('users')
+            .select('balance_available')
+            .eq('id', user.id)
+            .single();
+
+        if (fetchError || !profile) throw fetchError || new Error("Profile not found");
+
+        const newBalance = profile.balance_available + amountInr;
+
+        const { error: updateError } = await supabase
+            .from('users')
+            .update({ balance_available: newBalance })
+            .eq('id', user.id);
+
+        if (updateError) throw updateError;
+        
+        setSpinPoints(0);
+        localStorage.setItem(SPIN_POINTS_KEY, '0');
+
+        toast({
+            title: "Transfer Successful!",
+            description: `₹${amountInr.toFixed(2)} has been added to your main balance.`,
+        });
+
+    } catch (error: any) {
+        toast({
+            variant: "destructive",
+            title: "Transfer Failed",
+            description: error.message || "An unknown error occurred.",
+        });
+    } finally {
+        setIsTransferring(false);
+    }
+  };
 
   const allSpinsUsedToday = spinChances <= 0;
   
@@ -132,28 +201,43 @@ export default function SpinRewardPage() {
   }
 
   const buttonState = getButtonState();
-
+  const canTransfer = spinPoints >= MIN_TRANSFER_POINTS;
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
       {showConfetti && <Confetti width={width || 0} height={height || 0} recycle={false} numberOfPieces={400} onConfettiComplete={() => setShowConfetti(false)} />}
       <PageHeader title="Spin & Win" description="Spin the wheel to win exciting prizes!" />
-      <main className="p-4 space-y-6 flex-1 flex flex-col">
-        <Card className="bg-primary/10 border-primary/20">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Gift className="h-6 w-6 text-primary" />
-              <p className="font-semibold">Spins Left Today</p>
-            </div>
-            <p className="text-2xl font-bold">{spinChances}</p>
-          </CardContent>
-        </Card>
+      <main className="p-4 space-y-4 flex-1 flex flex-col">
+        <div className="grid grid-cols-2 gap-4">
+          <Card className="bg-primary/10 border-primary/20">
+            <CardContent className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Gift className="h-6 w-6 text-primary" />
+                <p className="font-semibold">Spins Left Today</p>
+              </div>
+              <p className="text-2xl font-bold">{spinChances}</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-green-100 border-green-200">
+            <CardHeader className="p-2 pb-0">
+                <CardTitle className="text-sm font-medium text-green-800 flex items-center gap-2"><Award className="h-4 w-4"/> Spin Points</CardTitle>
+            </CardHeader>
+            <CardContent className="p-2 pt-1 flex items-center justify-between">
+                 <p className="text-2xl font-bold text-green-900">{isLoadingPoints ? <Loader2 className="h-6 w-6 animate-spin"/> : spinPoints}</p>
+                 <Button size="sm" onClick={handleTransfer} disabled={!canTransfer || isTransferring} className="h-8">
+                    {isTransferring ? <Loader2 className="h-4 w-4 animate-spin"/> : <Banknote className="h-4 w-4"/>}
+                    <span className="ml-2">Transfer</span>
+                 </Button>
+            </CardContent>
+          </Card>
+        </div>
         
         <Alert>
           <AlertTitle className="font-bold">Note: 1000 Points = 10 INR</AlertTitle>
+          <AlertDescription>Minimum transfer is 1000 points.</AlertDescription>
         </Alert>
 
-        <div className="flex-1 flex flex-col items-center justify-center space-y-8">
+        <div className="flex-1 flex flex-col items-center justify-center space-y-4">
           <SpinWheel segments={segments} isSpinning={isSpinning} onSpinComplete={onSpinComplete} />
 
           {result && !showAd && (
@@ -193,7 +277,7 @@ export default function SpinRewardPage() {
         <div className="text-center space-y-4 pt-4">
             {!allSpinsUsedToday ? (
                  <Button onClick={handleSpinClick} size="lg" className="w-full max-w-sm h-14 text-xl font-bold" disabled={buttonState.disabled}>
-                    {isSpinning && <Loader2 className="h-6 w-6 animate-spin"/>}
+                    {isSpinning && <Loader2 className="h-6 w-6 animate-spin mr-2"/>}
                     {buttonState.text}
                 </Button>
             ) : (
@@ -210,3 +294,5 @@ export default function SpinRewardPage() {
     </div>
   );
 }
+
+    
