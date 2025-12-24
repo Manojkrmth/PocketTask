@@ -5,11 +5,12 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Loader2 } from 'lucide-react';
+import { Users, Loader2, Hourglass } from 'lucide-react';
 
 export default function AdminDashboardPage() {
   const [user, setUser] = useState<User | null>(null);
   const [totalUsers, setTotalUsers] = useState<number | null>(null);
+  const [pendingTasks, setPendingTasks] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -21,18 +22,29 @@ export default function AdminDashboardPage() {
         setUser(session.user);
       }
 
-      // RLS को बायपास करने के लिए .rpc() का उपयोग करना सबसे अच्छा तरीका है, 
-      // लेकिन सरलता के लिए, हम मान रहे हैं कि एडमिन के पास पढ़ने की अनुमति है।
-      // यदि यह काम नहीं करता है, तो हमें एक RPC फ़ंक्शन बनाना होगा।
-      const { count, error } = await supabase
+      // Fetch total users count
+      const { count: usersCount, error: usersError } = await supabase
         .from('users')
         .select('*', { count: 'exact', head: true });
 
-      if (error) {
-        console.error("Error fetching user count:", error);
+      if (usersError) {
+        console.error("Error fetching user count:", usersError);
         setTotalUsers(0);
       } else {
-        setTotalUsers(count);
+        setTotalUsers(usersCount);
+      }
+
+      // Fetch pending tasks count
+      const { count: tasksCount, error: tasksError } = await supabase
+        .from('usertasks')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'Pending');
+
+      if (tasksError) {
+        console.error("Error fetching pending tasks count:", tasksError);
+        setPendingTasks(0);
+      } else {
+        setPendingTasks(tasksCount);
       }
       
       setIsLoading(false);
@@ -71,7 +83,28 @@ export default function AdminDashboardPage() {
                 </p>
             </CardContent>
         </Card>
-        {/* You can add more stat cards here in the future */}
+        
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                    Pending Tasks
+                </CardTitle>
+                <Hourglass className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                {isLoading ? (
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                ) : (
+                    <div className="text-2xl font-bold">
+                        {pendingTasks}
+                    </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                    Tasks awaiting approval
+                </p>
+            </CardContent>
+        </Card>
+
        </div>
     </div>
   );
