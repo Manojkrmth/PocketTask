@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -61,55 +62,49 @@ export default function TeamPage() {
       systemSettings?.referralLevel5Percentage || 0,
   ];
 
-  const fetchTeamData = useCallback(async (baseReferralCode: string, settings: any, currentReferralEarnings: number) => {
+ const fetchTeamData = useCallback(async (currentUserId: string, currentReferralEarnings: number) => {
     setIsLoading(true);
-    let totalTeamSize = 0;
-    let totalActiveMembers = 0; 
-    let codesToSearch = [baseReferralCode];
     
-    const newTeamData: LevelData[] = commissionRates.map((commission, index) => ({
-      level: index + 1,
-      commission,
-      members: 0,
-      earnings: 0,
-    }));
-
     try {
-      for (let level = 0; level < 5; level++) {
-        if (codesToSearch.length === 0) break;
+        const { data, error } = await supabase
+            .from('referrals')
+            .select('level, referee_id')
+            .eq('referrer_id', currentUserId);
 
-        const { data: newReferrals, error } = await supabase
-          .from('users')
-          .select('referral_code, created_at')
-          .in('referred_by', codesToSearch);
+        if (error) throw error;
+        
+        const newTeamData: LevelData[] = commissionRates.map((commission, index) => ({
+            level: index + 1,
+            commission,
+            members: 0,
+            earnings: 0, 
+        }));
 
-        if (error) {
-          console.error(`Error fetching level ${level + 1} referrals:`, error);
-          continue;
+        let totalTeamSize = 0;
+        
+        if (data) {
+             data.forEach(referral => {
+                if (referral.level && referral.level >= 1 && referral.level <= 5) {
+                    newTeamData[referral.level - 1].members += 1;
+                    totalTeamSize += 1;
+                }
+            });
         }
-        
-        const memberCount = newReferrals.length;
-        totalTeamSize += memberCount;
-        newTeamData[level].members = memberCount;
-        
-        totalActiveMembers += Math.floor(memberCount * 0.1);
-
-        codesToSearch = newReferrals.map(doc => doc.referral_code).filter(Boolean) as string[];
-      }
-
-      setTeamData(newTeamData);
-      setTeamStats({
-          totalTeamSize,
-          activeMembers: totalActiveMembers,
-          myEarning: currentReferralEarnings || 0,
-      });
+       
+        setTeamData(newTeamData);
+        setTeamStats({
+            totalTeamSize,
+            activeMembers: Math.floor(totalTeamSize * 0.1), // Mocking active members
+            myEarning: currentReferralEarnings,
+        });
 
     } catch (error) {
-      console.error("Error fetching team data:", error);
+        console.error("Error fetching team data:", error);
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
-  }, [commissionRates]);
+}, [commissionRates]);
+
     
   useEffect(() => {
     const checkSession = async () => {
@@ -135,11 +130,7 @@ export default function TeamPage() {
 
       if (profile) {
         setUserProfile(profile);
-        if(profile.referral_code) {
-           await fetchTeamData(profile.referral_code, systemSettings, profile.referral_earnings);
-        } else {
-           setIsLoading(false);
-        }
+        await fetchTeamData(profile.id, profile.referral_earnings);
       } else {
         setIsLoading(false);
       }
@@ -200,22 +191,19 @@ export default function TeamPage() {
         <div className="space-y-4">
           <h2 className="text-xl font-bold px-2">Team Levels Overview</h2>
             <div className="space-y-3">
-              {commissionRates.map((commission, index) => {
-                const levelNumber = index + 1;
-                const levelData = teamData.find(l => l.level === levelNumber);
-                
+              {teamData.map((levelData) => {
                 return (
-                  <Card key={levelNumber}>
+                  <Card key={levelData.level}>
                     <CardContent className="p-4 flex items-center gap-4">
                       <div className="flex items-center gap-4 flex-1 shrink-0">
                         <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mr-0 shrink-0">
-                          <span className="text-primary font-bold">L{levelNumber}</span>
+                          <span className="text-primary font-bold">L{levelData.level}</span>
                         </div>
                         <div>
-                          <p className="font-bold">Level {levelNumber}</p>
+                          <p className="font-bold">Level {levelData.level}</p>
                           <div className="text-xs text-muted-foreground inline-flex items-center gap-1 bg-muted px-2 py-0.5 rounded-full mt-1">
                             <BadgePercent className="w-3 h-3" />
-                            <span>{commission}% Commission</span>
+                            <span>{levelData.commission}% Commission</span>
                           </div>
                         </div>
                       </div>
@@ -224,7 +212,7 @@ export default function TeamPage() {
                           <div className="flex items-center gap-2 justify-end">
                             <UserRound className="w-4 h-4 text-muted-foreground" />
                             <p className="font-bold">
-                               {isLoading ? <Loader2 className="animate-spin h-4 w-4"/> : (levelData ? levelData.members : '--')}
+                               {isLoading ? <Loader2 className="animate-spin h-4 w-4"/> : levelData.members}
                             </p>
                           </div>
                           <p className="text-xs text-muted-foreground">Members</p>
@@ -233,7 +221,7 @@ export default function TeamPage() {
                           <div className="flex items-center gap-2 justify-end">
                             <IndianRupee className="w-4 h-4 text-muted-foreground" />
                             <p className="font-bold">
-                               {isLoading ? <Loader2 className="animate-spin h-4 w-4"/> : (levelData ? formatCurrency(levelData.earnings) : '--')}
+                               {isLoading ? <Loader2 className="animate-spin h-4 w-4"/> : formatCurrency(levelData.earnings)}
                             </p>
                           </div>
                           <p className="text-xs text-muted-foreground">Earning</p>
