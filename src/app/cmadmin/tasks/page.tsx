@@ -49,7 +49,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, Loader2, ListFilter, CheckCircle, XCircle, Download, UploadCloud, FileCheck2 } from 'lucide-react';
+import { MoreHorizontal, Loader2, ListFilter, CheckCircle, XCircle, Download, UploadCloud, FileCheck2, Fingerprint, Mail, KeyRound } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { useCurrency } from '@/context/currency-context';
@@ -237,7 +237,7 @@ export default function TasksPage() {
   
   const toggleFilter = (status: TaskStatus) => {
     setStatusFilters(prev => 
-      prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
+      prev.includes(status) ? prev.filter(s => s !== status) : [...prev, s]
     );
   };
   
@@ -277,13 +277,13 @@ export default function TasksPage() {
           csvData = tasksToDownload.map(task => {
               const {
                   gmail,
-                  password,
+                  originalPassword, // Changed from 'password'
                   recoveryMailSubmission,
                   ...restSubmissionData
               } = task.submission_data;
               return {
                   gmail: gmail,
-                  password: password,
+                  password: originalPassword, // Use originalPassword from submission_data
                   recoveryMailSubmission: recoveryMailSubmission,
                   ...restSubmissionData,
                   task_id: task.id,
@@ -413,6 +413,44 @@ export default function TasksPage() {
       }
     });
   }
+  
+  const getSubmissionDetail = (task: AppTask) => {
+    const data = task.submission_data;
+    if (!data) return null;
+    
+    let detailIcon: React.ReactNode = null;
+    let detailText: string | null = null;
+    
+    switch (task.task_type) {
+      case 'gmail':
+      case 'hot-mail':
+      case 'outlook-mail':
+      case 'used-mail-single':
+        detailIcon = <Mail className="h-3 w-3 text-muted-foreground" />;
+        detailText = data.gmail || data.email;
+        break;
+      case 'instagram':
+      case 'facebook':
+        detailIcon = <Fingerprint className="h-3 w-3 text-muted-foreground" />;
+        detailText = data.uid;
+        break;
+      case 'used-mail-bulk':
+        detailIcon = <FileCheck2 className="h-3 w-3 text-muted-foreground" />;
+        detailText = data.file_name;
+        break;
+      default:
+        return null;
+    }
+    
+    if (!detailText) return null;
+
+    return (
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground truncate mt-1">
+        {detailIcon}
+        <span className="truncate">{detailText}</span>
+      </div>
+    );
+  };
 
 
   return (
@@ -486,6 +524,7 @@ export default function TasksPage() {
                     <TableCell>
                       <div className="font-medium capitalize">{task.task_type.replace(/_/g, ' ')}</div>
                       <div className="text-xs text-muted-foreground">ID: {task.id}</div>
+                      {getSubmissionDetail(task)}
                     </TableCell>
                     <TableCell>
                       <div className="font-medium">{task.users?.full_name || 'N/A'}</div>
@@ -599,7 +638,7 @@ export default function TasksPage() {
                 <SelectContent>
                   {availableCategories.map(category => (
                     <SelectItem key={category} value={category} className="capitalize">
-                      {category.replace(/_/g, ' ')}
+                      {category.replace(/_/g, ' ').replace(/-/g, ' ')}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -631,7 +670,7 @@ export default function TasksPage() {
                 <SelectTrigger><SelectValue placeholder="Select a category..." /></SelectTrigger>
                 <SelectContent>
                   {availableCategories.map(category => (
-                    <SelectItem key={category} value={category} className="capitalize">{category.replace(/_/g, ' ')}</SelectItem>
+                    <SelectItem key={category} value={category} className="capitalize">{category.replace(/_/g, ' ').replace(/-/g, ' ')}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -669,11 +708,11 @@ export default function TasksPage() {
                   </Alert>
                 </div>
 
-                {bulkActionType === 'reject' && (
+                 {(bulkActionType === 'reject' || bulkActionType === 'approve') && (
                     <div className="space-y-2">
-                        <Label>Step 4: Reason for Rejection</Label>
+                        <Label>Step 4: {bulkActionType === 'reject' ? 'Reason for Rejection' : 'Note for Approval (Optional)'}</Label>
                         <Textarea
-                            placeholder={'Enter reason...'}
+                            placeholder={bulkActionType === 'reject' ? 'Enter reason...' : 'Optional note...'}
                             value={bulkReason}
                             onChange={(e) => setBulkReason(e.target.value)}
                             disabled={isUpdating}
@@ -691,8 +730,9 @@ export default function TasksPage() {
                 type="button" 
                 onClick={handleBulkUpdate} 
                 disabled={isUpdating || !identifierColumn || (bulkActionType === 'reject' && !bulkReason.trim())}
-                className={cn(bulkActionType === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-destructive hover:bg-destructive/90',
-                    (!identifierColumn) && 'hidden'
+                className={cn(
+                    bulkActionType === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-destructive hover:bg-destructive/90',
+                    !identifierColumn && 'hidden'
                 )}
             >
             {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
@@ -705,5 +745,3 @@ export default function TasksPage() {
     </>
   );
 }
-
-    
