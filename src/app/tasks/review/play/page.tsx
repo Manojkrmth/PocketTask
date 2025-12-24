@@ -93,6 +93,11 @@ function ReviewTaskComponent() {
                 toast({ variant: 'destructive', title: 'File too large', description: 'Please upload a screenshot under 2MB.' });
                 return;
             }
+             const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+            if (!allowedTypes.includes(file.type)) {
+                toast({ variant: 'destructive', title: 'Invalid File Type', description: 'Please upload a JPG, JPEG, or PNG file.' });
+                return;
+            }
             setProofFile(file);
             setFileName(file.name);
         }
@@ -109,10 +114,29 @@ function ReviewTaskComponent() {
 
         try {
             if (!user || !task) throw new Error("User or task not found");
-
-            // Mock submission
-            await new Promise(resolve => setTimeout(resolve, 2000));
             
+            const fileExt = proofFile.name.split('.').pop();
+            const filePath = `${user.id}/${Date.now()}.${fileExt}`;
+            const { error: uploadError } = await supabase.storage
+                .from('task-proofs')
+                .upload(filePath, proofFile);
+
+            if (uploadError) throw uploadError;
+
+            const submissionData = {
+                user_id: user.id,
+                task_type: taskType,
+                reward: task.reward,
+                status: 'Pending',
+                submission_data: { 
+                    reviewUrl,
+                    proofUrl: filePath 
+                }
+            };
+            
+            const { error: insertError } = await supabase.from('usertasks').insert(submissionData);
+            if(insertError) throw insertError;
+
             toast({
                 title: 'Task Submitted!',
                 description: `Your submission for ${task.title} is pending approval.`,
@@ -131,8 +155,6 @@ function ReviewTaskComponent() {
     };
 
     const handleSkip = () => {
-        // In a real app, you might want to assign a new task.
-        // For now, just go back to the task list.
         router.push('/tasks');
     }
 
@@ -261,4 +283,5 @@ export default function ReviewTaskPage() {
         </Suspense>
     );
 }
+
 

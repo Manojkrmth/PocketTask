@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -72,8 +73,13 @@ export default function KycTaskPage() {
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
-            if (file.size > 5 * 1024 * 1024) { // 5MB limit
-                toast({ variant: 'destructive', title: 'File too large', description: 'Please upload a file under 5MB.' });
+            if (file.size > 2 * 1024 * 1024) { // 2MB limit
+                toast({ variant: 'destructive', title: 'File too large', description: 'Please upload a file under 2MB.' });
+                return;
+            }
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'application/pdf'];
+            if (!allowedTypes.includes(file.type)) {
+                toast({ variant: 'destructive', title: 'Invalid File Type', description: 'Please upload a JPG, JPEG, or PDF file.' });
                 return;
             }
             setProofFile(file);
@@ -84,6 +90,10 @@ export default function KycTaskPage() {
     const handleSubmit = async () => {
         if (!name || !email || !mobile || !password || !proofFile) {
             toast({ variant: 'destructive', title: 'Missing Information', description: 'Please fill all required fields and upload a proof.' });
+            return;
+        }
+        if (mobile.length !== 10) {
+            toast({ variant: 'destructive', title: 'Invalid Mobile Number', description: 'Mobile number must be exactly 10 digits.' });
             return;
         }
 
@@ -203,7 +213,7 @@ export default function KycTaskPage() {
                         </div>
                          <div>
                             <Label htmlFor="mobile" className="font-bold flex items-center gap-2"><Smartphone className="h-4 w-4" /> Mobile Number</Label>
-                            <Input id="mobile" type="tel" value={mobile} onChange={(e) => setMobile(e.target.value)} placeholder="Enter your mobile number" disabled={isSubmitting} />
+                            <Input id="mobile" type="tel" value={mobile} onChange={(e) => setMobile(e.target.value.replace(/[^0-9]/g, ''))} placeholder="Enter your 10-digit mobile number" disabled={isSubmitting} maxLength={10} />
                         </div>
                         <div>
                             <Label htmlFor="password" className="font-bold flex items-center gap-2"><KeyRound className="h-4 w-4" /> Password / Mail Password</Label>
@@ -223,10 +233,10 @@ export default function KycTaskPage() {
                                     type="file" 
                                     className="hidden"
                                     onChange={handleFileChange}
-                                    accept="image/png, image/jpeg, image/jpg, application/pdf"
+                                    accept="image/jpeg,image/jpg,application/pdf"
                                     disabled={isSubmitting}
                                 />
-                                <p className="text-xs text-muted-foreground mt-1">PNG, JPG, PDF up to 5MB.</p>
+                                <p className="text-xs text-muted-foreground mt-1">JPG, JPEG, PDF up to 2MB.</p>
                              </div>
                         </div>
                          <div>

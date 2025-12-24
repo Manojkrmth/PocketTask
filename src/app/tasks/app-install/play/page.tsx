@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -46,6 +47,7 @@ export default function AppInstallTaskPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     
+    const [appName, setAppName] = useState('');
     const [email, setEmail] = useState('');
     const [mobile, setMobile] = useState('');
     const [remarks, setRemarks] = useState('');
@@ -71,14 +73,23 @@ export default function AppInstallTaskPage() {
                 toast({ variant: 'destructive', title: 'File too large', description: 'Please upload a screenshot under 2MB.' });
                 return;
             }
+             const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+            if (!allowedTypes.includes(file.type)) {
+                toast({ variant: 'destructive', title: 'Invalid File Type', description: 'Please upload a JPG, JPEG, or PNG file.' });
+                return;
+            }
             setProofFile(file);
             setFileName(file.name);
         }
     }
 
     const handleSubmit = async () => {
-        if (!email || !mobile || !proofFile) {
-            toast({ variant: 'destructive', title: 'Missing Information', description: 'Please provide email, mobile, and upload a proof screenshot.' });
+        if (!email || !mobile || !proofFile || !appName) {
+            toast({ variant: 'destructive', title: 'Missing Information', description: 'Please provide app name, email, mobile, and upload a proof screenshot.' });
+            return;
+        }
+        if (mobile.length !== 10) {
+            toast({ variant: 'destructive', title: 'Invalid Mobile Number', description: 'Mobile number must be exactly 10 digits.' });
             return;
         }
 
@@ -87,9 +98,31 @@ export default function AppInstallTaskPage() {
 
         try {
             if (!user || !task) throw new Error("User or task not found");
+            
+            const fileExt = proofFile.name.split('.').pop();
+            const filePath = `${user.id}/${Date.now()}.${fileExt}`;
+            const { error: uploadError } = await supabase.storage
+                .from('task-proofs')
+                .upload(filePath, proofFile);
 
-            // Mock submission
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            if (uploadError) throw uploadError;
+
+            const submissionData = {
+                user_id: user.id,
+                task_type: 'app-install',
+                reward: task.reward,
+                status: 'Pending',
+                submission_data: { 
+                    appName,
+                    email,
+                    mobile,
+                    remarks,
+                    proofUrl: filePath 
+                }
+            };
+            
+            const { error: insertError } = await supabase.from('usertasks').insert(submissionData);
+            if(insertError) throw insertError;
             
             toast({
                 title: 'Task Submitted!',
@@ -109,8 +142,6 @@ export default function AppInstallTaskPage() {
     };
 
     const handleSkip = () => {
-        // In a real app, you might want to assign a new task.
-        // For now, just go back to the task list.
         router.push('/tasks');
     }
 
@@ -175,6 +206,18 @@ export default function AppInstallTaskPage() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                          <div>
+                            <Label htmlFor="appName" className="font-bold flex items-center gap-2"><Smartphone className="h-4 w-4" /> App Name</Label>
+                            <Input
+                                id="appName"
+                                type="text"
+                                value={appName}
+                                onChange={(e) => setAppName(e.target.value)}
+                                placeholder="e.g., CoolApp"
+                                className="mt-1"
+                                disabled={isSubmitting}
+                            />
+                        </div>
+                         <div>
                             <Label htmlFor="email" className="font-bold flex items-center gap-2"><Mail className="h-4 w-4" /> Email Used for Sign-up</Label>
                             <Input
                                 id="email"
@@ -192,10 +235,11 @@ export default function AppInstallTaskPage() {
                                 id="mobile"
                                 type="tel"
                                 value={mobile}
-                                onChange={(e) => setMobile(e.target.value)}
+                                onChange={(e) => setMobile(e.target.value.replace(/[^0-9]/g, ''))}
                                 placeholder="e.g., 9876543210"
                                 className="mt-1"
                                 disabled={isSubmitting}
+                                maxLength={10}
                             />
                         </div>
                         <div>
@@ -234,7 +278,7 @@ export default function AppInstallTaskPage() {
                         <Button
                             className="w-full h-12 text-base font-bold bg-green-500 hover:bg-green-600"
                             onClick={handleSubmit}
-                            disabled={isSubmitting || !email || !mobile || !proofFile}
+                            disabled={isSubmitting || !email || !mobile || !proofFile || !appName}
                         >
                             {isSubmitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <CheckCircle className="mr-2 h-5 w-5" />}
                             {isSubmitting ? 'Submitting...' : 'Submit Task'}
