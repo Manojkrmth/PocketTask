@@ -1,0 +1,199 @@
+'use client';
+
+import { Suspense, useMemo, useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
+import type { User } from '@supabase/supabase-js';
+
+import { PageHeader } from '@/components/page-header';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Loader2, CheckCircle, SkipForward, LogOut, ShieldCheck, User as UserIcon, KeyRound, Mail, AtSign, Fingerprint } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { LoadingScreen } from '@/components/loading-screen';
+
+const getTaskConfig = (taskType: string) => {
+    const configs: { [key: string]: any } = {
+        'hot-mail': {
+            title: 'Hotmail Task',
+            reward: 12,
+            fields: ['name', 'email', 'password', 'recoveryMail'],
+            description: 'Submit details for a Hotmail account.'
+        },
+        'outlook-mail': {
+            title: 'Outlook Mail Task',
+            reward: 12,
+            fields: ['name', 'email', 'password', 'recoveryMail'],
+            description: 'Submit details for an Outlook account.'
+        },
+        'facebook': {
+            title: 'Facebook Task',
+            reward: 15,
+            fields: ['uid', 'password', 'twoFactor', 'webMail'],
+            description: 'Submit details for a Facebook account.'
+        },
+        'instagram': {
+            title: 'Instagram Task',
+            reward: 15,
+            fields: ['uid', 'password', 'twoFactor', 'webMail'],
+            description: 'Submit details for an Instagram account.'
+        },
+    };
+    const config = configs[taskType];
+    if (!config) return null;
+    
+    return {
+        id: `${taskType.toUpperCase()}-${Date.now()}`,
+        ...config,
+    };
+};
+
+function SocialTaskComponent() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const { toast } = useToast();
+    const taskType = searchParams.get('type') || '';
+    
+    const [user, setUser] = useState<User | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [formState, setFormState] = useState<{[key: string]: string}>({});
+
+    const task = useMemo(() => getTaskConfig(taskType), [taskType]);
+
+    useEffect(() => {
+        if (!task) {
+            router.push('/tasks');
+            return;
+        }
+        const getUser = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) router.push('/login');
+            else setUser(session.user);
+            setIsLoading(false);
+        };
+        getUser();
+    }, [router, task]);
+
+    const handleInputChange = (field: string, value: string) => {
+        setFormState(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleSubmit = async () => {
+        if (!task) return;
+        
+        const isFormValid = task.fields.every((field: string) => {
+            if (field === 'recoveryMail') return true; // Optional field
+            return formState[field] && formState[field].trim() !== '';
+        });
+
+        if (!isFormValid) {
+            toast({ variant: 'destructive', title: 'Missing Information', description: 'Please fill all required fields.' });
+            return;
+        }
+        
+        setIsSubmitting(true);
+        try {
+            await new Promise(r => setTimeout(r, 1500)); // Mock API call
+            toast({ title: 'Task Submitted', description: `Your submission for ${task.title} is pending.` });
+            router.push('/tasks');
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Submission Failed', description: error.message });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+    
+    const handleSkip = () => router.push('/tasks');
+    const handleExit = () => router.push('/tasks');
+
+    if (isLoading || !task) {
+        return <LoadingScreen />;
+    }
+
+    const fieldComponents: {[key: string]: React.ReactNode} = {
+        name: <><UserIcon /> Full Name</>,
+        email: <><Mail /> Email Address</>,
+        password: <><KeyRound /> Password</>,
+        recoveryMail: <><AtSign /> Recovery Mail (Optional)</>,
+        uid: <><UserIcon /> UID / Username</>,
+        twoFactor: <><Fingerprint /> 2FA Code</>,
+        webMail: <><Mail /> Email / WebMail</>,
+    };
+
+    return (
+        <div className="min-h-screen bg-muted/40">
+            <PageHeader title={task.title} />
+            <main className="p-4 space-y-6">
+                <Card>
+                    <CardHeader>
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <p className="text-xs text-muted-foreground">Task ID: {task.id}</p>
+                                <CardTitle>{task.title}</CardTitle>
+                                <CardDescription>{task.description}</CardDescription>
+                            </div>
+                            <div className="text-right flex-shrink-0 ml-4">
+                                <p className="text-xs text-muted-foreground">Reward</p>
+                                <p className="text-2xl font-bold text-green-600">₹{task.reward}</p>
+                            </div>
+                        </div>
+                    </CardHeader>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                           <ShieldCheck className="h-5 w-5 text-primary"/>
+                           Submit Your Account Details
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {task.fields.map((field: string) => (
+                            <div key={field}>
+                                <Label htmlFor={field} className="font-bold flex items-center gap-2 mb-1">{fieldComponents[field] || field}</Label>
+                                <Input
+                                    id={field}
+                                    value={formState[field] || ''}
+                                    onChange={(e) => handleInputChange(field, e.target.value)}
+                                    placeholder={`Enter ${field.replace(/([A-Z])/g, ' $1').toLowerCase()}`}
+                                    disabled={isSubmitting}
+                                />
+                            </div>
+                        ))}
+                        
+                        <Button
+                            className="w-full h-12 text-base font-bold bg-green-500 hover:bg-green-600"
+                            onClick={handleSubmit}
+                            disabled={isSubmitting}
+                        >
+                            {isSubmitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <CheckCircle className="mr-2 h-5 w-5" />}
+                            {isSubmitting ? 'Submitting...' : 'Submit Task'}
+                        </Button>
+                    </CardContent>
+                </Card>
+                
+                <div className="grid grid-cols-2 gap-4">
+                    <Button variant="outline" className="h-11" onClick={handleSkip}>
+                        <SkipForward className="mr-2 h-4 w-4"/>
+                        Skip Task
+                    </Button>
+                     <Button variant="destructive" className="h-11" onClick={handleExit}>
+                        <LogOut className="mr-2 h-4 w-4"/>
+                        Exit
+                    </Button>
+                </div>
+            </main>
+        </div>
+    );
+}
+
+export default function SocialTaskPage() {
+    return (
+        <Suspense fallback={<LoadingScreen />}>
+            <SocialTaskComponent />
+        </Suspense>
+    );
+}

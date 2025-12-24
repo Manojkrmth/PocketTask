@@ -22,11 +22,11 @@ import {
 const getTaskTypeDetails = (taskType: string) => {
     const details: { [key: string]: { name: string, available: boolean } } = {
         'gmail': { name: 'Gmail Task', available: true },
-        'instagram': { name: 'Instagram Task', available: false },
+        'instagram': { name: 'Instagram Task', available: true },
         'facebook': { name: 'Facebook Task', available: true },
         'used-mails': { name: 'Used Mails Task', available: true },
-        'hot-mail': { name: 'Hot Mail Task', available: false },
-        'outlook-mail': { name: 'Outlook Mail Task', available: false },
+        'hot-mail': { name: 'Hot Mail Task', available: true },
+        'outlook-mail': { name: 'Outlook Mail Task', available: true },
         'visit-earn': { name: 'Visit & Earn Task', available: true },
         'watch-earn': { name: 'Watch & Earn Task', available: true },
         'kyc-task': { name: 'KYC Task', available: false },
@@ -96,6 +96,8 @@ export default function StartTaskPage() {
         router.push('/tasks/used-mails/play');
       } else if (['google-map-review', 'playstore-app-review'].includes(taskType)) {
         router.push(`/tasks/review/play?type=${taskType}`);
+      } else if (['hot-mail', 'outlook-mail', 'facebook', 'instagram'].includes(taskType)) {
+        router.push(`/tasks/social/play?type=${taskType}`);
       }
       else {
         alert(`Task assignment for ${taskName} is not implemented yet.`);
