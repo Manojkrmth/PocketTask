@@ -12,15 +12,15 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Image from 'next/image';
 
 const segments: WheelSegment[] = [
-  { text: '$100', color: '#D81B60' },
-  { text: '$1,500', color: '#43A047' },
-  { text: '$2,500', color: '#1E88E5' },
-  { text: '$500', color: '#6A1B9A' },
-  { text: '$5,000', color: '#FB8C00' },
-  { text: '$750', color: '#D81B60' },
-  { text: '$250', color: '#43A047' },
-  { text: '$10,000', color: '#FB8C00' },
-  { text: '$1,000', color: '#1E88E5' },
+  { text: '10 Points', color: '#D81B60' },
+  { text: '5 Points', color: '#43A047' },
+  { text: 'Try Again', color: '#1E88E5' },
+  { text: '15 Points', color: '#6A1B9A' },
+  { text: 'Bonus', color: '#FB8C00' },
+  { text: '8 Points', color: '#D81B60' },
+  { text: '12 Points', color: '#43A047' },
+  { text: 'Try Again', color: '#FB8C00' },
+  { text: '6 Points', color: '#1E88E5' },
   { text: 'Bonus', color: '#6A1B9A' },
 ];
 
@@ -40,7 +40,7 @@ export default function SpinRewardPage() {
   const { width, height } = useWindowSize();
   const [spinChances, setSpinChances] = useState(DAILY_SPIN_CHANCES);
   const [showAd, setShowAd] = useState(false);
-  const [adClicked, setAdClicked] = useState(true);
+  const [adClicked, setAdClicked] = useState(false);
   const [countdown, setCountdown] = useState(0);
 
   useEffect(() => {
@@ -74,7 +74,7 @@ export default function SpinRewardPage() {
 
   const handleSpinClick = () => {
     if (isSpinning || spinChances <= 0 || (countdown > 0 && !adClicked)) return;
-    if (!adClicked && countdown === 0) return;
+    if (!adClicked && countdown > 0) return;
 
     setIsSpinning(true);
     setResult(null);
@@ -123,7 +123,7 @@ export default function SpinRewardPage() {
   }
 
   const allSpinsUsedToday = spinChances <= 0;
-  const isSpinButtonDisabled = isSpinning || allSpinsUsedToday || (countdown > 0 || !adClicked);
+  const isSpinButtonDisabled = isSpinning || allSpinsUsedToday || (countdown > 0 && !adClicked);
 
 
   return (
@@ -187,6 +187,7 @@ export default function SpinRewardPage() {
                     {isSpinning && <Loader2 className="h-6 w-6 animate-spin"/>}
                     {!isSpinning && countdown > 0 && `Next Spin in ${countdown}s`}
                     {!isSpinning && countdown === 0 && adClicked && 'SPIN NOW'}
+                    {!isSpinning && countdown > 0 && !adClicked && 'Click Ad to Spin'}
                     {!isSpinning && countdown === 0 && !adClicked && 'Click Ad to Spin'}
                 </Button>
             ) : (

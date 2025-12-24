@@ -45,13 +45,13 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
   useEffect(() => {
     if (isSpinning) {
       const winningSegmentIndex = Math.floor(Math.random() * numSegments);
-      const randomOffset = (Math.random() * 0.8 + 0.1) * anglePerSegment;
       
-      // Target the middle of the segment
-      const centeredRotation = (winningSegmentIndex * anglePerSegment) + (anglePerSegment / 2);
+      // Calculate rotation to center the pointer in the middle of the winning segment
+      const targetAngle = (winningSegmentIndex * anglePerSegment) + (anglePerSegment / 2);
+      
+      // Add multiple full rotations for effect, and spin clockwise
+      const targetRotation = (360 * 6) + (360 - targetAngle);
 
-      const targetRotation = (360 * 6) - centeredRotation - randomOffset + (anglePerSegment / 2);
-      
       setRotation(prev => prev + targetRotation);
 
       setTimeout(() => {
@@ -103,57 +103,35 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
 
                  {/* Decorative Dots */}
                 {segments.map((_, i) => {
-                    const angle = (i * anglePerSegment) * Math.PI / 180;
-                    const dotRadius = RADIUS * 0.85;
-                    const dots = 5;
-                    return Array.from({length: dots}).map((__, dotIndex) => {
-                        const r = dotRadius - (dotIndex * 15);
-                        if (r < TEXT_RADIUS - 10) return null;
-                        const x = RADIUS + r * Math.cos(angle);
-                        const y = RADIUS + r * Math.sin(angle);
-                        return <circle key={`${i}-${dotIndex}`} cx={x} cy={y} r="3" fill="rgba(255,255,255,0.5)" />
-                    })
+                    const angle = (i * anglePerSegment + anglePerSegment / 2) * Math.PI / 180;
+                    const r = RADIUS * 0.9;
+                    const x = RADIUS + r * Math.cos(angle);
+                    const y = RADIUS + r * Math.sin(angle);
+                    return <circle key={i} cx={x} cy={y} r="4" fill="rgba(255,255,255,0.7)" />;
                 })}
 
                 {/* Text on Segments */}
                 {segments.map((segment, i) => {
                     const textAngle = i * anglePerSegment + anglePerSegment / 2;
-                    const pathId = `text-path-${i}`;
+                    const x = RADIUS + TEXT_RADIUS * Math.cos(textAngle * Math.PI / 180);
+                    const y = RADIUS + TEXT_RADIUS * Math.sin(textAngle * Math.PI / 180);
                     
-                    const arcStartAngle = textAngle - 25;
-                    const arcEndAngle = textAngle + 25;
-                    
-                    const arcStart = {
-                        x: RADIUS + TEXT_RADIUS * Math.cos(arcStartAngle * Math.PI / 180),
-                        y: RADIUS + TEXT_RADIUS * Math.sin(arcStartAngle * Math.PI / 180)
-                    };
-                    const arcEnd = {
-                        x: RADIUS + TEXT_RADIUS * Math.cos(arcEndAngle * Math.PI / 180),
-                        y: RADIUS + TEXT_RADIUS * Math.sin(arcEndAngle * Math.PI / 180)
-                    };
-
                     return (
-                        <g key={`text-${i}`}>
-                            <defs>
-                                <path
-                                    id={pathId}
-                                    d={`M ${arcStart.x} ${arcStart.y} A ${TEXT_RADIUS} ${TEXT_RADIUS} 0 0 1 ${arcEnd.x} ${arcEnd.y}`}
-                                />
-                            </defs>
-                            <text
-                                fill="white"
-                                fontSize="18"
-                                fontWeight="bold"
-                                textAnchor="middle"
-                                dy="-5"
-                                style={{textShadow: '1px 1px 2px rgba(0,0,0,0.7)'}}
-                            >
-                                <textPath href={`#${pathId}`} startOffset="50%">
-                                    {segment.text}
-                                </textPath>
-                            </text>
-                        </g>
-                    )
+                        <text
+                            key={`text-${i}`}
+                            x={x}
+                            y={y}
+                            dy="0.35em"
+                            textAnchor="middle"
+                            fill="white"
+                            fontSize="16"
+                            fontWeight="bold"
+                            transform={`rotate(${textAngle + 90}, ${x}, ${y})`}
+                            style={{textShadow: '1px 1px 2px rgba(0,0,0,0.7)'}}
+                        >
+                            {segment.text}
+                        </text>
+                    );
                 })}
             </svg>
         </div>
