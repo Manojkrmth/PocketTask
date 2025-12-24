@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -55,10 +56,11 @@ function ReferrerInfoCard({ referralCode }: { referralCode: string }) {
         }
 
         const fetchReferrer = async () => {
+            const upperCaseCode = referralCode.toUpperCase();
             const { data, error } = await supabase
                 .from('users')
                 .select('full_name, referral_code')
-                .eq('referral_code', referralCode)
+                .eq('referral_code', upperCaseCode)
                 .single();
             
             if (error) {
