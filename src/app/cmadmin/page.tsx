@@ -38,12 +38,12 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 interface DashboardStats {
-  totalUsers: number;
-  pendingTasks: number;
-  pendingWithdrawals: number;
-  totalPaid: number;
-  completedTasks: number;
-  pendingCoins: number;
+  total_users: number;
+  pending_tasks: number;
+  pending_withdrawals: number;
+  total_paid: number;
+  completed_tasks: number;
+  pending_coins: number;
 }
 
 const dummyTopUsers = [
@@ -65,31 +65,28 @@ export default function AdminDashboardPage() {
     const fetchData = async () => {
       setIsLoading(true);
 
-      // Fetch stats individually instead of using RPC
-      try {
-        const { count: totalUsersCount } = await supabase.from('users').select('*', { count: 'exact', head: true });
-        const { count: pendingTasksCount } = await supabase.from('usertasks').select('*', { count: 'exact', head: true }).eq('status', 'Pending');
-        const { count: pendingWithdrawalsCount } = await supabase.from('payments').select('*', { count: 'exact', head: true }).eq('status', 'Pending');
-        const { data: totalPaidData } = await supabase.from('payments').select('amount').eq('status', 'Completed');
-        const { count: completedTasksCount } = await supabase.from('usertasks').select('*', { count: 'exact', head: true }).eq('status', 'Approved');
-        const { count: pendingCoinsCount } = await supabase.from('coinsubmissions').select('*', { count: 'exact', head: true }).eq('status', 'Pending');
+      // Use RPC call to get all stats at once, bypassing RLS for counts
+      const { data: statsData, error: statsError } = await supabase.rpc('get_dashboard_stats');
+      
+      if (statsError) {
+        console.error('Error fetching dashboard stats:', statsError);
+        // Fallback to individual (potentially RLS-limited) queries on error
+         const { count: totalUsersCount } = await supabase.from('users').select('*', { count: 'exact', head: true });
+         setStats({
+            total_users: totalUsersCount || 0,
+            pending_tasks: 0,
+            pending_withdrawals: 0,
+            total_paid: 0,
+            completed_tasks: 0,
+            pending_coins: 0,
+         });
 
-        const totalPaid = totalPaidData ? totalPaidData.reduce((sum, item) => sum + item.amount, 0) : 0;
-
-        setStats({
-          totalUsers: totalUsersCount || 0,
-          pendingTasks: pendingTasksCount || 0,
-          pendingWithdrawals: pendingWithdrawalsCount || 0,
-          totalPaid: totalPaid || 0,
-          completedTasks: completedTasksCount || 0,
-          pendingCoins: pendingCoinsCount || 0,
-        });
-
-      } catch (error) {
-        console.error('Error fetching dashboard stats:', error);
+      } else if (statsData) {
+        // Since RPC returns an array, even for a single row, we take the first element.
+        const fetchedStats = Array.isArray(statsData) ? statsData[0] : statsData;
+        setStats(fetchedStats);
       }
       
-
       const { data: recentUsersData } = await supabase
         .from('users')
         .select('*')
@@ -104,12 +101,12 @@ export default function AdminDashboardPage() {
   }, []);
 
   const statCards = [
-    { title: 'Total Users', value: stats?.totalUsers, icon: Users, color: 'text-blue-500' },
-    { title: 'Pending Tasks', value: stats?.pendingTasks, icon: Clock, color: 'text-orange-500' },
-    { title: 'Pending Withdrawals', value: stats?.pendingWithdrawals, icon: Wallet, color: 'text-yellow-500' },
-    { title: 'Pending Coins', value: stats?.pendingCoins, icon: Coins, color: 'text-amber-500' },
-    { title: 'Total Paid', value: `₹${(stats?.totalPaid || 0).toLocaleString('en-IN')}`, icon: IndianRupee, color: 'text-green-500' },
-    { title: 'Completed Tasks', value: stats?.completedTasks, icon: CheckCircle, color: 'text-teal-500' },
+    { title: 'Total Users', value: stats?.total_users, icon: Users, color: 'text-blue-500' },
+    { title: 'Pending Tasks', value: stats?.pending_tasks, icon: Clock, color: 'text-orange-500' },
+    { title: 'Pending Withdrawals', value: stats?.pending_withdrawals, icon: Wallet, color: 'text-yellow-500' },
+    { title: 'Pending Coins', value: stats?.pending_coins, icon: Coins, color: 'text-amber-500' },
+    { title: 'Total Paid', value: `₹${(stats?.total_paid || 0).toLocaleString('en-IN')}`, icon: IndianRupee, color: 'text-green-500' },
+    { title: 'Completed Tasks', value: stats?.completed_tasks, icon: CheckCircle, color: 'text-teal-500' },
   ];
 
   return (
