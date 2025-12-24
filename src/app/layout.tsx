@@ -10,8 +10,9 @@ import { SplashScreen } from '@/components/splash-screen';
 function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAuthPage = ['/login', '/signup', '/forgot-password', '/update-password'].includes(pathname);
+  const isAdminPage = pathname.startsWith('/cmadmin');
   
-  if (isAuthPage) {
+  if (isAuthPage || isAdminPage) {
     return <>{children}</>;
   }
 
