@@ -20,7 +20,6 @@ import {
   ShieldCheck,
   XCircle
 } from 'lucide-react';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { LoadingScreen } from '@/components/loading-screen';
 import Confetti from 'react-confetti';
@@ -47,7 +46,6 @@ export default function WatchAndEarnPage() {
         setIsLoading(true);
         setNoTasksAvailable(false);
         setTask(null);
-        sessionStorage.removeItem(TASK_STORAGE_KEY);
         
         const { data, error } = await supabase.rpc('get_and_assign_watch_earn_task', {
             user_id_input: userId
@@ -64,7 +62,6 @@ export default function WatchAndEarnPage() {
         const newTask = data && data.length > 0 ? data[0] : null;
 
         if (newTask && newTask.id) {
-            sessionStorage.setItem(TASK_STORAGE_KEY, JSON.stringify(newTask));
             setTask(newTask);
         } else {
             setNoTasksAvailable(true);
@@ -81,19 +78,7 @@ export default function WatchAndEarnPage() {
             }
             
             setUser(session.user);
-            const storedTask = sessionStorage.getItem(TASK_STORAGE_KEY);
-            
-            if (storedTask) {
-                try {
-                    const parsedTask = JSON.parse(storedTask);
-                    setTask(parsedTask);
-                    setIsLoading(false);
-                } catch {
-                    await loadNewTask(session.user.id);
-                }
-            } else {
-                await loadNewTask(session.user.id);
-            }
+            await loadNewTask(session.user.id);
         };
         initialize();
     }, [router]);
@@ -182,7 +167,6 @@ export default function WatchAndEarnPage() {
     };
 
     const handleExit = () => {
-        sessionStorage.removeItem(TASK_STORAGE_KEY);
         router.push('/tasks');
     };
 
@@ -246,12 +230,6 @@ export default function WatchAndEarnPage() {
                                 Go to Video &amp; Get Code
                             </Button>
                         </a>
-                        <Alert>
-                            <AlertTitle>Instructions</AlertTitle>
-                            <AlertDescription>
-                                Click the link, watch the content, and find the code to complete the task.
-                            </AlertDescription>
-                        </Alert>
                     </CardContent>
                 </Card>
 
@@ -262,7 +240,7 @@ export default function WatchAndEarnPage() {
                            Verification
                         </CardTitle>
                         <CardDescription>
-                           Enter the code you received from the link below.
+                           Enter the code you received from the video below.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
