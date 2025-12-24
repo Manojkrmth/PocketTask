@@ -16,22 +16,22 @@ import { useToast } from '@/hooks/use-toast';
 import type { User } from '@supabase/supabase-js';
 
 const segments: WheelSegment[] = [
-  { text: '5', color: '#D81B60' },
-  { text: '10', color: '#43A047' },
-  { text: '8', color: '#1E88E5' },
-  { text: '12', color: '#6A1B9A' },
-  { text: '7', color: '#FB8C00' },
-  { text: '15', color: '#d32f2f' },
-  { text: '6', color: '#00796b' },
-  { text: '9', color: '#512da8' },
-  { text: '11', color: '#c2185b' },
-  { text: '14', color: '#fbc02d' },
+  { id: 'seg1', text: '5', color: '#D81B60' },
+  { id: 'seg2', text: '10', color: '#43A047' },
+  { id: 'seg3', text: '8', color: '#1E88E5' },
+  { id: 'seg4', text: '12', color: '#6A1B9A' },
+  { id: 'seg5', text: '7', color: '#FB8C00' },
+  { id: 'seg6', text: '15', color: '#d32f2f' },
+  { id: 'seg7', text: '6', color: '#00796b' },
+  { id: 'seg8', text: '9', color: '#512da8' },
+  { id: 'seg9', text: '11', color: '#c2185b' },
+  { id: 'seg10', text: '14', color: '#fbc02d' },
 ];
 
 const DAILY_SPIN_CHANCES = 50;
 const SPIN_DATA_KEY = 'spinRewardData';
 const SPIN_POINTS_KEY = 'spinPointsBalance';
-const COUNTDOWN_SECONDS = 15;
+const COUNTDOWN_SECONDS = 10;
 const MIN_TRANSFER_POINTS = 1000; // 1000 points = 10 INR
 
 interface SpinData {
@@ -140,11 +140,8 @@ export default function SpinRewardPage() {
       localStorage.setItem(SPIN_POINTS_KEY, newTotalPoints.toString());
     }
     
-    const chancesLeft = spinChances - 1;
-    if (chancesLeft > 0) {
-        setCountdown(COUNTDOWN_SECONDS); // Start countdown immediately
-    }
-  }, [spinChances, spinPoints]);
+    setCountdown(COUNTDOWN_SECONDS); // Start countdown immediately
+  }, [spinPoints]);
 
   const handleAdClick = () => {
       setShowAd(false);

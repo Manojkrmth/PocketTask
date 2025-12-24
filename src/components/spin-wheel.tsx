@@ -1,9 +1,11 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 
 export interface WheelSegment {
+  id: string;
   text: string;
   color: string;
 }
@@ -20,6 +22,7 @@ const TEXT_RADIUS = RADIUS * 0.65;
 
 export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelProps) {
   const [rotation, setRotation] = useState(0);
+  const [finalRotation, setFinalRotation] = useState(0);
   const numSegments = segments.length;
   const anglePerSegment = 360 / numSegments;
 
@@ -50,10 +53,17 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
       const pointerAngle = 270; // Pointer is at the top (270 degrees)
       const offsetToCenter = pointerAngle - centerOfSegmentAngle;
       
-      const totalRotation = rotation + (360 * 6) + offsetToCenter; // 6 full spins + adjustment
+      // Ensure we spin at least 6 full circles for a good animation
+      const totalRotation = finalRotation + (360 * 6) + offsetToCenter;
 
       setRotation(totalRotation);
-      onSpinComplete(segments[winningSegmentIndex]);
+      setFinalRotation(totalRotation); // Store the final rotation
+      
+      // Use a timeout to call onSpinComplete after the animation finishes
+      const spinDuration = 4000; // Match this with the CSS duration
+      setTimeout(() => {
+        onSpinComplete(segments[winningSegmentIndex]);
+      }, spinDuration);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSpinning]);
@@ -71,7 +81,7 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
       >
         <div
           className={cn(
-            "w-full h-full rounded-full transition-transform duration-[2000ms] ease-out", // 2 second spin
+            "w-full h-full rounded-full transition-transform duration-[4000ms] ease-out",
             "select-none" 
           )}
           style={{ transform: `rotate(${rotation}deg)` }}
@@ -91,7 +101,7 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
 
                 {segments.map((segment, i) => (
                     <path
-                        key={i}
+                        key={segment.id}
                         d={paths[i]}
                         fill={segment.color}
                     />
@@ -102,7 +112,7 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
                     const r = RADIUS * 0.95;
                     const x = RADIUS + r * Math.cos(angle);
                     const y = RADIUS + r * Math.sin(angle);
-                    return <circle key={i} cx={x} cy={y} r="3" fill="rgba(255,255,255,0.7)" />;
+                    return <circle key={`dot-${i}`} cx={x} cy={y} r="3" fill="rgba(255,255,255,0.7)" />;
                 })}
 
                 {segments.map((segment, i) => {
@@ -112,7 +122,7 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
                     
                     return (
                         <text
-                            key={`text-${i}`}
+                            key={`text-${segment.id}`}
                             x={x}
                             y={y}
                             dy="0.35em"
