@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Gift, Loader2, Award, Clock, Banknote } from 'lucide-react';
+import { Gift, Loader2, Award, Clock, Banknote, Check } from 'lucide-react';
 import { SpinWheel, type WheelSegment } from '@/components/spin-wheel';
 import Confetti from 'react-confetti';
 import { useWindowSize } from '@/hooks/use-mobile';
@@ -54,7 +54,7 @@ export default function SpinRewardPage() {
   const [showConfetti, setShowConfetti] = useState(false);
   
   const [showAd, setShowAd] = useState(false);
-  const [adClicked, setAdClicked] = useState(false);
+  const [adConfirmed, setAdConfirmed] = useState(false);
   const [countdown, setCountdown] = useState(0);
 
   // Load user and spin data from Supabase
@@ -77,6 +77,7 @@ export default function SpinRewardPage() {
 
       if (data) {
         if (data.last_spin_date !== today) {
+          // If the last spin was not today, reset the spin count
           const { data: updatedData, error: updateError } = await supabase
             .from('spin_rewards')
             .update({ spins_used_today: 0, last_spin_date: today })
@@ -85,7 +86,7 @@ export default function SpinRewardPage() {
             .single();
           if (updateError) {
              toast({ variant: "destructive", title: "Error", description: "Could not reset daily spins." });
-             setSpinData(data); 
+             setSpinData(data); // Use stale data on error
           } else {
             setSpinData(updatedData);
           }
@@ -93,8 +94,7 @@ export default function SpinRewardPage() {
           setSpinData(data);
         }
       } else if (error && error.code === 'PGRST116') {
-        // No record exists, which is fine. We will create one on the first spin.
-        setSpinData(null);
+        setSpinData(null); // No record exists, which is fine. It will be created on first spin.
       } else if (error) {
         toast({ variant: "destructive", title: "Error", description: "Could not fetch your spin data." });
       }
@@ -118,13 +118,13 @@ export default function SpinRewardPage() {
   }, [countdown, result, spinData]);
 
   const handleSpinClick = async () => {
-    if (!user || isSpinning || (spinData && spinData.spins_used_today >= DAILY_SPIN_CHANCES) || countdown > 0 || (showAd && !adClicked)) return;
+    if (!user || isSpinning || (spinData && spinData.spins_used_today >= DAILY_SPIN_CHANCES) || countdown > 0 || (showAd && !adConfirmed)) return;
 
     setIsSpinning(true);
     setResult(null);
     setShowConfetti(false);
     setShowAd(false);
-    setAdClicked(false);
+    setAdConfirmed(false);
     
     // Optimistically update spins used
     const newSpinsUsed = (spinData?.spins_used_today || 0) + 1;
@@ -145,27 +145,12 @@ export default function SpinRewardPage() {
     const today = new Date().toISOString().split('T')[0];
     
     if (!isNaN(pointsWon)) {
-        // Fetch current data first to avoid race conditions
-        const { data: currentData, error: fetchError } = await supabase
-            .from('spin_rewards')
-            .select('spin_points, spins_used_today, last_spin_date')
-            .eq('user_id', user.id)
-            .single();
-
-        if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 means no row found, which is ok
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch current points before update.' });
-            return;
-        }
-        
-        const newPoints = (currentData?.spin_points || 0) + pointsWon;
-        const spinsToday = currentData?.last_spin_date === today ? (currentData.spins_used_today || 0) + 1 : 1;
-
         const { data: updatedData, error } = await supabase
             .from('spin_rewards')
             .upsert({ 
                 user_id: user.id, 
-                spin_points: newPoints,
-                spins_used_today: spinsToday,
+                spin_points: (spinData?.spin_points || 0) + pointsWon,
+                spins_used_today: (spinData?.spins_used_today || 0) + 1,
                 last_spin_date: today,
                 updated_at: new Date().toISOString(),
              }, { onConflict: 'user_id' })
@@ -175,18 +160,18 @@ export default function SpinRewardPage() {
       if (error) {
          toast({ variant: "destructive", title: "Error", description: "Failed to update points." });
          // Revert optimistic update if DB fails
-         setSpinData(prev => prev ? { ...prev, spins_used_today: prev.spins_used_today -1 } : null);
+         setSpinData(prev => prev ? { ...prev, spin_points: (prev.spin_points || 0) - pointsWon, spins_used_today: prev.spins_used_today -1 } : null);
       } else {
          if (updatedData) setSpinData(updatedData);
          setCountdown(COUNTDOWN_SECONDS);
       }
     }
-  }, [user, toast]);
+  }, [user, toast, spinData]);
 
-  const handleAdClick = () => {
+  const handleAdConfirmation = () => {
       setShowAd(false);
       setResult(null); // Clear previous prize
-      setAdClicked(true); // Mark ad as clicked
+      setAdConfirmed(true); // Mark ad as "clicked"
   }
 
   const handleTransfer = async () => {
@@ -196,15 +181,27 @@ export default function SpinRewardPage() {
     const amountInr = (spinData.spin_points / 100) * 1; // 100 points = 1 INR
 
     try {
-        // Use a transaction to ensure both operations succeed or fail together
-        const { error } = await supabase.rpc('transfer_spin_points_to_main_balance', {
-            p_user_id: user.id,
-            p_points_to_transfer: spinData.spin_points,
-            p_amount_inr: amountInr
-        });
-        
-        if (error) throw new Error("Failed to execute transfer. " + error.message);
-        
+        // Step 1: Deduct points from spin_rewards table
+        const { error: updateError } = await supabase
+            .from('spin_rewards')
+            .update({ spin_points: 0 })
+            .eq('user_id', user.id);
+
+        if (updateError) throw new Error("Failed to deduct spin points. " + updateError.message);
+
+        // Step 2: Add credit to wallet_history table
+        const { error: creditError } = await supabase
+            .from('wallet_history')
+            .insert({
+                user_id: user.id,
+                amount: amountInr,
+                type: 'spin_win',
+                status: 'Completed',
+                description: `${spinData.spin_points} spin points converted to balance`
+            });
+
+        if (creditError) throw new Error("Failed to credit main balance. " + creditError.message);
+
         // Manually update state as the transaction was successful
         setSpinData(prev => prev ? { ...prev, spin_points: 0 } : null);
 
@@ -231,7 +228,7 @@ export default function SpinRewardPage() {
       if (isSpinning) return { text: 'Spinning...', disabled: true };
       if (allSpinsUsedToday && !isSpinning) return { text: 'Come back tomorrow', disabled: true };
       if (countdown > 0) return { text: `Next Spin in ${countdown}s`, disabled: true };
-      if (showAd && !adClicked) return { text: 'Click Ad to Spin Again', disabled: true };
+      if (showAd && !adConfirmed) return { text: 'SPIN NOW', disabled: true }; // Disabled until ad is confirmed
       return { text: 'SPIN NOW', disabled: false };
   }
 
@@ -242,7 +239,6 @@ export default function SpinRewardPage() {
   const buttonState = getButtonState();
   const canTransfer = spinData ? spinData.spin_points >= MIN_TRANSFER_POINTS : false;
   const currentPoints = spinData?.spin_points || 0;
-  const transferAmountInr = (currentPoints / 100) * 1;
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -293,15 +289,18 @@ export default function SpinRewardPage() {
 
           {showAd && (
             <div className="w-full max-w-sm space-y-2 flex flex-col items-center">
+                <p className="text-center text-sm font-bold text-primary animate-pulse">
+                    Please view the ad to unlock your next spin.
+                </p>
                 <div 
-                    className="overflow-hidden border-2 border-primary shadow-lg cursor-pointer hover:border-green-500 transition-all"
-                    onClick={handleAdClick}
+                    className="overflow-hidden border-2 border-primary shadow-lg"
                 >
                     <AdComponent />
                 </div>
-                 <p className="text-center text-sm font-bold text-primary animate-pulse">
-                    Click the ad to unlock your next spin!
-                </p>
+                <Button onClick={handleAdConfirmation} className="w-full bg-green-500 hover:bg-green-600">
+                    <Check className="mr-2 h-5 w-5" />
+                    I have viewed the ad, Spin again!
+                </Button>
             </div>
           )}
 
@@ -327,5 +326,3 @@ export default function SpinRewardPage() {
     </div>
   );
 }
-
-    
