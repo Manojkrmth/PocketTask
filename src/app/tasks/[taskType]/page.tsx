@@ -28,7 +28,7 @@ const getTaskTypeDetails = (taskType: string) => {
         'hot-mail': { name: 'Hot Mail Task', available: false },
         'outlook-mail': { name: 'Outlook Mail Task', available: false },
         'visit-earn': { name: 'Visit & Earn Task', available: false },
-        'watch-earn': { name: 'Watch & Earn Task', available: false },
+        'watch-earn': { name: 'Watch & Earn Task', available: true },
         'kyc-task': { name: 'KYC Task', available: false },
         'app-install': { name: 'App Install Task', available: false },
         'niva-coin': { name: 'Niva Coin Task', available: false },
@@ -86,9 +86,10 @@ export default function StartTaskPage() {
     // In a real app, you would have logic here to assign a task
     // For now, we just simulate a delay and redirect
     setTimeout(() => {
-      // For now, only 'gmail' has a real task page
       if (taskType === 'gmail') {
         router.push('/tasks/gmail/play');
+      } else if (taskType === 'watch-earn') {
+        router.push('/tasks/watch-earn/play');
       } else {
         alert(`Task assignment for ${taskName} is not implemented yet.`);
         setIsLoading(false);
