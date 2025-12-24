@@ -28,11 +28,11 @@ export default function GmailTaskPage() {
         setNoTasksAvailable(false);
 
         const { data, error } = await supabase.rpc('get_and_assign_gmail_task', {
-            user_id: user.id
+            user_id_input: user.id
         });
 
         if (error) {
-            console.error("Error fetching/assigning task:", error);
+            console.error("Error fetching/assigning task:", JSON.stringify(error, null, 2));
             setNoTasksAvailable(true);
             setIsLoading(false);
             return;
