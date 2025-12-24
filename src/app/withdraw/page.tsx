@@ -124,11 +124,12 @@ export default function WithdrawPage() {
   const availableMethods = (withdrawalSettings.methods || []).filter((m: any) => m.enabled);
 
 
-  const getPlaceholder = (method: string) => {
-    switch (method) {
+  const getPlaceholder = (methodId: string) => {
+    switch (methodId) {
       case 'upi': return 'your-upi-id@okhdfcbank';
       case 'bank': return 'Account No, Name, IFSC';
       case 'usdt_bep20': return 'Your BEP20 Wallet Address';
+      case 'binance': return 'Your Binance Pay ID / Email';
       default: return 'Payment Details';
     }
   }
@@ -208,7 +209,7 @@ export default function WithdrawPage() {
   const holdBalanceDisplay = formatCurrency(balances.hold || 0);
 
   const getUsdValue = () => {
-    if (selectedMethod !== 'USDT (BEP20)' || !amount) return null;
+    if (!selectedMethod.includes('USDT') || !amount) return null;
     const usdRate = settingsData?.usdToInrRate || 85;
     const amountInr = currency === 'USD' ? parseFloat(amount) * usdRate : parseFloat(amount);
     const chargeInr = amountInr * (withdrawalSettings.chargesPercent / 100);
@@ -308,9 +309,18 @@ export default function WithdrawPage() {
                 {selectedMethodObj.id === 'usdt_bep20' && (
                   <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-800">
                     <AlertTriangle className="h-4 w-4 !text-red-600" />
-                    <AlertTitle>Important Notice</AlertTitle>
+                    <AlertTitle>Important: Use BEP20 Network</AlertTitle>
                     <AlertDescription>
-                      Please double-check your BEP20 wallet address. Providing an incorrect address will result in permanent loss of funds. We are not responsible for losses due to incorrect details.
+                      Ensure your USDT address is on the BEP20 (Binance Smart Chain) network. Sending to a different network will result in permanent loss of funds.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                 {selectedMethodObj.id === 'binance' && (
+                  <Alert variant="destructive" className="bg-yellow-50 border-yellow-200 text-yellow-800">
+                    <Info className="h-4 w-4 !text-yellow-600" />
+                    <AlertTitle>Check Your Binance Details</AlertTitle>
+                    <AlertDescription>
+                      Enter your Binance Pay ID or the email/phone associated with your Binance account. Incorrect details may cause delays or failure.
                     </AlertDescription>
                   </Alert>
                 )}
@@ -319,7 +329,7 @@ export default function WithdrawPage() {
                   <AlertDescription>
                     <p>Withdraw Charges ({withdrawalSettings.chargesPercent}%): <span className="font-semibold">{formatCurrency(charge)}</span></p>
                     <p className="font-bold">You'll receive: <span className="font-semibold">{formatCurrency(receiveAmount)}</span></p>
-                    {selectedMethodObj.id === 'usdt_bep20' && getUsdValue() && (
+                    {selectedMethodObj.id.includes('usdt') && getUsdValue() && (
                       <p className="font-bold mt-1">Approx. <span className="text-green-600">${getUsdValue()}</span></p>
                     )}
                   </AlertDescription>
@@ -356,7 +366,7 @@ export default function WithdrawPage() {
                         <span className="text-muted-foreground">You Will Receive:</span>
                         <span className="font-bold text-green-600">{formatCurrency(receiveAmount)}</span>
                       </div>
-                      {selectedMethodObj.id === 'usdt_bep20' && getUsdValue() && (
+                      {selectedMethodObj.id.includes('usdt') && getUsdValue() && (
                         <div className="flex justify-between text-base">
                           <span className="text-muted-foreground">Approx. USD:</span>
                           <span className="font-bold text-green-600">${getUsdValue()}</span>

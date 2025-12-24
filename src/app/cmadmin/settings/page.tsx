@@ -22,6 +22,7 @@ interface PaymentMethod {
   id: string;
   name: string;
   enabled: boolean;
+  deletable: boolean;
 }
 
 // This is a dummy settings structure. In a real app, you'd fetch this from your database.
@@ -34,8 +35,10 @@ const initialSettings = {
     minAmount: 500,
     chargesPercent: 2,
     methods: [
-      { id: 'upi', name: 'UPI', enabled: true },
-      { id: 'bank', name: 'Bank Transfer', enabled: true },
+      { id: 'upi', name: 'UPI', enabled: true, deletable: false },
+      { id: 'bank', name: 'Bank Transfer', enabled: true, deletable: false },
+      { id: 'usdt_bep20', name: 'USDT (BEP20)', enabled: true, deletable: false },
+      { id: 'binance', name: 'Binance', enabled: true, deletable: false },
     ],
   },
   referral: {
@@ -84,7 +87,7 @@ export default function AdminSettingsPage() {
   
   const addNewPaymentMethod = () => {
       const newId = `method_${Date.now()}`;
-      const newMethods = [...settings.withdrawal.methods, { id: newId, name: 'New Method', enabled: true }];
+      const newMethods = [...settings.withdrawal.methods, { id: newId, name: 'New Method', enabled: true, deletable: true }];
       handleInputChange('withdrawal', 'methods', newMethods);
   };
 
@@ -182,6 +185,8 @@ export default function AdminSettingsPage() {
                                 value={method.id}
                                 onChange={(e) => handlePaymentMethodChange(index, 'id', e.target.value)}
                                 placeholder="e.g., upi"
+                                readOnly={!method.deletable}
+                                className={!method.deletable ? 'bg-muted' : ''}
                             />
                         </div>
                         <div className="space-y-1">
@@ -191,6 +196,8 @@ export default function AdminSettingsPage() {
                                 value={method.name}
                                 onChange={(e) => handlePaymentMethodChange(index, 'name', e.target.value)}
                                 placeholder="e.g., UPI"
+                                readOnly={!method.deletable}
+                                className={!method.deletable ? 'bg-muted' : ''}
                             />
                         </div>
                     </div>
@@ -199,7 +206,7 @@ export default function AdminSettingsPage() {
                         onCheckedChange={(checked) => handlePaymentMethodChange(index, 'enabled', checked)}
                         aria-label={`${method.name} status`}
                     />
-                     <Button variant="ghost" size="icon" onClick={() => removePaymentMethod(index)} className="text-destructive h-9 w-9">
+                     <Button variant="ghost" size="icon" onClick={() => removePaymentMethod(index)} className="text-destructive h-9 w-9" disabled={!method.deletable}>
                         <Trash2 className="h-4 w-4"/>
                     </Button>
                 </div>
