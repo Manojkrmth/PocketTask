@@ -48,11 +48,11 @@ export default function AdminDashboardPage() {
         setPendingTasks(tasksCount);
       }
 
-      // Fetch pending tickets count
+      // Fetch pending tickets count ('Open' and 'In Progress')
       const { count: ticketsCount, error: ticketsError } = await supabase
         .from('support_tickets')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'Open');
+        .in('status', ['Open', 'In Progress']);
 
       if (ticketsError) {
         console.error("Error fetching pending tickets count:", ticketsError);
