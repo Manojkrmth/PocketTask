@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -66,10 +65,11 @@ export default function SpinRewardPage() {
   }, []);
 
   useEffect(() => {
+    let timer: NodeJS.Timeout;
     if (countdown > 0) {
-      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-      return () => clearTimeout(timer);
+      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
     }
+    return () => clearTimeout(timer);
   }, [countdown]);
 
   const handleSpinClick = () => {
@@ -157,7 +157,7 @@ export default function SpinRewardPage() {
           <SpinWheel segments={segments} isSpinning={isSpinning} onSpinComplete={onSpinComplete} />
 
           {result && !showAd && (
-             <Alert className={'bg-yellow-100 border-yellow-300 animate-in fade-in-50'}>
+             <Alert className={'bg-yellow-100 border-yellow-300'}>
                 <Award className="h-4 w-4" />
                 <AlertTitle>You Won:</AlertTitle>
                 <AlertDescription className="text-lg font-bold">
@@ -167,7 +167,7 @@ export default function SpinRewardPage() {
           )}
 
           {showAd && (
-            <div className="w-full max-w-sm animate-in fade-in-50 space-y-2">
+            <div className="w-full max-w-sm space-y-2">
                 <Card 
                     className="overflow-hidden border-2 border-primary shadow-lg cursor-pointer hover:border-green-500 transition-all"
                     onClick={handleAdClick}
