@@ -1,0 +1,371 @@
+
+'use client';
+
+import { useState, useEffect, useMemo, useTransition } from 'react';
+import { supabase } from '@/lib/supabase';
+import { useSearchParams } from 'next/navigation';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { MoreHorizontal, Loader2, ListFilter, CheckCircle, XCircle, Coins } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import { Input } from '@/components/ui/input';
+import { useCurrency } from '@/context/currency-context';
+import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+
+
+type SubmissionStatus = 'Pending' | 'Approved' | 'Rejected';
+
+interface CoinSubmission {
+  id: string;
+  created_at: string;
+  coin_type: string;
+  coin_amount: number;
+  reward_inr: number;
+  status: SubmissionStatus;
+  user_id: string;
+  insta_id: string;
+  order_id: string;
+  metadata: any;
+  users: {
+    full_name: string | null;
+    email: string | null;
+  } | null;
+}
+
+export default function CoinManagerPage() {
+  const searchParams = useSearchParams();
+  const preselectedUserId = searchParams.get('userId');
+
+  const [submissions, setSubmissions] = useState<CoinSubmission[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState(preselectedUserId || '');
+  const [statusFilters, setStatusFilters] = useState<SubmissionStatus[]>(['Pending']);
+  const [isUpdating, startUpdateTransition] = useTransition();
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedSubmission, setSelectedSubmission] = useState<CoinSubmission | null>(null);
+  const [newStatus, setNewStatus] = useState<SubmissionStatus | null>(null);
+  const [actionReason, setActionReason] = useState('');
+  
+  const { formatCurrency } = useCurrency();
+  const { toast } = useToast();
+
+  const fetchSubmissions = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('coinsubmissions')
+        .select(`
+            *,
+            users (
+                full_name,
+                email
+            )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error("Error fetching coin submissions:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch coin submissions.' });
+      } else {
+        setSubmissions(data as CoinSubmission[]);
+      }
+      setLoading(false);
+    };
+
+  useEffect(() => {
+    fetchSubmissions();
+  }, []);
+  
+  const updateSubmissionStatus = async (submission: CoinSubmission, status: SubmissionStatus, reason?: string) => {
+    const existingMetadata = submission.metadata || {};
+    const updatePayload: { status: SubmissionStatus; metadata?: any } = { status };
+    
+    let newMetadata = {...existingMetadata};
+    if (status === 'Rejected' && reason) {
+        newMetadata.rejection_reason = reason;
+    }
+    if (status === 'Approved' && reason) {
+        newMetadata.approval_note = reason;
+    }
+
+    updatePayload.metadata = newMetadata;
+
+
+    const { error: updateError } = await supabase
+        .from('coinsubmissions')
+        .update(updatePayload)
+        .eq('id', submission.id);
+
+    if (updateError) throw updateError;
+    
+    if (status === 'Approved' && submission.reward_inr > 0) {
+        const { error: walletError } = await supabase
+            .from('wallet_history')
+            .insert({
+                user_id: submission.user_id,
+                amount: submission.reward_inr,
+                type: 'coin_credit',
+                status: 'Completed',
+                description: `Reward for ${submission.coin_amount} ${submission.coin_type.replace('-', ' ')} coins`
+            });
+        
+        if (walletError) throw walletError;
+    }
+  }
+
+
+  const handleSingleUpdate = (submission: CoinSubmission, status: SubmissionStatus) => {
+    startUpdateTransition(async () => {
+        try {
+            await updateSubmissionStatus(submission, status, actionReason);
+            toast({
+                title: 'Success',
+                description: `Submission has been ${status.toLowerCase()}.`,
+            });
+            await fetchSubmissions();
+        } catch (error: any) {
+            console.error('Error updating submission status:', error);
+            toast({
+                variant: 'destructive',
+                title: 'Update Failed',
+                description: error.message,
+            });
+        }
+    });
+  };
+
+  const openConfirmationDialog = (submission: CoinSubmission, status: SubmissionStatus) => {
+    setSelectedSubmission(submission);
+    setNewStatus(status);
+    setDialogOpen(true);
+    setActionReason(''); // Reset reason
+  };
+  
+  const confirmAction = () => {
+    if (selectedSubmission && newStatus) {
+        if (newStatus === 'Rejected' && !actionReason.trim()) {
+            toast({ variant: 'destructive', title: 'Reason Required', description: 'Please provide a reason for rejection.' });
+            return;
+        }
+      handleSingleUpdate(selectedSubmission, newStatus);
+    }
+    setDialogOpen(false);
+    setSelectedSubmission(null);
+    setNewStatus(null);
+    setActionReason('');
+  };
+
+  const filteredSubmissions = useMemo(() => {
+    return submissions.filter(item => {
+        const matchesStatus = statusFilters.length === 0 || statusFilters.includes(item.status);
+        const matchesSearch = !filter ||
+            (item.users?.full_name?.toLowerCase().includes(filter.toLowerCase())) ||
+            (item.users?.email?.toLowerCase().includes(filter.toLowerCase())) ||
+            (item.coin_type?.toLowerCase().includes(filter.toLowerCase())) ||
+            (item.order_id?.toLowerCase().includes(filter.toLowerCase())) ||
+            (item.insta_id?.toLowerCase().includes(filter.toLowerCase())) ||
+            (item.user_id.toLowerCase().includes(filter.toLowerCase()));
+            
+        return matchesStatus && matchesSearch;
+    });
+  }, [submissions, filter, statusFilters]);
+  
+  const toggleFilter = (status: SubmissionStatus) => {
+    setStatusFilters(prev => 
+      prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
+    );
+  };
+
+  return (
+    <>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold">Coin Manager</h1>
+            <p className="text-muted-foreground">
+              Review and manage all user coin submissions.
+            </p>
+          </div>
+          <div className="flex gap-2">
+              <Input
+              placeholder="Filter submissions..."
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="max-w-sm"
+              />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="gap-1">
+                    <ListFilter className="h-3.5 w-3.5" />
+                    <span>Filter</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Filter by status</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuCheckboxItem checked={statusFilters.includes('Pending')} onCheckedChange={() => toggleFilter('Pending')}>Pending</DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem checked={statusFilters.includes('Approved')} onCheckedChange={() => toggleFilter('Approved')}>Approved</DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem checked={statusFilters.includes('Rejected')} onCheckedChange={() => toggleFilter('Rejected')}>Rejected</DropdownMenuCheckboxItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+          </div>
+        </div>
+
+        <div className="border rounded-lg">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Submission Details</TableHead>
+                <TableHead>User</TableHead>
+                <TableHead>Amount & Reward</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Submitted</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-24 text-center">
+                    <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+                  </TableCell>
+                </TableRow>
+              ) : filteredSubmissions.length > 0 ? (
+                filteredSubmissions.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell>
+                      <div className="font-medium capitalize flex items-center gap-2">
+                        <Coins className="h-4 w-4"/>
+                        {item.coin_type.replace(/_/g, ' ')}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                          Order ID: {item.order_id} | Insta: {item.insta_id}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium">{item.users?.full_name || 'N/A'}</div>
+                      <div className="text-xs text-muted-foreground">{item.users?.email}</div>
+                    </TableCell>
+                    <TableCell>
+                        <div className="font-semibold text-green-600">{formatCurrency(item.reward_inr || 0)}</div>
+                        <div className="text-xs text-muted-foreground">{item.coin_amount} coins</div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={cn(
+                            item.status === "Approved" && "bg-green-100 text-green-800 border-green-200",
+                            item.status === "Pending" && "bg-yellow-100 text-yellow-800 border-yellow-200",
+                            item.status === "Rejected" && "bg-red-100 text-red-800 border-red-200"
+                          )}>
+                        {item.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0" disabled={isUpdating || item.status !== 'Pending'}>
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem 
+                            disabled={item.status !== 'Pending' || isUpdating} 
+                            onSelect={() => openConfirmationDialog(item, 'Approved')}
+                            className="cursor-pointer"
+                          >
+                            <CheckCircle className="mr-2 h-4 w-4 text-green-600"/>
+                            Approve
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            disabled={item.status !== 'Pending' || isUpdating} 
+                            onSelect={() => openConfirmationDialog(item, 'Rejected')}
+                            className="cursor-pointer text-destructive"
+                          >
+                            <XCircle className="mr-2 h-4 w-4"/>
+                            Reject
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-24 text-center">
+                    No submissions found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+      <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are about to <span className={cn("font-bold", newStatus === 'Approved' ? "text-green-600" : "text-red-600")}>{newStatus?.toLowerCase()}</span> this submission. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+            {(newStatus === 'Rejected' || newStatus === 'Approved') && (
+                <div className="space-y-2 pt-2">
+                    <Label htmlFor="action-reason" className="font-semibold">
+                        {newStatus === 'Rejected' ? 'Reason for Rejection' : 'Reason/Note for Approval (Optional)'}
+                    </Label>
+                    <Textarea 
+                        id="action-reason"
+                        placeholder={newStatus === 'Rejected' ? 'Provide a clear reason for rejecting...' : 'Optional approval note...'}
+                        value={actionReason}
+                        onChange={(e) => setActionReason(e.target.value)}
+                    />
+                </div>
+            )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+                onClick={confirmAction}
+                disabled={newStatus === 'Rejected' && !actionReason.trim()}
+            >
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}

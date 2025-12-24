@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { LoadingScreen } from '@/components/loading-screen';
 import type { User } from '@supabase/supabase-js';
-import { BarChart, Users, ListTodo, LogOut, MessageSquare, Settings, Bell } from 'lucide-react';
+import { BarChart, Users, ListTodo, LogOut, MessageSquare, Settings, Bell, Coins, SlidersHorizontal } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,9 @@ const ADMIN_USER_ID = '7fa62eb6-4e08-4064-ace3-3f6116efa29f';
 const navItems = [
   { href: '/cmadmin/dashboard', label: 'Dashboard', icon: BarChart },
   { href: '/cmadmin/users', label: 'Users', icon: Users },
-  { href: '/cmadmin/tasks', label: 'Tasks', icon: ListTodo },
+  { href: '/cmadmin/task-manager', label: 'Task Manager', icon: SlidersHorizontal },
+  { href: '/cmadmin/tasks', label: 'Task Center', icon: ListTodo },
+  { href: '/cmadmin/coin-manager', label: 'Coin Manager', icon: Coins },
   { href: '/cmadmin/tickets', label: 'Tickets', icon: MessageSquare },
   { href: '/cmadmin/notifications', label: 'Notifications', icon: Bell },
   { href: '/cmadmin/settings', label: 'Settings', icon: Settings },

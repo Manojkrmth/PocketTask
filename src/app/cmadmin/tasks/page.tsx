@@ -130,7 +130,7 @@ export default function TasksPage() {
   
   const updateTaskStatus = async (task: AppTask, status: TaskStatus, reason?: string) => {
     const existingMetadata = task.submission_data?.metadata || {};
-    const updatePayload: { status: TaskStatus; metadata?: any } = { status };
+    const updatePayload: { status: TaskStatus; submission_data?: any } = { status };
     
     let newMetadata = {...existingMetadata};
     if (status === 'Rejected' && reason) {
@@ -140,7 +140,7 @@ export default function TasksPage() {
         newMetadata.approval_note = reason;
     }
 
-    updatePayload.metadata = newMetadata;
+    updatePayload.submission_data = { ...task.submission_data, metadata: newMetadata };
 
 
     const { error: updateError } = await supabase
@@ -276,7 +276,7 @@ export default function TasksPage() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold">Task Management</h1>
+            <h1 className="text-3xl font-bold">Task Center</h1>
             <p className="text-muted-foreground">
               Review, approve, or reject user task submissions.
             </p>
@@ -410,17 +410,19 @@ export default function TasksPage() {
               You are about to <span className={cn("font-bold", newStatus === 'Approved' ? "text-green-600" : "text-red-600")}>{newStatus?.toLowerCase()}</span> this task. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
-            {newStatus === 'Rejected' && (
-                <div className="space-y-2 pt-2">
-                    <Label htmlFor="rejection-reason" className="font-semibold">Reason for Rejection</Label>
-                    <Textarea 
-                        id="rejection-reason"
-                        placeholder="Provide a clear reason for rejecting this task..."
-                        value={rejectionReason}
-                        onChange={(e) => setRejectionReason(e.target.value)}
-                    />
-                </div>
-            )}
+          {(newStatus === 'Rejected' || newStatus === 'Approved') && (
+              <div className="space-y-2 pt-2">
+                  <Label htmlFor="action-reason" className="font-semibold">
+                    {newStatus === 'Rejected' ? 'Reason for Rejection' : 'Reason/Note for Approval (Optional)'}
+                  </Label>
+                  <Textarea 
+                      id="action-reason"
+                      placeholder={newStatus === 'Rejected' ? 'Provide a clear reason for rejecting this task...' : 'Optional approval note...'}
+                      value={rejectionReason}
+                      onChange={(e) => setRejectionReason(e.target.value)}
+                  />
+              </div>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction 
@@ -470,5 +472,3 @@ export default function TasksPage() {
     </>
   );
 }
-
-    
