@@ -80,8 +80,8 @@ export default function GmailTaskPage() {
               },
             };
             
-            const taskDurationMillis = (gmailTaskConfig.taskDurationMinutes || 10) * 60 * 1000;
-            const submitCooldownMillis = (gmailTaskConfig.submitCooldownMinutes || 1) * 60 * 1000;
+            const taskDurationMillis = (gmailTaskConfig.taskDurationSeconds || 600) * 1000;
+            const submitCooldownMillis = (gmailTaskConfig.submitCooldownSeconds || 60) * 1000;
 
             const newExpiryTimestamp = Date.now() + taskDurationMillis;
             const newSubmitCooldownTimestamp = Date.now() + submitCooldownMillis;

@@ -8,7 +8,8 @@ import {
   Loader2,
   FileText,
   RefreshCw,
-  SkipForward
+  SkipForward,
+  Copy,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -249,14 +250,14 @@ export function GmailTaskCenter({ task, currentGmail, expiryTimestamp, submitCoo
                   <Label htmlFor="fullName">Full Name</Label>
                   <div className="flex gap-1">
                       <Input id="fullName" value={task.prefilledData.fullName} readOnly />
-                      <CopyButton value={task.prefilledData.fullName} />
+                      <CopyButton value={task.prefilledData.fullName}><Copy className="h-4 w-4" /></CopyButton>
                   </div>
               </div>
                <div>
                   <Label htmlFor="gmail">Gmail</Label>
                   <div className="flex gap-1">
                       <Input id="gmail" value={currentGmail} readOnly />
-                      <CopyButton value={currentGmail} />
+                      <CopyButton value={currentGmail}><Copy className="h-4 w-4" /></CopyButton>
                   </div>
                   <Button variant="destructive" size="sm" onClick={handleRegenerateGmail} className="mt-2 w-full">
                     <RefreshCw className="mr-2 h-4 w-4" />
@@ -267,7 +268,7 @@ export function GmailTaskCenter({ task, currentGmail, expiryTimestamp, submitCoo
                   <Label htmlFor="password">Password</Label>
                   <div className="flex gap-1">
                       <Input id="password" value={task.prefilledData.password} readOnly type="text" />
-                      <CopyButton value={task.prefilledData.password} />
+                      <CopyButton value={task.prefilledData.password}><Copy className="h-4 w-4" /></CopyButton>
                   </div>
               </div>
                <div>
@@ -280,7 +281,7 @@ export function GmailTaskCenter({ task, currentGmail, expiryTimestamp, submitCoo
                         placeholder={prefilledRecoveryMailExists ? '' : "Enter recovery mail here"}
                         readOnly={prefilledRecoveryMailExists}
                       />
-                      {prefilledRecoveryMailExists && <CopyButton value={recoveryMail} />}
+                      {prefilledRecoveryMailExists && <CopyButton value={recoveryMail}><Copy className="h-4 w-4" /></CopyButton>}
                   </div>
               </div>
           </div>

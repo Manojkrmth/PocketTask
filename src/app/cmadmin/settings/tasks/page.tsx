@@ -21,8 +21,8 @@ interface TaskSetting {
     reward: number;
     rules: string; // Semicolon-separated rules
     receiverId?: string;
-    taskDurationMinutes?: number;
-    submitCooldownMinutes?: number;
+    taskDurationSeconds?: number;
+    submitCooldownSeconds?: number;
 }
 
 export default function TaskSettingsPage() {
@@ -144,23 +144,23 @@ export default function TaskSettingsPage() {
                                 { task.id === 'gmail' && (
                                     <div className="grid md:grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <Label className="flex items-center gap-2"><Clock className="h-4 w-4"/> Task Duration (minutes)</Label>
+                                            <Label className="flex items-center gap-2"><Clock className="h-4 w-4"/> Task Duration (seconds)</Label>
                                             <Input 
                                                 type="number" 
-                                                value={task.taskDurationMinutes ?? 10} 
-                                                onChange={(e) => handleFieldChange(task.id, 'taskDurationMinutes', parseInt(e.target.value) || 10)} 
+                                                value={task.taskDurationSeconds ?? 600} 
+                                                onChange={(e) => handleFieldChange(task.id, 'taskDurationSeconds', parseInt(e.target.value) || 600)} 
                                                 disabled={isSaving} 
-                                                placeholder="e.g., 10"
+                                                placeholder="e.g., 600"
                                             />
                                         </div>
                                          <div className="space-y-2">
-                                            <Label className="flex items-center gap-2"><Clock className="h-4 w-4"/> Submit Cooldown (minutes)</Label>
+                                            <Label className="flex items-center gap-2"><Clock className="h-4 w-4"/> Submit Cooldown (seconds)</Label>
                                             <Input 
                                                 type="number" 
-                                                value={task.submitCooldownMinutes ?? 1} 
-                                                onChange={(e) => handleFieldChange(task.id, 'submitCooldownMinutes', parseInt(e.target.value) || 1)} 
+                                                value={task.submitCooldownSeconds ?? 60} 
+                                                onChange={(e) => handleFieldChange(task.id, 'submitCooldownSeconds', parseInt(e.target.value) || 60)} 
                                                 disabled={isSaving} 
-                                                placeholder="e.g., 1"
+                                                placeholder="e.g., 60"
                                             />
                                         </div>
                                     </div>
