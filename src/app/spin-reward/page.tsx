@@ -76,7 +76,6 @@ export default function SpinRewardPage() {
       const today = new Date().toISOString().split('T')[0];
 
       if (data) {
-        // If data exists, check if we need to reset daily spins
         if (data.last_spin_date !== today) {
           const { data: updatedData, error: updateError } = await supabase
             .from('spin_rewards')
@@ -86,7 +85,7 @@ export default function SpinRewardPage() {
             .single();
           if (updateError) {
              toast({ variant: "destructive", title: "Error", description: "Could not reset daily spins." });
-             setSpinData(data); // Use stale data on error
+             setSpinData(data); 
           } else {
             setSpinData(updatedData);
           }
@@ -94,10 +93,8 @@ export default function SpinRewardPage() {
           setSpinData(data);
         }
       } else if (error && error.code === 'PGRST116') {
-        // No row found, which is fine for a new user. It will be created on the first spin.
         setSpinData(null);
       } else if (error) {
-        // Handle actual errors
         toast({ variant: "destructive", title: "Error", description: "Could not fetch your spin data." });
       }
       
@@ -147,8 +144,8 @@ export default function SpinRewardPage() {
     
     if (!isNaN(pointsWon)) {
       const { data: rpcData, error } = await supabase.rpc('update_spin_reward', {
-          p_user_id: user.id,
-          p_points_to_add: pointsWon
+          p_userid: user.id,
+          p_pointstoadd: pointsWon
       });
       
       if (error) {
@@ -156,7 +153,6 @@ export default function SpinRewardPage() {
          // Revert optimistic update if DB fails
          setSpinData(prev => prev ? { ...prev, spins_used_today: prev.spins_used_today -1 } : null);
       } else {
-         // Re-sync state with database response
          const updatedData = rpcData && rpcData.length > 0 ? rpcData[0] : null;
          if (updatedData) setSpinData(updatedData);
 
@@ -313,7 +309,7 @@ export default function SpinRewardPage() {
                     <AlertTitle>All Spins Used!</AlertTitle>
                     <AlertDescription>
                         You have used all your spins for today. Please come back tomorrow for more chances.
-                    </AlertDescription>
+                    </Description>
                 </Alert>
             )}
         </div>
@@ -321,3 +317,5 @@ export default function SpinRewardPage() {
     </div>
   );
 }
+
+    
