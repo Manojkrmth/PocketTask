@@ -82,7 +82,7 @@ export default function HomePage() {
       const { data, error } = await supabase
         .from('usertasks')
         .select('status')
-        .eq('userid', userId);
+        .eq('user_id', userId);
 
       if (error) {
         console.error('Error fetching task counts:', error);
@@ -481,5 +481,7 @@ export default function HomePage() {
     
 
 
+
+    
 
     
