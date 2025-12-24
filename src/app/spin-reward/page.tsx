@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -29,7 +28,6 @@ const segments: WheelSegment[] = [
 
 const DAILY_SPIN_CHANCES = 50;
 const SPIN_STORAGE_KEY = 'spinRewardData';
-const COUNTDOWN_SECONDS = 15;
 
 interface SpinData {
   lastSpinDate: string;
@@ -44,7 +42,6 @@ export default function SpinRewardPage() {
   const [spinChances, setSpinChances] = useState(DAILY_SPIN_CHANCES);
   const [allSpinsUsedToday, setAllSpinsUsedToday] = useState(false);
   const [showAd, setShowAd] = useState(false);
-  const [countdown, setCountdown] = useState(0);
 
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -60,12 +57,10 @@ export default function SpinRewardPage() {
             setAllSpinsUsedToday(true);
           }
         } else {
-          // It's a new day, reset.
           localStorage.removeItem(SPIN_STORAGE_KEY);
           setSpinChances(DAILY_SPIN_CHANCES);
         }
       } catch (e) {
-        // Data in storage is corrupted, reset
         localStorage.removeItem(SPIN_STORAGE_KEY);
         setSpinChances(DAILY_SPIN_CHANCES);
       }
@@ -74,16 +69,8 @@ export default function SpinRewardPage() {
     }
   }, []);
 
-  useEffect(() => {
-    if (countdown > 0) {
-      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [countdown]);
-
-
   const handleSpinClick = () => {
-    if (isSpinning || spinChances <= 0 || countdown > 0) return;
+    if (isSpinning || spinChances <= 0 || showAd) return;
 
     setIsSpinning(true);
     setResult(null);
@@ -124,17 +111,16 @@ export default function SpinRewardPage() {
     if (chancesLeft > 0) {
       setTimeout(() => {
         setShowAd(true);
-        setCountdown(COUNTDOWN_SECONDS);
       }, 1000);
     }
   }, [spinChances]);
 
-  const handleNextSpin = () => {
+  const handleAdClick = () => {
       setShowAd(false);
       setResult(null);
   }
 
-  const isSpinButtonDisabled = isSpinning || countdown > 0 || allSpinsUsedToday;
+  const isSpinButtonDisabled = isSpinning || showAd || allSpinsUsedToday;
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -168,6 +154,7 @@ export default function SpinRewardPage() {
             <div className="w-full max-w-sm animate-in fade-in-50 space-y-2">
                 <Card 
                     className="overflow-hidden border-2 border-primary shadow-lg cursor-pointer hover:border-green-500 transition-all"
+                    onClick={handleAdClick}
                 >
                     <div className="relative aspect-video">
                         <Image
@@ -180,7 +167,7 @@ export default function SpinRewardPage() {
                     </div>
                 </Card>
                  <p className="text-center text-sm font-bold text-primary animate-pulse">
-                    Next spin will be available soon!
+                    Click the ad to unlock your next spin!
                 </p>
             </div>
           )}
@@ -191,8 +178,7 @@ export default function SpinRewardPage() {
             {!allSpinsUsedToday ? (
                  <Button onClick={handleSpinClick} size="lg" className="w-full max-w-sm h-14 text-xl font-bold" disabled={isSpinButtonDisabled}>
                     {isSpinning && <Loader2 className="h-6 w-6 animate-spin"/>}
-                    {!isSpinning && countdown > 0 && `Next spin in ${countdown}s`}
-                    {!isSpinning && countdown === 0 && 'SPIN'}
+                    {!isSpinning && 'SPIN'}
                 </Button>
             ) : (
                 <Alert className="max-w-sm mx-auto">
