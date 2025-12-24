@@ -93,6 +93,8 @@ export default function SpinRewardPage() {
           setSpinData(data);
         }
       } else if (error && error.code === 'PGRST116') {
+        // No record exists for this user yet, which is fine.
+        // We will create one on the first spin.
         setSpinData(null);
       } else if (error) {
         toast({ variant: "destructive", title: "Error", description: "Could not fetch your spin data." });
@@ -309,7 +311,7 @@ export default function SpinRewardPage() {
                     <AlertTitle>All Spins Used!</AlertTitle>
                     <AlertDescription>
                         You have used all your spins for today. Please come back tomorrow for more chances.
-                    </Description>
+                    </AlertDescription>
                 </Alert>
             )}
         </div>
@@ -317,5 +319,3 @@ export default function SpinRewardPage() {
     </div>
   );
 }
-
-    
