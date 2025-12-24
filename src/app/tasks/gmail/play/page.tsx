@@ -8,7 +8,7 @@ import { PageHeader } from '@/components/page-header';
 
 // This is a mock task. In a real app, you would fetch this from your database.
 const getMockTask = () => ({
-  id: `TASK-${Date.now()}`,
+  id: `GMAIL-${Date.now()}`,
   title: 'Create a New Gmail Account',
   reward: 5,
   description: 'Create a new Gmail account using the details provided below. Make sure to follow all the rules carefully.',

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -166,6 +167,7 @@ export default function WatchAndEarnPage() {
                     <CardHeader>
                         <div className="flex justify-between items-start">
                             <div>
+                                <p className="text-xs text-muted-foreground">Task ID: {task.id}</p>
                                 <CardTitle>{task.title}</CardTitle>
                                 <CardDescription>{task.description}</CardDescription>
                             </div>

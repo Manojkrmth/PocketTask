@@ -21,13 +21,15 @@ import {
   ShieldCheck,
   Upload,
   FileText,
+  Copy,
 } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { LoadingScreen } from '@/components/loading-screen';
+import { CopyButton } from '@/components/copy-button';
 
 const getTaskDetails = (taskType: string) => {
-    const details = {
+    const baseDetails = {
         'google-map-review': {
             title: 'Google Map Review Task',
             reward: 10,
@@ -44,7 +46,13 @@ const getTaskDetails = (taskType: string) => {
         }
     };
     // @ts-ignore
-    return details[taskType] || null;
+    const taskData = baseDetails[taskType];
+    if (!taskData) return null;
+
+    return {
+        id: `REVIEW-${Date.now()}`,
+        ...taskData
+    };
 }
 
 function ReviewTaskComponent() {
@@ -142,6 +150,7 @@ function ReviewTaskComponent() {
                     <CardHeader>
                         <div className="flex justify-between items-start">
                             <div>
+                                <p className="text-xs text-muted-foreground">Task ID: {task.id}</p>
                                 <CardTitle>{task.title}</CardTitle>
                                 <CardDescription>{task.description}</CardDescription>
                             </div>
@@ -152,12 +161,17 @@ function ReviewTaskComponent() {
                         </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <a href={task.redirectUrl} target="_blank" rel="noopener noreferrer" className="block">
-                            <Button className="w-full h-12 text-base font-bold bg-blue-500 hover:bg-blue-600">
-                                <ExternalLink className="mr-2 h-5 w-5" />
-                                Go to Link & Post Review
-                            </Button>
-                        </a>
+                        <div className="flex gap-2">
+                             <a href={task.redirectUrl} target="_blank" rel="noopener noreferrer" className="flex-1 block">
+                                <Button className="w-full h-12 text-base font-bold bg-blue-500 hover:bg-blue-600">
+                                    <ExternalLink className="mr-2 h-5 w-5" />
+                                    Go to Link
+                                </Button>
+                            </a>
+                            <CopyButton value={task.redirectUrl} className="h-12 w-12 shrink-0">
+                                <Copy className="h-5 w-5"/>
+                            </CopyButton>
+                        </div>
                     </CardContent>
                 </Card>
 

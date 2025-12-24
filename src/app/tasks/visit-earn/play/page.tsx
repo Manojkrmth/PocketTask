@@ -160,6 +160,7 @@ export default function VisitAndEarnPage() {
                     <CardHeader>
                         <div className="flex justify-between items-start">
                             <div>
+                                <p className="text-xs text-muted-foreground">Task ID: {task.id}</p>
                                 <CardTitle>{task.title}</CardTitle>
                                 <CardDescription>{task.description}</CardDescription>
                             </div>
