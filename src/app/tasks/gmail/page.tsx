@@ -22,6 +22,8 @@ const getMockTask = () => ({
   },
 });
 
+const TASK_STORAGE_KEY = 'gmailTaskData';
+
 export default function GmailTaskPage() {
     const [task, setTask] = useState<any | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -34,26 +36,61 @@ export default function GmailTaskPage() {
         // Simulate fetching a new task
         setTimeout(() => {
             const newTask = getMockTask();
+            const newExpiryTimestamp = Date.now() + 10 * 60 * 1000; // 10 minutes from now
+            const newSubmitCooldownTimestamp = Date.now() + 1 * 60 * 1000; // 1 minute from now
+            
+            const taskData = {
+                task: newTask,
+                currentGmail: newTask.prefilledData.gmail,
+                expiryTimestamp: newExpiryTimestamp,
+                submitCooldownExpiryTimestamp: newSubmitCooldownTimestamp,
+            };
+
+            sessionStorage.setItem(TASK_STORAGE_KEY, JSON.stringify(taskData));
+
             setTask(newTask);
-            setCurrentGmail(newTask.prefilledData.gmail);
-            setExpiryTimestamp(Date.now() + 10 * 60 * 1000); // 10 minutes from now
-            setSubmitCooldownExpiryTimestamp(Date.now() + 1 * 60 * 1000); // 1 minute from now
+            setCurrentGmail(taskData.currentGmail);
+            setExpiryTimestamp(taskData.expiryTimestamp);
+            setSubmitCooldownExpiryTimestamp(taskData.submitCooldownExpiryTimestamp);
             setIsLoading(false);
         }, 500);
     };
 
     useEffect(() => {
+        const storedTaskData = sessionStorage.getItem(TASK_STORAGE_KEY);
+        if (storedTaskData) {
+            try {
+                const data = JSON.parse(storedTaskData);
+                if (data.expiryTimestamp > Date.now()) {
+                    setTask(data.task);
+                    setCurrentGmail(data.currentGmail);
+                    setExpiryTimestamp(data.expiryTimestamp);
+                    setSubmitCooldownExpiryTimestamp(data.submitCooldownExpiryTimestamp);
+                    setIsLoading(false);
+                    return;
+                }
+            } catch (error) {
+                console.error("Failed to parse stored task data", error);
+            }
+        }
         loadNewTask();
     }, []);
 
     const handleTaskComplete = () => {
-        // This function is called when a task is submitted or skipped.
-        // It should load the next task.
+        sessionStorage.removeItem(TASK_STORAGE_KEY);
         loadNewTask();
     };
 
     const handleGmailRegenerate = (newGmail: string) => {
         setCurrentGmail(newGmail);
+        const storedTaskData = sessionStorage.getItem(TASK_STORAGE_KEY);
+        if (storedTaskData) {
+             try {
+                const data = JSON.parse(storedTaskData);
+                data.currentGmail = newGmail;
+                sessionStorage.setItem(TASK_STORAGE_KEY, JSON.stringify(data));
+             } catch(e) {}
+        }
     };
 
     if (isLoading || !task) {
