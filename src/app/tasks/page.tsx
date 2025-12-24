@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -17,8 +18,10 @@ import {
   AppWindow,
   MailOpen,
   Flame,
+  History,
 } from 'lucide-react';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 const taskTypes = [
   {
@@ -145,7 +148,17 @@ const getBadgeClass = (badgeText?: string) => {
 export default function ChooseTaskTypePage() {
   return (
     <div className="flex flex-col bg-muted/40 min-h-screen">
-      <PageHeader title="Choose Task Type" description="Select a category to find available tasks" />
+       <PageHeader 
+        title="Choose Task Type" 
+        description="Select a category to find available tasks"
+        actionButton={
+          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full text-primary-foreground hover:bg-white/20" asChild>
+            <Link href="/profile/task-history">
+              <History className="h-5 w-5" />
+            </Link>
+          </Button>
+        }
+       />
 
       <main className="p-4 space-y-4">
         <div className="grid grid-cols-2 gap-4">

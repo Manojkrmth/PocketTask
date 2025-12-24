@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -121,13 +122,6 @@ export default function StartTaskPage() {
     <div>
       <PageHeader 
         title={taskName || "Start Task"}
-        actionButton={
-            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full text-primary-foreground hover:bg-white/20" asChild>
-              <Link href="/profile/task-history">
-                <History className="h-5 w-5" />
-              </Link>
-            </Button>
-        }
        />
       <div className="flex flex-col items-center justify-center h-[calc(100vh-100px)] text-center p-4">
         {noTasksAvailable || tasksPaused || isUserBlocked ? (
