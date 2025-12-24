@@ -10,8 +10,8 @@ export function LoadingScreen() {
         )}>
         <div className="flex items-center gap-3">
              <svg
-                width="24"
-                height="24"
+                width="32"
+                height="32"
                 viewBox="0 0 24 24"
                 className="animate-spin text-primary"
                 fill="none"
@@ -28,7 +28,7 @@ export function LoadingScreen() {
                 strokeWidth="1.5"
                 />
             </svg>
-            <p className="text-lg font-medium">Loading App...</p>
+            <p className="text-xl font-medium">Loading App...</p>
         </div>
       </div>
     );
