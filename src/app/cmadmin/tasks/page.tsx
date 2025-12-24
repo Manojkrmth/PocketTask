@@ -230,7 +230,15 @@ export default function TasksPage() {
   };
   
   const availableCategories = useMemo(() => {
-    return [...new Set(tasks.map(t => t.task_type))];
+    const categories = new Set<string>();
+    tasks.forEach(task => {
+        if (task.task_type.startsWith('used-mail')) {
+            categories.add('used-mail');
+        } else if (task.task_type !== 'visit-earn' && task.task_type !== 'watch-earn') {
+            categories.add(task.task_type);
+        }
+    });
+    return Array.from(categories);
   }, [tasks]);
   
 
@@ -240,7 +248,12 @@ export default function TasksPage() {
           return;
       }
       
-      const tasksToDownload = tasks.filter(task => task.task_type === selectedCategory);
+      const tasksToDownload = tasks.filter(task => {
+        if (selectedCategory === 'used-mail') {
+            return task.task_type.startsWith('used-mail');
+        }
+        return task.task_type === selectedCategory;
+      });
       
       if (tasksToDownload.length === 0) {
           toast({ variant: 'destructive', title: 'No tasks found', description: `No tasks found for the category: ${selectedCategory}`});
