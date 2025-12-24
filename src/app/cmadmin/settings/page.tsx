@@ -7,14 +7,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Save, Link as LinkIcon, Settings, Image as ImageIcon, Text, Info, ToggleLeft, IndianRupee, Megaphone } from 'lucide-react';
+import { Loader2, Save, Link as LinkIcon, Settings, Image as ImageIcon, Text, Info, ToggleLeft, IndianRupee, Megaphone, ListTodo } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { InstagramIcon, TelegramIcon, WhatsAppIcon } from '@/components/icons';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useRouter } from 'next/navigation';
 
 export default function SettingsPage() {
     const { toast } = useToast();
+    const router = useRouter();
     const [settings, setSettings] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [isSaving, startSaving] = useTransition();
@@ -98,6 +100,18 @@ export default function SettingsPage() {
                 <h1 className="text-3xl font-bold">App Settings</h1>
                 <p className="text-muted-foreground">Manage global settings for your application.</p>
             </div>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><ListTodo className="h-5 w-5 text-primary" /> Task Settings</CardTitle>
+                    <CardDescription>Enable, disable, or reorder task categories for users.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button onClick={() => router.push('/cmadmin/settings/tasks')}>
+                        Manage Task Settings
+                    </Button>
+                </CardContent>
+            </Card>
 
             <Card>
                 <CardHeader>
