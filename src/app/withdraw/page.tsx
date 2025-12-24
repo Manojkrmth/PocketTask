@@ -32,8 +32,10 @@ import { useCurrency } from '@/context/currency-context';
 import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import { PageHeader } from '@/components/page-header';
+import { useRouter } from 'next/navigation';
 
 export default function WithdrawPage() {
+  const router = useRouter();
   const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [balances, setBalances] = useState({ available: 0, hold: 0 });
@@ -42,10 +44,19 @@ export default function WithdrawPage() {
 
   const [isSubmitting, startTransition] = useTransition();
   const { formatCurrency, currency } = useCurrency();
+  
+  const [userProfileData, setUserProfileData] = useState<any>(null);
 
   useEffect(() => {
     const fetchData = async (sessionUser: User) => {
         setDataLoading(true);
+        
+        const { data: profile } = await supabase.from('users').select('status').eq('id', sessionUser.id).single();
+        if (profile?.status === 'Blocked') {
+            router.push('/blocked');
+            return;
+        }
+        setUserProfileData(profile);
         
         // Fetch wallet balances
         const { data: walletData, error: walletError } = await supabase
@@ -98,28 +109,18 @@ export default function WithdrawPage() {
             fetchData(session.user);
         } else {
             setDataLoading(false);
+            router.push('/login');
         }
     };
     
     getUser();
-  }, []);
+  }, [router]);
 
 
   const [amount, setAmount] = useState('');
   const [paymentDetails, setPaymentDetails] = useState('');
   const [selectedMethod, setSelectedMethod] = useState('');
-  const [userProfileData, setUserProfileData] = useState<any>(null); // Still need this for block status
-
-  useEffect(() => {
-    const fetchProfile = async () => {
-        if(user) {
-            const { data: profile } = await supabase.from('users').select('status').eq('id', user.id).single();
-            setUserProfileData(profile);
-        }
-    }
-    fetchProfile();
-  }, [user]);
-
+  
   const withdrawalSettings = settingsData?.withdrawal || { chargesPercent: 2, minAmount: 500, methods: [{id: 'upi', name: 'UPI', enabled: true}] };
   const availableMethods = (withdrawalSettings.methods || []).filter((m: any) => m.enabled);
 

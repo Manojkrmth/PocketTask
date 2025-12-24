@@ -38,7 +38,7 @@ export default function TeamPage() {
   const router = useRouter();
   const { formatCurrency } = useCurrency();
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // --- Start of Dummy Data ---
   const [teamStats, setTeamStats] = useState({
@@ -55,6 +55,30 @@ export default function TeamPage() {
     { level: 5, commission: 1, members: 390, earnings: 50.00 },
   ]);
   // --- End of Dummy Data ---
+  
+  useEffect(() => {
+    const checkUserStatus = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push('/login');
+        return;
+      }
+      
+      const { data: profile } = await supabase
+        .from('users')
+        .select('status')
+        .eq('id', session.user.id)
+        .single();
+        
+      if (profile?.status === 'Blocked') {
+        router.push('/blocked');
+        return;
+      }
+      
+      setIsLoading(false); // Only set loading to false after checks pass
+    };
+    checkUserStatus();
+  }, [router]);
 
   const statCards = [
     {

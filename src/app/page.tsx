@@ -121,7 +121,13 @@ export default function HomePage() {
     const setupUser = async (sessionUser: User) => {
       setUser(sessionUser);
       // Fetch user profile to get referral code and name
-      const { data: profile } = await supabase.from('users').select('full_name, referral_code, referral_earnings').eq('id', sessionUser.id).single();
+      const { data: profile } = await supabase.from('users').select('full_name, referral_code, referral_earnings, status').eq('id', sessionUser.id).single();
+      
+      if (profile?.status === 'Blocked') {
+        router.push('/blocked');
+        return;
+      }
+      
       setUserProfile(profile);
 
       await Promise.all([

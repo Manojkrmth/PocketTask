@@ -118,13 +118,18 @@ export default function ProfilePage() {
       .eq('id', sessionUser.id)
       .single();
 
+    if (profile?.status === 'Blocked') {
+      router.push('/blocked');
+      return;
+    }
+
     if (error && error.code !== 'PGRST116') {
       console.error('Error fetching profile:', error);
     } else {
       setUserProfile(profile);
     }
     setIsLoading(false);
-  }, []);
+  }, [router]);
 
 
   useEffect(() => {

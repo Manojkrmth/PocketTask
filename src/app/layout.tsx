@@ -1,3 +1,4 @@
+
 'use client';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
@@ -9,7 +10,7 @@ import { SplashScreen } from '@/components/splash-screen';
 
 function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isAuthPage = ['/login', '/signup', '/forgot-password', '/update-password'].includes(pathname);
+  const isAuthPage = ['/login', '/signup', '/forgot-password', '/update-password', '/blocked'].includes(pathname);
   const isAdminPage = pathname.startsWith('/cmadmin');
   
   if (isAuthPage || isAdminPage) {
