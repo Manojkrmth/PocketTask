@@ -79,6 +79,8 @@ export default function TasksPage() {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [bulkAction, setBulkAction] = useState<'approve' | 'reject' | null>(null);
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const [bulkReason, setBulkReason] = useState('');
+
 
   const { formatCurrency } = useCurrency();
   const { toast } = useToast();
@@ -116,10 +118,19 @@ export default function TasksPage() {
   }, []);
   
   const updateTaskStatus = async (task: AppTask, status: TaskStatus, reason?: string) => {
+    const existingMetadata = task.submission_data?.metadata || {};
     const updatePayload: { status: TaskStatus; metadata?: any } = { status };
+    
+    let newMetadata = {...existingMetadata};
     if (status === 'Rejected' && reason) {
-        updatePayload.metadata = { reason: reason };
+        newMetadata.rejection_reason = reason;
     }
+    if (status === 'Approved' && reason) {
+        newMetadata.approval_note = reason;
+    }
+
+    updatePayload.metadata = newMetadata;
+
 
     const { error: updateError } = await supabase
         .from('usertasks')
@@ -208,7 +219,7 @@ export default function TasksPage() {
   const handleBulkAction = () => {
     if (!bulkAction) return;
 
-    if (bulkAction === 'reject' && !rejectionReason.trim()) {
+    if (bulkAction === 'reject' && !bulkReason.trim()) {
         toast({ variant: 'destructive', title: 'Reason Required', description: 'Please provide a reason for rejection.' });
         return;
     }
@@ -218,7 +229,7 @@ export default function TasksPage() {
         const actionText = bulkAction === 'approve' ? 'approved' : 'rejected';
         
         try {
-            const updates = tasksToUpdate.map(task => updateTaskStatus(task, bulkAction === 'approve' ? 'Approved' : 'Rejected', rejectionReason));
+            const updates = tasksToUpdate.map(task => updateTaskStatus(task, bulkAction === 'approve' ? 'Approved' : 'Rejected', bulkReason));
             await Promise.all(updates);
 
             toast({ title: 'Success', description: `${tasksToUpdate.length} tasks have been ${actionText}.`});
@@ -231,7 +242,7 @@ export default function TasksPage() {
             toast({ variant: 'destructive', title: `Bulk ${actionText.charAt(0).toUpperCase() + actionText.slice(1)} Failed`, description: error.message });
         } finally {
             setBulkDialogOpen(false);
-            setRejectionReason('');
+            setBulkReason('');
             setBulkAction(null);
         }
     })
@@ -240,6 +251,7 @@ export default function TasksPage() {
   const openBulkDialog = (action: 'approve' | 'reject') => {
       setBulkAction(action);
       setBulkDialogOpen(true);
+      setBulkReason('');
   }
 
   const handleDownloadCSV = () => {
@@ -482,20 +494,34 @@ export default function TasksPage() {
                 You are about to {bulkAction} {selectedRows.length} tasks. This will only affect tasks that are currently 'Pending'. This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
+            
             {bulkAction === 'reject' && (
                 <div className="space-y-2 pt-2">
                     <Label htmlFor="bulk-rejection-reason" className="font-semibold">Reason for Rejection (applies to all)</Label>
                     <Textarea 
                         id="bulk-rejection-reason"
                         placeholder="Provide a clear reason for rejecting these tasks..."
-                        value={rejectionReason}
-                        onChange={(e) => setRejectionReason(e.target.value)}
+                        value={bulkReason}
+                        onChange={(e) => setBulkReason(e.target.value)}
                     />
                 </div>
             )}
+            
+            {bulkAction === 'approve' && (
+                <div className="space-y-2 pt-2">
+                    <Label htmlFor="bulk-approval-note" className="font-semibold">Reason/Note for Approval (Optional)</Label>
+                    <Textarea 
+                        id="bulk-approval-note"
+                        placeholder="Add an optional note for this bulk approval..."
+                        value={bulkReason}
+                        onChange={(e) => setBulkReason(e.target.value)}
+                    />
+                </div>
+            )}
+
              <AlertDialogFooter>
                 <AlertDialogCancel onClick={() => setBulkAction(null)}>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleBulkAction} disabled={isUpdating || (bulkAction === 'reject' && !rejectionReason.trim())}>
+                <AlertDialogAction onClick={handleBulkAction} disabled={isUpdating || (bulkAction === 'reject' && !bulkReason.trim())}>
                    {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
                    Confirm
                 </AlertDialogAction>
