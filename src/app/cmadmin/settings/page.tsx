@@ -85,7 +85,16 @@ export default function AdminSettingsPage() {
         .single();
       
       if (data && data.settings_data) {
-        setSettings(data.settings_data);
+        // Merge fetched data with initial settings to ensure all keys exist
+        setSettings((prev: any) => ({
+          ...prev,
+          ...data.settings_data,
+          withdrawal: { ...prev.withdrawal, ...(data.settings_data.withdrawal || {}) },
+          referral: { ...prev.referral, ...(data.settings_data.referral || {}) },
+          ui: { ...prev.ui, ...(data.settings_data.ui || {}) },
+          socialLinks: { ...prev.socialLinks, ...(data.settings_data.socialLinks || {}) },
+          popupNotice: { ...prev.popupNotice, ...(data.settings_data.popupNotice || {}) },
+        }));
       } else if (error && error.code !== 'PGRST116') {
         toast({ variant: 'destructive', title: 'Error', description: 'Failed to load settings.' });
       }
@@ -458,3 +467,5 @@ export default function AdminSettingsPage() {
     </div>
   );
 }
+
+    
