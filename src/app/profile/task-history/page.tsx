@@ -31,7 +31,6 @@ import { ListFilter, Loader2, CheckCircle2, XCircle, Hourglass, Mail, Type, User
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/page-header';
 import { useCurrency } from '@/context/currency-context';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/lib/supabase';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
@@ -111,21 +110,25 @@ function TaskSubmissions() {
   }
   
   const getTaskDisplayType = (task: any) => {
-    if (task.task_type) {
-      return task.task_type;
+    if (task.task_type === 'used-mail') {
+      return 'Used Mail Submission';
     }
-    if (task.submission_data?.gmail) {
-      return 'Gmail Task';
+    if (task.task_type === 'gmail') {
+      return 'Gmail Creation Task';
     }
-    return 'Unknown Task';
+    if (task.submission_data?.appName) {
+        return 'App Install Task';
+    }
+    return task.task_type ? task.task_type.replace(/_/g, ' ').replace(/-/g, ' ') : 'Unknown Task';
   };
 
   const getSubmissionDetail = (task: any) => {
     const data = task.submission_data;
     if (!data) return null;
-
-    if (data.gmail) {
-      return <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1"><Mail className="h-3 w-3"/> {data.gmail}</div>;
+    
+    // For 'used-mail' and 'gmail' tasks
+    if (data.email || data.gmail) {
+      return <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1"><Mail className="h-3 w-3"/> {data.email || data.gmail}</div>;
     }
     if (data.name) {
       return <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1"><User className="h-3 w-3"/> {data.name}</div>;
@@ -169,9 +172,9 @@ function TaskSubmissions() {
               <TableBody>
                 {isHistoryLoading && <TableRow><TableCell colSpan={4} className="h-24 text-center"><div className="flex justify-center items-center gap-2"><Loader2 className="h-6 w-6 animate-spin"/> Loading...</div></TableCell></TableRow>}
                 {!isHistoryLoading && currentTasks.map((task: any, index: number) => (
-                  <TableRow key={task.id}>
+                  <TableRow key={task.id || index}>
                     <TableCell>
-                      <div className="font-medium flex items-center gap-2">
+                      <div className="font-medium flex items-center gap-2 capitalize">
                         <Type className="h-4 w-4 text-muted-foreground"/> {getTaskDisplayType(task)}
                       </div>
                       {getSubmissionDetail(task)}
@@ -188,7 +191,7 @@ function TaskSubmissions() {
                   </TableRow>
                 ))}
                 {!isHistoryLoading && (!currentTasks || currentTasks.length === 0) && (
-                  <TableRow><TableCell colSpan={4} className="text-center py-10 text-muted-foreground h-24">No tasks found for the selected filters.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={4} className="text-center py-10 text-muted-foreground h-24">No submissions found for the selected filters.</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
@@ -205,203 +208,6 @@ function TaskSubmissions() {
   )
 }
 
-function CoinSubmissions() {
-    const [user, setUser] = useState<SupabaseUser | null>(null);
-    const [coinHistory, setCoinHistory] = useState<any[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-
-    const { formatCurrency } = useCurrency();
-    const [currentPage, setCurrentPage] = useState(1);
-
-    useEffect(() => {
-        const fetchUserAndSubmissions = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if(session){
-                setUser(session.user);
-                const { data, error } = await supabase
-                    .from('coinSubmissions')
-                    .select('*')
-                    .eq('userId', session.user.id)
-                    .order('submissionTime', { ascending: false });
-
-                if (error) {
-                    console.error("Error fetching coin history:", error);
-                } else {
-                    setCoinHistory(data || []);
-                }
-            }
-            setIsLoading(false);
-        };
-        fetchUserAndSubmissions();
-    }, []);
-
-    const currentItems = useMemo(() => {
-        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-        const endIndex = startIndex + ITEMS_PER_PAGE;
-        return coinHistory?.slice(startIndex, endIndex) || [];
-    }, [coinHistory, currentPage]);
-    
-    const canLoadMore = currentPage * ITEMS_PER_PAGE < (coinHistory?.length || 0);
-    const canGoBack = currentPage > 1;
-
-    const loadMore = () => {
-        if(canLoadMore) setCurrentPage(prev => prev + 1);
-    };
-
-    const goBack = () => {
-        if (canGoBack) {
-            setCurrentPage(prev => prev - 1);
-        }
-    };
-
-    const formatDate = (date: any) => {
-        if (!date) return 'N/A';
-        return new Date(date).toLocaleString();
-    }
-    
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>My Coin Submissions</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Order ID</TableHead>
-                            <TableHead>Type</TableHead>
-                            <TableHead>Reward</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Date</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {isLoading && <TableRow><TableCell colSpan={5} className="h-24 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin"/></TableCell></TableRow>}
-                        {!isLoading && currentItems.map((item: any) => (
-                            <TableRow key={item.id}>
-                                <TableCell className="font-mono text-xs">{item.orderId}</TableCell>
-                                <TableCell className="font-medium capitalize">{item.coinType} Coin</TableCell>
-                                <TableCell className="font-bold text-green-600">{formatCurrency(item.rewardInr)}</TableCell>
-                                <TableCell>
-                                    <Badge variant="outline" className={cn(
-                                        item.status === "Approved" && "bg-green-100 text-green-800 border-green-200",
-                                        item.status === "Pending" && "bg-yellow-100 text-yellow-800 border-yellow-200",
-                                        item.status === "Rejected" && "bg-red-100 text-red-800 border-red-200"
-                                    )}>{item.status}</Badge>
-                                </TableCell>
-                                <TableCell className="text-right text-xs">{formatDate(item.submissionTime)}</TableCell>
-                            </TableRow>
-                        ))}
-                        {!isLoading && currentItems.length === 0 && (
-                            <TableRow><TableCell colSpan={5} className="h-24 text-center text-muted-foreground">No coin submissions found.</TableCell></TableRow>
-                        )}
-                    </TableBody>
-                </Table>
-                <div className="pt-4 flex justify-center gap-2">
-                    {canGoBack && (
-                        <Button onClick={goBack} variant="outline">Previous</Button>
-                    )}
-                    {canLoadMore && (
-                        <Button onClick={loadMore} variant="outline">Load More</Button>
-                    )}
-                </div>
-            </CardContent>
-        </Card>
-    );
-}
-
-function UsedMailSubmissions() {
-    const [history, setHistory] = useState<any[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [currentPage, setCurrentPage] = useState(1);
-    const { formatCurrency } = useCurrency();
-
-    useEffect(() => {
-        const fetchHistory = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-                const { data, error } = await supabase
-                    .from('used_mail_submissions')
-                    .select('*')
-                    .eq('user_id', session.user.id)
-                    .order('created_at', { ascending: false });
-
-                if (error) {
-                    console.error("Error fetching used mail history:", error);
-                } else {
-                    setHistory(data || []);
-                }
-            }
-            setIsLoading(false);
-        };
-        fetchHistory();
-    }, []);
-
-    const currentItems = useMemo(() => {
-        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-        return history.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-    }, [history, currentPage]);
-
-    const canLoadMore = currentPage * ITEMS_PER_PAGE < history.length;
-    const canGoBack = currentPage > 1;
-
-    const loadMore = () => {
-        if (canLoadMore) setCurrentPage(prev => prev + 1);
-    };
-
-    const goBack = () => {
-        if (canGoBack) setCurrentPage(prev => prev - 1);
-    };
-    
-    const formatDate = (date: any) => {
-        if (!date) return 'N/A';
-        return new Date(date).toLocaleString();
-    }
-
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Used Mail Submissions</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Email</TableHead>
-                            <TableHead>Reward</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Date</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {isLoading && <TableRow><TableCell colSpan={4} className="h-24 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>}
-                        {!isLoading && currentItems.map((item) => (
-                            <TableRow key={item.id}>
-                                <TableCell className="font-medium">{item.email}</TableCell>
-                                <TableCell className="font-bold text-green-600">{formatCurrency(item.reward)}</TableCell>
-                                <TableCell>
-                                    <Badge variant="outline" className={cn(
-                                        item.status === "Approved" && "bg-green-100 text-green-800 border-green-200",
-                                        item.status === "Pending" && "bg-yellow-100 text-yellow-800 border-yellow-200",
-                                        item.status === "Rejected" && "bg-red-100 text-red-800 border-red-200"
-                                    )}>{item.status}</Badge>
-                                </TableCell>
-                                <TableCell className="text-right text-xs">{formatDate(item.created_at)}</TableCell>
-                            </TableRow>
-                        ))}
-                        {!isLoading && currentItems.length === 0 && (
-                            <TableRow><TableCell colSpan={4} className="h-24 text-center text-muted-foreground">No used mail submissions found.</TableCell></TableRow>
-                        )}
-                    </TableBody>
-                </Table>
-                <div className="pt-4 flex justify-center gap-2">
-                    {canGoBack && <Button onClick={goBack} variant="outline">Previous</Button>}
-                    {canLoadMore && <Button onClick={loadMore} variant="outline">Load More</Button>}
-                </div>
-            </CardContent>
-        </Card>
-    );
-}
 
 export default function TaskHistoryPage() {
     const [user, setUser] = useState<SupabaseUser | null>(null);
@@ -442,7 +248,7 @@ export default function TaskHistoryPage() {
 
     return (
     <div className="min-h-screen">
-       <PageHeader title="Submission History" description="Review your past submissions" />
+       <PageHeader title="Submission History" description="Review all your past submissions" />
 
       <main className="p-4 space-y-4">
         
@@ -476,27 +282,8 @@ export default function TaskHistoryPage() {
             </Card>
         </div>
         
-        <Tabs defaultValue="tasks" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="tasks">Tasks</TabsTrigger>
-                <TabsTrigger value="coins">Coins</TabsTrigger>
-                <TabsTrigger value="used_mails">Used Mails</TabsTrigger>
-            </TabsList>
-            <TabsContent value="tasks" className="mt-4">
-                <TaskSubmissions />
-            </TabsContent>
-            <TabsContent value="coins" className="mt-4">
-                <CoinSubmissions />
-            </TabsContent>
-            <TabsContent value="used_mails" className="mt-4">
-                <UsedMailSubmissions />
-            </TabsContent>
-        </Tabs>
+        <TaskSubmissions />
       </main>
     </div>
   );
 }
-
-
-
-    

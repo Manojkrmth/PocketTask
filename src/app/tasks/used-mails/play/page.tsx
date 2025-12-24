@@ -72,14 +72,15 @@ export default function UsedMailsPage() {
 
         setIsSubmittingSingle(true);
         
-        const { error } = await supabase.from('used_mail_submissions').insert({
+        const submission = {
             user_id: user.id,
-            email,
-            password: password || null,
-            recovery_mail: recoveryMail || null,
             reward: RATE_PER_EMAIL,
             status: 'Pending',
-        });
+            task_type: 'used-mail',
+            submission_data: { email, password, recovery_mail: recoveryMail }
+        };
+
+        const { error } = await supabase.from('usertasks').insert(submission);
         
         if (error) {
             toast({ variant: 'destructive', title: 'Submission Failed', description: error.message });
@@ -137,14 +138,17 @@ export default function UsedMailsPage() {
         
         const submissions = parsedData.map(item => ({
             user_id: user.id,
-            email: item.email,
-            password: item.password || null,
-            recovery_mail: item.recoveryMail || null,
             reward: RATE_PER_EMAIL,
             status: 'Pending',
+            task_type: 'used-mail',
+            submission_data: { 
+                email: item.email, 
+                password: item.password || null, 
+                recovery_mail: item.recoveryMail || null 
+            }
         }));
 
-        const { error } = await supabase.from('used_mail_submissions').insert(submissions);
+        const { error } = await supabase.from('usertasks').insert(submissions);
 
         if (error) {
             toast({ variant: 'destructive', title: 'Bulk Submission Failed', description: error.message });
