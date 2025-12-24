@@ -102,27 +102,25 @@ export default function AdminLayout({
             </Link>
           ))}
         </nav>
-        <div className="mt-auto">
-             <Button
-                variant='ghost'
-                className="w-full justify-start text-sm h-11 hover:bg-destructive/10 hover:text-destructive"
-                onClick={handleLogout}
-              >
-                <LogOut className="mr-3 h-5 w-5" />
-                Logout
-              </Button>
-        </div>
       </aside>
       
       <div className="flex-1 flex flex-col">
         <header className="bg-card shadow-sm border-b">
-            <div className="p-4 flex justify-end items-center">
+            <div className="p-4 flex justify-end items-center gap-4">
                  {user && (
                     <div className="text-sm text-right">
                         <p className="font-semibold">{user.email}</p>
                         <p className="text-xs text-muted-foreground">Super Admin</p>
                     </div>
                  )}
+                 <Button
+                    variant='ghost'
+                    size='icon'
+                    className="h-9 w-9 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="h-5 w-5" />
+                  </Button>
             </div>
         </header>
         <main className="flex-1 p-6 overflow-auto">
