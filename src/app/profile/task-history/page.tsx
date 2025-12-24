@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -53,10 +54,10 @@ function TaskSubmissions() {
         if (session) {
             setUser(session.user);
             const { data, error } = await supabase
-                .from('userTasks')
+                .from('usertasks')
                 .select('*')
-                .eq('userId', session.user.id)
-                .order('submissionTime', { ascending: false });
+                .eq('userid', session.user.id)
+                .order('submissiontime', { ascending: false });
             
             if (error) {
                 console.error("Error fetching task history:", error);
@@ -138,7 +139,7 @@ function TaskSubmissions() {
                           task.status === "Rejected" && "bg-red-100 text-red-800 border-red-200"
                         )}>{task.status}</Badge>
                     </TableCell>
-                    <TableCell className="text-right font-medium text-xs">{formatDate(task.submissionTime)}</TableCell>
+                    <TableCell className="text-right font-medium text-xs">{formatDate(task.submissiontime)}</TableCell>
                   </TableRow>
                 ))}
                 {!isHistoryLoading && (!currentTasks || currentTasks.length === 0) && (
@@ -170,10 +171,10 @@ function CoinSubmissions() {
             if(session){
                 setUser(session.user);
                 const { data, error } = await supabase
-                    .from('coinSubmissions')
+                    .from('coinsubmissions')
                     .select('*')
-                    .eq('userId', session.user.id)
-                    .order('submissionTime', { ascending: false });
+                    .eq('userid', session.user.id)
+                    .order('submissiontime', { ascending: false });
 
                 if (error) {
                     console.error("Error fetching coin history:", error);
@@ -218,9 +219,9 @@ function CoinSubmissions() {
                         {isLoading && <TableRow><TableCell colSpan={5} className="h-24 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin"/></TableCell></TableRow>}
                         {!isLoading && currentItems.map((item: any) => (
                             <TableRow key={item.id}>
-                                <TableCell className="font-mono text-xs">{item.orderId}</TableCell>
-                                <TableCell className="font-medium capitalize">{item.coinType} Coin</TableCell>
-                                <TableCell className="font-bold text-green-600">{formatCurrency(item.rewardInr)}</TableCell>
+                                <TableCell className="font-mono text-xs">{item.orderid}</TableCell>
+                                <TableCell className="font-medium capitalize">{item.cointype} Coin</TableCell>
+                                <TableCell className="font-bold text-green-600">{formatCurrency(item.rewardinr)}</TableCell>
                                 <TableCell>
                                     <Badge variant="outline" className={cn(
                                         item.status === "Approved" && "bg-green-100 text-green-800 border-green-200",
@@ -228,7 +229,7 @@ function CoinSubmissions() {
                                         item.status === "Rejected" && "bg-red-100 text-red-800 border-red-200"
                                     )}>{item.status}</Badge>
                                 </TableCell>
-                                <TableCell className="text-right text-xs">{formatDate(item.submissionTime)}</TableCell>
+                                <TableCell className="text-right text-xs">{formatDate(item.submissiontime)}</TableCell>
                             </TableRow>
                         ))}
                         {!isLoading && currentItems.length === 0 && (
@@ -258,7 +259,7 @@ export default function TaskHistoryPage() {
                 setUser(session.user);
                 const { data, error } = await supabase
                     .from('users')
-                    .select('tasksApproved, tasksPending, tasksRejected')
+                    .select('tasksapproved, taskspending, tasksrejected')
                     .eq('id', session.user.id)
                     .single();
 
@@ -288,7 +289,7 @@ export default function TaskHistoryPage() {
                     <CheckCircle2 className="h-4 w-4 text-green-600" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold text-green-900">{isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : userProfile?.tasksApproved || 0}</div>
+                    <div className="text-2xl font-bold text-green-900">{isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : userProfile?.tasksapproved || 0}</div>
                 </CardContent>
             </Card>
             <Card className="bg-yellow-50 border-yellow-200">
@@ -297,7 +298,7 @@ export default function TaskHistoryPage() {
                     <Hourglass className="h-4 w-4 text-yellow-600" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold text-yellow-900">{isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : userProfile?.tasksPending || 0}</div>
+                    <div className="text-2xl font-bold text-yellow-900">{isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : userProfile?.taskspending || 0}</div>
                 </CardContent>
             </Card>
             <Card className="bg-red-50 border-red-200">
@@ -306,7 +307,7 @@ export default function TaskHistoryPage() {
                     <XCircle className="h-4 w-4 text-red-600" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold text-red-900">{isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : userProfile?.tasksRejected || 0}</div>
+                    <div className="text-2xl font-bold text-red-900">{isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : userProfile?.tasksrejected || 0}</div>
                 </CardContent>
             </Card>
         </div>
