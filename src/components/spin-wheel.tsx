@@ -48,7 +48,7 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
       
       const targetAngle = (winningSegmentIndex * anglePerSegment) + (anglePerSegment / 2);
       
-      const targetRotation = (360 * 6) + (360 - targetAngle);
+      const targetRotation = (360 * 6) - targetAngle;
 
       setRotation(prev => prev + targetRotation);
 
@@ -73,7 +73,7 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
         <div
           className={cn(
             "w-full h-full rounded-full transition-transform duration-[1000ms] ease-out",
-            "select-none shadow-2xl border-8 border-red-700" 
+            "select-none shadow-2xl" 
           )}
           style={{ transform: `rotate(${rotation}deg)` }}
         >
