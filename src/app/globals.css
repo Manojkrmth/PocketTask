@@ -88,6 +88,31 @@ body {
 }
 
 @layer utilities {
+  @keyframes splash-bg {
+    0%, 100% { background-position: 0% 0%; }
+    50% { background-position: 100% 100%; }
+  }
+
+  .animate-splash-bg {
+    background-size: 150% 150%;
+    animation: splash-bg 8s ease-in-out infinite;
+  }
+
+  @keyframes splash-pulse {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 0.75;
+    }
+    50% {
+      transform: scale(1.1);
+      opacity: 1;
+    }
+  }
+
+  .animate-splash-pulse {
+    animation: splash-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
   @keyframes pulse-background {
     0%, 100% {
       background-size: 200% 200%;
