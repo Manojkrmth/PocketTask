@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { LoadingScreen } from '@/components/loading-screen';
 import type { User } from '@supabase/supabase-js';
-import { BarChart, Users, ListTodo, LogOut } from 'lucide-react';
+import { BarChart, Users, ListTodo, LogOut, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,7 @@ const navItems = [
   { href: '/cmadmin/dashboard', label: 'Dashboard', icon: BarChart },
   { href: '/cmadmin/users', label: 'Users', icon: Users },
   { href: '/cmadmin/tasks', label: 'Tasks', icon: ListTodo },
+  { href: '/cmadmin/tickets', label: 'Tickets', icon: MessageSquare },
 ];
 
 export default function AdminLayout({

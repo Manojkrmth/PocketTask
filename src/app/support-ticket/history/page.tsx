@@ -1,12 +1,12 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, MessageSquare, PlusCircle } from 'lucide-react';
+import { Loader2, MessageSquare, PlusCircle, CornerUpRight } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -18,7 +18,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
 
 interface SupportTicket {
   id: number;
@@ -27,7 +28,60 @@ interface SupportTicket {
   status: 'Open' | 'In Progress' | 'Closed';
   created_at: string;
   updated_at: string;
-  replies: { author: string, message: string, timestamp: string }[] | null;
+  replies: { author: 'User' | 'Admin', message: string, timestamp: string }[] | null;
+}
+
+function AddReply({ ticket, onReplyAdded }: { ticket: SupportTicket, onReplyAdded: () => void }) {
+    const [replyMessage, setReplyMessage] = useState('');
+    const [isSubmitting, startSubmit] = useTransition();
+    const { toast } = useToast();
+
+    const handleAddReply = () => {
+        if (!replyMessage.trim()) {
+            toast({ variant: 'destructive', title: 'Reply cannot be empty' });
+            return;
+        }
+
+        startSubmit(async () => {
+            const currentReplies = ticket.replies || [];
+            const newReply = {
+                author: 'User',
+                message: replyMessage,
+                timestamp: new Date().toISOString()
+            };
+            const updatedReplies = [...currentReplies, newReply];
+
+            const { error } = await supabase
+                .from('support_tickets')
+                .update({ replies: updatedReplies })
+                .eq('id', ticket.id);
+
+            if (error) {
+                toast({ variant: 'destructive', title: 'Failed to add reply', description: error.message });
+            } else {
+                toast({ title: 'Reply Added', description: 'Your reply has been sent to the support team.' });
+                setReplyMessage('');
+                onReplyAdded(); // Refresh the list
+            }
+        });
+    };
+
+    return (
+        <div className="mt-4 space-y-2 border-t pt-4">
+            <h4 className="font-semibold text-sm">Add a Reply</h4>
+            <Textarea 
+                placeholder="Type your reply..."
+                value={replyMessage}
+                onChange={(e) => setReplyMessage(e.target.value)}
+                disabled={isSubmitting || ticket.status === 'Closed'}
+            />
+            <Button onClick={handleAddReply} disabled={isSubmitting || ticket.status === 'Closed'}>
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CornerUpRight className="mr-2 h-4 w-4" />}
+                Submit Reply
+            </Button>
+            {ticket.status === 'Closed' && <p className="text-xs text-destructive">You cannot reply to a closed ticket.</p>}
+        </div>
+    );
 }
 
 export default function TicketHistoryPage() {
@@ -35,23 +89,23 @@ export default function TicketHistoryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
 
-  useEffect(() => {
-    const fetchTickets = async (userId: string) => {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from('support_tickets')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+  const fetchTickets = async (userId: string) => {
+    setIsLoading(true);
+    const { data, error } = await supabase
+      .from('support_tickets')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching tickets:', error);
-      } else {
-        setTickets(data as SupportTicket[]);
-      }
-      setIsLoading(false);
-    };
-    
+    if (error) {
+      console.error('Error fetching tickets:', error);
+    } else {
+      setTickets(data as SupportTicket[]);
+    }
+    setIsLoading(false);
+  };
+  
+  useEffect(() => {
     const getUser = async () => {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
@@ -131,6 +185,8 @@ export default function TicketHistoryPage() {
                        {(!ticket.replies || ticket.replies.length === 0) && (
                          <p className="text-xs text-center text-muted-foreground py-2">No replies yet. Our team will get back to you soon.</p>
                        )}
+
+                       <AddReply ticket={ticket} onReplyAdded={() => user && fetchTickets(user.id)} />
                     </div>
                   </AccordionContent>
                 </AccordionItem>
