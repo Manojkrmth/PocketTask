@@ -45,7 +45,7 @@ function TaskSubmissions() {
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
   
   const [statusFilters, setStatusFilters] = useState<Status[]>([]);
-  const [visibleItems, setVisibleItems] = useState(ITEMS_PER_PAGE);
+  const [currentPage, setCurrentPage] = useState(1);
   const { formatCurrency } = useCurrency();
 
   useEffect(() => {
@@ -72,16 +72,23 @@ function TaskSubmissions() {
   
   const filteredTasks = useMemo(() => {
      if (!taskHistory) return [];
-     return statusFilters.length > 0 
+     let tasks = statusFilters.length > 0 
       ? taskHistory.filter((task: any) => statusFilters.includes(task.status as Status)) 
-      : taskHistory
+      : taskHistory;
+     return tasks;
   }, [taskHistory, statusFilters]);
 
-  const currentTasks = useMemo(() => filteredTasks.slice(0, visibleItems), [filteredTasks, visibleItems]);
-  const canLoadMore = visibleItems < filteredTasks.length;
+  const currentTasks = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return filteredTasks.slice(startIndex, endIndex);
+  }, [filteredTasks, currentPage]);
+
+  const canLoadMore = currentPage * ITEMS_PER_PAGE < filteredTasks.length;
+  const canGoBack = currentPage > 1;
 
   const toggleFilter = (status: Status) => {
-    setVisibleItems(ITEMS_PER_PAGE);
+    setCurrentPage(1);
     setStatusFilters(prev => 
       prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
     );
@@ -93,8 +100,16 @@ function TaskSubmissions() {
   }
 
   const loadMore = () => {
-    setVisibleItems(prev => prev + ITEMS_PER_PAGE);
+    if (canLoadMore) {
+        setCurrentPage(prev => prev + 1);
+    }
   };
+
+  const goBack = () => {
+    if (canGoBack) {
+        setCurrentPage(prev => prev - 1);
+    }
+  }
   
   const getTaskDisplayType = (task: any) => {
     if (task.task_type) {
@@ -178,11 +193,14 @@ function TaskSubmissions() {
                 )}
               </TableBody>
             </Table>
-             {canLoadMore && (
-              <div className="pt-4 flex justify-center">
-                <Button onClick={loadMore} variant="outline">Load More</Button>
-              </div>
-            )}
+            <div className="pt-4 flex justify-center gap-2">
+                {canGoBack && (
+                    <Button onClick={goBack} variant="outline">Previous</Button>
+                )}
+                {canLoadMore && (
+                    <Button onClick={loadMore} variant="outline">Load More</Button>
+                )}
+            </div>
           </CardContent>
         </Card>
   )
@@ -194,7 +212,7 @@ function CoinSubmissions() {
     const [isLoading, setIsLoading] = useState(true);
 
     const { formatCurrency } = useCurrency();
-    const [visibleItems, setVisibleItems] = useState(ITEMS_PER_PAGE);
+    const [currentPage, setCurrentPage] = useState(1);
 
     useEffect(() => {
         const fetchUserAndSubmissions = async () => {
@@ -218,12 +236,22 @@ function CoinSubmissions() {
         fetchUserAndSubmissions();
     }, []);
 
-    const currentItems = useMemo(() => coinHistory?.slice(0, visibleItems) || [], [coinHistory, visibleItems]);
-    const canLoadMore = visibleItems < (coinHistory?.length || 0);
+    const currentItems = useMemo(() => {
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        const endIndex = startIndex + ITEMS_PER_PAGE;
+        return coinHistory?.slice(startIndex, endIndex) || [];
+    }, [coinHistory, currentPage]);
+    
+    const canLoadMore = currentPage * ITEMS_PER_PAGE < (coinHistory?.length || 0);
+    const canGoBack = currentPage > 1;
 
     const loadMore = () => {
-        setVisibleItems(prev => prev + ITEMS_PER_PAGE);
+        if(canLoadMore) setCurrentPage(prev => prev + 1);
     };
+    
+    const goBack = () => {
+        if(canGoBack) setCurrentPage(prev => prev - 1);
+    }
 
     const formatDate = (date: any) => {
         if (!date) return 'N/A';
@@ -268,11 +296,14 @@ function CoinSubmissions() {
                         )}
                     </TableBody>
                 </Table>
-                {canLoadMore && (
-                    <div className="pt-4 flex justify-center">
+                <div className="pt-4 flex justify-center gap-2">
+                    {canGoBack && (
+                        <Button onClick={goBack} variant="outline">Previous</Button>
+                    )}
+                    {canLoadMore && (
                         <Button onClick={loadMore} variant="outline">Load More</Button>
-                    </div>
-                )}
+                    )}
+                </div>
             </CardContent>
         </Card>
     );

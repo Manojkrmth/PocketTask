@@ -44,7 +44,7 @@ export default function WithdrawHistoryPage() {
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
 
-  const [visibleItems, setVisibleItems] = useState(ITEMS_PER_PAGE);
+  const [currentPage, setCurrentPage] = useState(1);
   const { formatCurrency } = useCurrency();
 
   useEffect(() => {
@@ -123,13 +123,19 @@ export default function WithdrawHistoryPage() {
       : sortedHistory
   }, [sortedHistory, statusFilters]);
 
-  const currentItems = useMemo(() => filteredItems.slice(0, visibleItems), [filteredItems, visibleItems]);
-  const canLoadMore = visibleItems < filteredItems.length;
+  const currentItems = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return filteredItems.slice(startIndex, endIndex);
+  }, [filteredItems, currentPage]);
+  
+  const canLoadMore = currentPage * ITEMS_PER_PAGE < filteredItems.length;
+  const canGoBack = currentPage > 1;
 
   const isLoading = isHistoryLoading || isProfileLoading;
 
   const toggleFilter = (status: Status) => {
-    setVisibleItems(ITEMS_PER_PAGE); // Reset pagination on filter change
+    setCurrentPage(1); // Reset pagination on filter change
     setStatusFilters(prev => 
       prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
     );
@@ -141,8 +147,12 @@ export default function WithdrawHistoryPage() {
   }
 
   const loadMore = () => {
-    setVisibleItems(prev => prev + ITEMS_PER_PAGE);
+    if (canLoadMore) setCurrentPage(prev => prev + 1);
   };
+
+  const goBack = () => {
+      if(canGoBack) setCurrentPage(prev => prev - 1);
+  }
 
   return (
     <div className="min-h-screen">
@@ -263,11 +273,14 @@ export default function WithdrawHistoryPage() {
                 </TableBody>
               </Table>
             </div>
-             {canLoadMore && (
-              <div className="pt-4 flex justify-center">
-                <Button onClick={loadMore} variant="outline">Load More</Button>
-              </div>
-            )}
+            <div className="pt-4 flex justify-center gap-2">
+                {canGoBack && (
+                    <Button onClick={goBack} variant="outline">Previous</Button>
+                )}
+                {canLoadMore && (
+                    <Button onClick={loadMore} variant="outline">Load More</Button>
+                )}
+            </div>
           </CardContent>
         </Card>
       </main>
