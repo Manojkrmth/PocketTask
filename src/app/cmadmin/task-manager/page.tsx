@@ -75,17 +75,28 @@ export default function TaskManagerPage() {
   
   const [editingBatch, setEditingBatch] = useState<Batch | null>(null);
 
-  // State for bulk actions
-  const [bulkActionDialogOpen, setBulkActionDialogOpen] = useState(false);
-  const [bulkActionType, setBulkActionType] = useState<'approve' | 'reject' | null>(null);
-  const [bulkCsvFile, setBulkCsvFile] = useState<File | null>(null);
-  const [bulkCsvData, setBulkCsvData] = useState<any[]>([]);
-  const [bulkCsvColumns, setBulkCsvColumns] = useState<string[]>([]);
-  const [identifierColumn, setIdentifierColumn] = useState<string>('');
-  const [isParsing, setIsParsing] = useState(false);
-  const [bulkReason, setBulkReason] = useState('');
-  const [isUpdating, startUpdateTransition] = useTransition();
+  // State for BATCH-WISE bulk actions
+  const [batchBulkActionDialogOpen, setBatchBulkActionDialogOpen] = useState(false);
+  const [batchBulkActionType, setBatchBulkActionType] = useState<'approve' | 'reject' | null>(null);
+  const [batchBulkCsvFile, setBatchBulkCsvFile] = useState<File | null>(null);
+  const [batchBulkCsvData, setBatchBulkCsvData] = useState<any[]>([]);
+  const [batchBulkCsvColumns, setBatchBulkCsvColumns] = useState<string[]>([]);
+  const [batchIdentifierColumn, setBatchIdentifierColumn] = useState<string>('');
+  const [isBatchParsing, setIsBatchParsing] = useState(false);
+  const [batchBulkReason, setBatchBulkReason] = useState('');
+  const [isBatchUpdating, startBatchUpdateTransition] = useTransition();
   const [selectedBatchForBulkAction, setSelectedBatchForBulkAction] = useState<Batch | null>(null);
+  
+  // State for GLOBAL bulk actions
+  const [globalBulkActionDialogOpen, setGlobalBulkActionDialogOpen] = useState(false);
+  const [globalBulkActionType, setGlobalBulkActionType] = useState<'approve' | 'reject' | null>(null);
+  const [globalBulkCsvFile, setGlobalBulkCsvFile] = useState<File | null>(null);
+  const [globalBulkCsvData, setGlobalBulkCsvData] = useState<any[]>([]);
+  const [globalBulkCsvColumns, setGlobalBulkCsvColumns] = useState<string[]>([]);
+  const [globalIdentifierColumn, setGlobalIdentifierColumn] = useState<string>('');
+  const [isGlobalParsing, setIsGlobalParsing] = useState(false);
+  const [globalBulkReason, setGlobalBulkReason] = useState('');
+  const [isGlobalUpdating, startGlobalUpdateTransition] = useTransition();
 
 
   const fetchBatches = useCallback(async () => {
@@ -152,8 +163,7 @@ export default function TaskManagerPage() {
               total_tasks: tasksData.length, 
               status: 'paused',
               task_category: taskCategory,
-              reward_price: price,
-              file_path: null // No longer storing the file
+              reward_price: price
           })
           .select()
           .single();
@@ -169,7 +179,6 @@ export default function TaskManagerPage() {
 
         const { error: tasksError } = await supabase.from('gmail_tasks').insert(tasksToInsert);
         if (tasksError) {
-          // If inserting tasks fails, roll back the batch creation
           await supabase.from('gmail_task_batches').delete().eq('id', batch.id);
           throw new Error(`Failed to insert tasks: ${tasksError.message}`);
         }
@@ -217,7 +226,6 @@ export default function TaskManagerPage() {
   }
 
   const handleDeleteBatch = async (batch: Batch) => {
-      // Deleting the batch will also delete associated tasks due to ON DELETE CASCADE
       const { error: deleteError } = await supabase
         .from('gmail_task_batches')
         .delete()
@@ -285,61 +293,53 @@ export default function TaskManagerPage() {
       }
   }
 
-  // --- Bulk Action Logic ---
-  const handleBulkActionClick = (action: 'approve' | 'reject', batch: Batch) => {
-    setBulkActionType(action);
-    setBulkActionDialogOpen(true);
+  // --- Batch-wise Bulk Action Logic ---
+  const handleBatchBulkActionClick = (action: 'approve' | 'reject', batch: Batch) => {
+    setBatchBulkActionType(action);
+    setBatchBulkActionDialogOpen(true);
     setSelectedBatchForBulkAction(batch);
-    // Reset state
-    setBulkCsvFile(null);
-    setBulkCsvData([]);
-    setBulkCsvColumns([]);
-    setIdentifierColumn('');
-    setBulkReason('');
+    setBatchBulkCsvFile(null);
+    setBatchBulkCsvData([]);
+    setBatchBulkCsvColumns([]);
+    setBatchIdentifierColumn('');
+    setBatchBulkReason('');
   }
 
-  const handleBulkFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBatchBulkFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      if (file.type !== 'text/csv') {
-        toast({ variant: 'destructive', title: 'Invalid File Type', description: 'Please upload a CSV file.' });
-        return;
-      }
-      setBulkCsvFile(file);
-      setIsParsing(true);
+      setBatchBulkCsvFile(file);
+      setIsBatchParsing(true);
       Papa.parse(file, {
         header: true,
         skipEmptyLines: true,
         complete: (results) => {
-          if (results.meta.fields) {
-            setBulkCsvColumns(results.meta.fields);
-          }
-          setBulkCsvData(results.data);
-          setIsParsing(false);
+          if (results.meta.fields) setBatchBulkCsvColumns(results.meta.fields);
+          setBatchBulkCsvData(results.data);
+          setIsBatchParsing(false);
         },
         error: (error: any) => {
           toast({ variant: 'destructive', title: 'CSV Parsing Error', description: error.message });
-          setIsParsing(false);
+          setIsBatchParsing(false);
         }
       });
     }
   }
 
-  const handleBulkUpdate = () => {
-    if (!bulkActionType || !selectedBatchForBulkAction || !identifierColumn || bulkCsvData.length === 0) {
+  const handleBatchBulkUpdate = () => {
+    if (!batchBulkActionType || !selectedBatchForBulkAction || !batchIdentifierColumn || batchBulkCsvData.length === 0) {
         toast({ variant: 'destructive', title: 'Missing Information', description: 'Please complete all steps.' });
         return;
     }
-    if (bulkActionType === 'reject' && !bulkReason.trim()) {
+    if (batchBulkActionType === 'reject' && !batchBulkReason.trim()) {
         toast({ variant: 'destructive', title: 'Reason Required', description: 'Please provide a reason for rejection.' });
         return;
     }
 
-    startUpdateTransition(async () => {
-      const identifiers = new Set(bulkCsvData.map(row => row[identifierColumn]).filter(Boolean).map(String));
-
+    startBatchUpdateTransition(async () => {
+      const identifiers = new Set(batchBulkCsvData.map(row => String(row[batchIdentifierColumn])).filter(Boolean));
       if (identifiers.size === 0) {
-        toast({ variant: 'destructive', title: 'No Identifiers Found', description: `No valid values found in the selected CSV column '${identifierColumn}'.` });
+        toast({ variant: 'destructive', title: 'No Identifiers Found', description: `No valid values found in the selected CSV column '${batchIdentifierColumn}'.` });
         return;
       }
 
@@ -353,9 +353,9 @@ export default function TaskManagerPage() {
         toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch pending tasks for this batch.' });
         return;
       }
-
+      
       const tasksToUpdate = pendingTasks.filter(task => {
-        const submissionIdentifier = task.submission_data?.[identifierColumn] || task.submission_data?.['gmail']?.split('@')[0] || String(task.task_id);
+        const submissionIdentifier = task.submission_data?.[batchIdentifierColumn] || task.submission_data?.gmail?.split('@')[0];
         const gmailUserIdentifier = task.submission_data?.gmail?.split('@')[0];
         
         return (
@@ -375,18 +375,115 @@ export default function TaskManagerPage() {
 
       for (const task of tasksToUpdate) {
           try {
-              await updateTaskStatus(task, bulkActionType === 'approve' ? 'Approved' : 'Rejected', bulkReason);
+              await updateTaskStatus(task, batchBulkActionType === 'approve' ? 'Approved' : 'Rejected', batchBulkReason);
               successCount++;
           } catch(e) {
               errorCount++;
           }
       }
         
-      toast({ title: 'Bulk Update Complete', description: `${successCount} tasks have been ${bulkActionType}d. ${errorCount > 0 ? `${errorCount} failed.` : ''}` });
-      setBulkActionDialogOpen(false);
-      await fetchBatches(); // Refresh data
+      toast({ title: 'Bulk Update Complete', description: `${successCount} tasks have been ${batchBulkActionType}d. ${errorCount > 0 ? `${errorCount} failed.` : ''}` });
+      setBatchBulkActionDialogOpen(false);
+      await fetchBatches();
     });
   }
+
+  // --- Global Bulk Action Logic ---
+  const handleGlobalBulkActionClick = (action: 'approve' | 'reject') => {
+    setGlobalBulkActionType(action);
+    setGlobalBulkActionDialogOpen(true);
+    // Reset state
+    setGlobalBulkCsvFile(null);
+    setGlobalBulkCsvData([]);
+    setGlobalBulkCsvColumns([]);
+    setGlobalIdentifierColumn('');
+    setGlobalBulkReason('');
+  }
+
+  const handleGlobalBulkFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setGlobalBulkCsvFile(file);
+      setIsGlobalParsing(true);
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          if (results.meta.fields) setGlobalBulkCsvColumns(results.meta.fields);
+          setGlobalBulkCsvData(results.data);
+          setIsGlobalParsing(false);
+        },
+        error: (error: any) => {
+          toast({ variant: 'destructive', title: 'CSV Parsing Error', description: error.message });
+          setIsGlobalParsing(false);
+        }
+      });
+    }
+  }
+
+  const handleGlobalBulkUpdate = () => {
+    if (!globalBulkActionType || !globalIdentifierColumn || globalBulkCsvData.length === 0) {
+        toast({ variant: 'destructive', title: 'Missing Information', description: 'Please complete all steps.' });
+        return;
+    }
+    if (globalBulkActionType === 'reject' && !globalBulkReason.trim()) {
+        toast({ variant: 'destructive', title: 'Reason Required', description: 'Please provide a reason for rejection.' });
+        return;
+    }
+
+    startGlobalUpdateTransition(async () => {
+      const identifiers = new Set(globalBulkCsvData.map(row => String(row[globalIdentifierColumn])).filter(Boolean));
+      if (identifiers.size === 0) {
+        toast({ variant: 'destructive', title: 'No Identifiers Found', description: `No valid values found in the selected CSV column '${globalIdentifierColumn}'.` });
+        return;
+      }
+
+      // Fetch all pending gmail tasks
+      const { data: pendingTasks, error } = await supabase
+        .from('usertasks')
+        .select('*')
+        .eq('task_type', 'gmail')
+        .eq('status', 'Pending');
+      
+      if (error) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch pending Gmail tasks.' });
+        return;
+      }
+      
+      const tasksToUpdate = pendingTasks.filter(task => {
+        const submissionIdentifier = task.submission_data?.[globalIdentifierColumn] || task.submission_data?.gmail?.split('@')[0];
+        const gmailUserIdentifier = task.submission_data?.gmail?.split('@')[0];
+        
+        return (
+          identifiers.has(String(task.task_id)) ||
+          (submissionIdentifier && identifiers.has(String(submissionIdentifier))) ||
+          (gmailUserIdentifier && identifiers.has(String(gmailUserIdentifier)))
+        );
+      });
+      
+      if (tasksToUpdate.length === 0) {
+        toast({ variant: 'warning', title: 'No Matching Tasks', description: 'No pending Gmail tasks matched the identifiers from your CSV file.' });
+        return;
+      }
+
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const task of tasksToUpdate) {
+          try {
+              await updateTaskStatus(task, globalBulkActionType === 'approve' ? 'Approved' : 'Rejected', globalBulkReason);
+              successCount++;
+          } catch(e) {
+              errorCount++;
+          }
+      }
+        
+      toast({ title: 'Global Bulk Update Complete', description: `${successCount} tasks have been ${globalBulkActionType}d. ${errorCount > 0 ? `${errorCount} failed.` : ''}` });
+      setGlobalBulkActionDialogOpen(false);
+      await fetchBatches();
+    });
+  }
+
 
   return (
     <>
@@ -413,7 +510,6 @@ export default function TaskManagerPage() {
                 <SelectTrigger id="task-category"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="gmail">Gmail</SelectItem>
-                  {/* Add other categories later if needed */}
                 </SelectContent>
               </Select>
             </div>
@@ -440,6 +536,14 @@ export default function TaskManagerPage() {
           </div>
         </CardContent>
       </Card>
+      
+      <div className="flex items-center gap-2 border p-2 rounded-lg bg-muted/50">
+        <p className="text-sm font-semibold">Global Bulk Actions (All Gmail Tasks)</p>
+        <div className="ml-auto flex gap-2">
+            <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleGlobalBulkActionClick('approve')}><CheckCircle className="mr-2 h-4 w-4"/> Bulk Approve</Button>
+            <Button size="sm" variant="destructive" onClick={() => handleGlobalBulkActionClick('reject')}><XCircle className="mr-2 h-4 w-4"/> Bulk Reject</Button>
+        </div>
+      </div>
 
       <div className="space-y-4">
          <h2 className="text-2xl font-bold">Uploaded Batches</h2>
@@ -527,8 +631,8 @@ export default function TaskManagerPage() {
                                     <Button variant="outline" size="sm" onClick={() => handleDownloadByStatus(batch.id, 'Rejected')}>Rejected CSV ({stats.rejected})</Button>
                                 </div>
                                 <div className="flex gap-2">
-                                     <Button variant="outline" size="sm" className="bg-green-50 hover:bg-green-100 border-green-200 text-green-700" onClick={() => handleBulkActionClick('approve', batch)}><CheckCircle className="h-4 w-4"/> Bulk Approve</Button>
-                                     <Button variant="outline" size="sm" className="bg-red-50 hover:bg-red-100 border-red-200 text-red-700" onClick={() => handleBulkActionClick('reject', batch)}><XCircle className="h-4 w-4"/> Bulk Reject</Button>
+                                     <Button variant="outline" size="sm" className="bg-green-50 hover:bg-green-100 border-green-200 text-green-700" onClick={() => handleBatchBulkActionClick('approve', batch)}><CheckCircle className="h-4 w-4"/> Bulk Approve</Button>
+                                     <Button variant="outline" size="sm" className="bg-red-50 hover:bg-red-100 border-red-200 text-red-700" onClick={() => handleBatchBulkActionClick('reject', batch)}><XCircle className="h-4 w-4"/> Bulk Reject</Button>
                                 </div>
                             </CardContent>
                         </Card>
@@ -578,13 +682,13 @@ export default function TaskManagerPage() {
       </AlertDialog>
     )}
 
-    {/* Bulk Action Dialog */}
-     <Dialog open={bulkActionDialogOpen} onOpenChange={setBulkActionDialogOpen}>
+    {/* Batch-wise Bulk Action Dialog */}
+     <Dialog open={batchBulkActionDialogOpen} onOpenChange={setBatchBulkActionDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle className="capitalize">Bulk {bulkActionType} ({selectedBatchForBulkAction?.batch_name})</DialogTitle>
+            <DialogTitle className="capitalize">Batch Bulk {batchBulkActionType} ({selectedBatchForBulkAction?.batch_name})</DialogTitle>
             <DialogDescription>
-              Update multiple pending tasks in this batch using a CSV file.
+              Update multiple pending tasks in this specific batch using a CSV file.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -592,42 +696,42 @@ export default function TaskManagerPage() {
               <Label>Step 1: Upload CSV</Label>
               <div className="relative">
                 <Button asChild variant="outline" className="w-full h-20 border-dashed border-2 flex-col gap-1 cursor-pointer">
-                  <label htmlFor="bulk-csv-upload">
+                  <label htmlFor="batch-bulk-csv-upload">
                     <UploadCloud className="h-6 w-6 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">{bulkCsvFile?.name || 'Click to upload a file'}</span>
+                    <span className="text-xs text-muted-foreground">{batchBulkCsvFile?.name || 'Click to upload a file'}</span>
                   </label>
                 </Button>
-                <Input id="bulk-csv-upload" type="file" className="absolute inset-0 opacity-0 w-full h-full cursor-pointer" accept=".csv" onChange={handleBulkFileChange} disabled={isUpdating} />
+                <Input id="batch-bulk-csv-upload" type="file" className="absolute inset-0 opacity-0 w-full h-full cursor-pointer" accept=".csv" onChange={handleBatchBulkFileChange} disabled={isBatchUpdating} />
               </div>
             </div>
 
-            {isParsing && <div className="flex items-center text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Parsing file...</div>}
+            {isBatchParsing && <div className="flex items-center text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Parsing file...</div>}
             
-            {bulkCsvData.length > 0 && (
+            {batchBulkCsvData.length > 0 && (
               <>
                 <div className="space-y-2">
                   <Label>Step 2: Choose Identifier Column</Label>
-                   <Select value={identifierColumn} onValueChange={setIdentifierColumn} disabled={isUpdating}>
+                   <Select value={batchIdentifierColumn} onValueChange={setBatchIdentifierColumn} disabled={isBatchUpdating}>
                     <SelectTrigger><SelectValue placeholder="Select CSV column..." /></SelectTrigger>
                     <SelectContent>
-                      {bulkCsvColumns.map(col => <SelectItem key={col} value={col}>{col}</SelectItem>)}
+                      {batchBulkCsvColumns.map(col => <SelectItem key={col} value={col}>{col}</SelectItem>)}
                     </SelectContent>
                   </Select>
                    <Alert variant="default">
                     <FileDown className="h-4 w-4" />
                     <AlertTitle>File Processed!</AlertTitle>
-                    <AlertDescription>{bulkCsvData.length} rows found. Select the column that uniquely identifies the tasks (e.g., 'task_id', 'gmail_user').</AlertDescription>
+                    <AlertDescription>{batchBulkCsvData.length} rows found. Select the column that uniquely identifies the tasks (e.g., 'task_id', 'gmail_user').</AlertDescription>
                   </Alert>
                 </div>
 
-                 {bulkActionType === 'reject' && (
+                 {batchBulkActionType === 'reject' && (
                     <div className="space-y-2">
                         <Label>Step 3: Reason for Rejection</Label>
                         <Textarea
                             placeholder={'Enter reason...'}
-                            value={bulkReason}
-                            onChange={(e) => setBulkReason(e.target.value)}
-                            disabled={isUpdating}
+                            value={batchBulkReason}
+                            onChange={(e) => setBatchBulkReason(e.target.value)}
+                            disabled={isBatchUpdating}
                         />
                     </div>
                 )}
@@ -635,17 +739,90 @@ export default function TaskManagerPage() {
             )}
           </div>
           <DialogFooter>
-            <DialogClose asChild><Button type="button" variant="secondary" disabled={isUpdating}>Cancel</Button></DialogClose>
+            <DialogClose asChild><Button type="button" variant="secondary" disabled={isBatchUpdating}>Cancel</Button></DialogClose>
             <Button 
                 type="button" 
-                onClick={handleBulkUpdate} 
-                disabled={isUpdating || !identifierColumn || (bulkActionType === 'reject' && !bulkReason.trim())}
+                onClick={handleBatchBulkUpdate} 
+                disabled={isBatchUpdating || !batchIdentifierColumn || (batchBulkActionType === 'reject' && !batchBulkReason.trim())}
                 className={cn(
-                    bulkActionType === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-destructive hover:bg-destructive/90',
+                    batchBulkActionType === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-destructive hover:bg-destructive/90',
                 )}
             >
-              {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-              {isUpdating ? 'Updating...' : `Confirm Bulk ${bulkActionType === 'approve' ? 'Approve' : 'Reject'}`}
+              {isBatchUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+              {isBatchUpdating ? 'Updating...' : `Confirm Batch ${batchBulkActionType === 'approve' ? 'Approve' : 'Reject'}`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Global Bulk Action Dialog */}
+     <Dialog open={globalBulkActionDialogOpen} onOpenChange={setGlobalBulkActionDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="capitalize">Global Bulk {globalBulkActionType} (Gmail Tasks)</DialogTitle>
+            <DialogDescription>
+              Update all pending Gmail tasks from any batch using a CSV file.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label>Step 1: Upload CSV</Label>
+              <div className="relative">
+                <Button asChild variant="outline" className="w-full h-20 border-dashed border-2 flex-col gap-1 cursor-pointer">
+                  <label htmlFor="global-bulk-csv-upload">
+                    <UploadCloud className="h-6 w-6 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">{globalBulkCsvFile?.name || 'Click to upload a file'}</span>
+                  </label>
+                </Button>
+                <Input id="global-bulk-csv-upload" type="file" className="absolute inset-0 opacity-0 w-full h-full cursor-pointer" accept=".csv" onChange={handleGlobalBulkFileChange} disabled={isGlobalUpdating} />
+              </div>
+            </div>
+
+            {isGlobalParsing && <div className="flex items-center text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Parsing file...</div>}
+            
+            {globalBulkCsvData.length > 0 && (
+              <>
+                <div className="space-y-2">
+                  <Label>Step 2: Choose Identifier Column</Label>
+                   <Select value={globalIdentifierColumn} onValueChange={setGlobalIdentifierColumn} disabled={isGlobalUpdating}>
+                    <SelectTrigger><SelectValue placeholder="Select CSV column..." /></SelectTrigger>
+                    <SelectContent>
+                      {globalBulkCsvColumns.map(col => <SelectItem key={col} value={col}>{col}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                   <Alert variant="default">
+                    <FileDown className="h-4 w-4" />
+                    <AlertTitle>File Processed!</AlertTitle>
+                    <AlertDescription>{globalBulkCsvData.length} rows found. Select the column that uniquely identifies the tasks.</AlertDescription>
+                  </Alert>
+                </div>
+
+                 {globalBulkActionType === 'reject' && (
+                    <div className="space-y-2">
+                        <Label>Step 3: Reason for Rejection</Label>
+                        <Textarea
+                            placeholder={'Enter reason...'}
+                            value={globalBulkReason}
+                            onChange={(e) => setGlobalBulkReason(e.target.value)}
+                            disabled={isGlobalUpdating}
+                        />
+                    </div>
+                )}
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button type="button" variant="secondary" disabled={isGlobalUpdating}>Cancel</Button></DialogClose>
+            <Button 
+                type="button" 
+                onClick={handleGlobalBulkUpdate} 
+                disabled={isGlobalUpdating || !globalIdentifierColumn || (globalBulkActionType === 'reject' && !globalBulkReason.trim())}
+                className={cn(
+                    globalBulkActionType === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-destructive hover:bg-destructive/90',
+                )}
+            >
+              {isGlobalUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+              {isGlobalUpdating ? 'Updating...' : `Confirm Global ${globalBulkActionType === 'approve' ? 'Approve' : 'Reject'}`}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -653,3 +830,4 @@ export default function TaskManagerPage() {
     </>
   );
 }
+
