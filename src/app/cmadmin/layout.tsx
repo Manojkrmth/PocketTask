@@ -33,7 +33,7 @@ const adminNavItems = [
   { href: '/cmadmin/settings', label: 'App Settings', icon: Settings },
 ];
 
-const ADMIN_USER_ID = '3313d395-3069-4a41-b8d9-2530182218f2';
+const ADMIN_USER_ID = '7fa62eb6-4e08-4064-ace3-3f6116efa29f';
 
 function AdminSidebar({
   className,
