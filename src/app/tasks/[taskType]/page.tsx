@@ -27,14 +27,14 @@ const getTaskTypeDetails = (taskType: string) => {
         'used-mails': { name: 'Used Mails Task', available: false },
         'hot-mail': { name: 'Hot Mail Task', available: false },
         'outlook-mail': { name: 'Outlook Mail Task', available: false },
-        'visit-earn': { name: 'Visit & Earn Task', available: false },
+        'visit-earn': { name: 'Visit & Earn Task', available: true },
         'watch-earn': { name: 'Watch & Earn Task', available: true },
         'kyc-task': { name: 'KYC Task', available: false },
         'app-install': { name: 'App Install Task', available: false },
         'niva-coin': { name: 'Niva Coin Task', available: false },
         'top-coin': { name: 'Top Coin Task', available: false },
-        'google-map-review': { name: 'Google Map Review Task', available: false },
-        'playstore-app-review': { name: 'Playstore App Review Task', available: false },
+        'google-map-review': { name: 'Google Map Review Task', available: true },
+        'playstore-app-review': { name: 'Playstore App Review Task', available: true },
         'amazon-product-review': { name: 'Amazon Product Review Task', available: false },
         'survey': { name: 'Survey Task', available: false },
     };
@@ -90,7 +90,12 @@ export default function StartTaskPage() {
         router.push('/tasks/gmail/play');
       } else if (taskType === 'watch-earn') {
         router.push('/tasks/watch-earn/play');
-      } else {
+      } else if (taskType === 'visit-earn') {
+        router.push('/tasks/visit-earn/play');
+      } else if (['google-map-review', 'playstore-app-review'].includes(taskType)) {
+        router.push(`/tasks/review/play?type=${taskType}`);
+      }
+      else {
         alert(`Task assignment for ${taskName} is not implemented yet.`);
         setIsLoading(false);
       }
@@ -118,7 +123,7 @@ export default function StartTaskPage() {
                     ? 'Your account is blocked. You cannot start new tasks.'
                     : tasksPaused 
                         ? 'Our team is working on adding new tasks. Please check back later.' 
-                        : `No new ${taskName} are available right now. Please try another task type.`}
+                        : `You have completed all available tasks for ${taskName}! New tasks will be available soon.`}
                 </p>
             </div>
         ) : (
