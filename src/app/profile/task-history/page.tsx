@@ -56,7 +56,7 @@ function TaskSubmissions() {
             const { data, error } = await supabase
                 .from('usertasks')
                 .select('*')
-                .eq('userid', session.user.id)
+                .eq('user_id', session.user.id)
                 .order('submission_time', { ascending: false });
             
             if (error) {
@@ -222,7 +222,7 @@ function CoinSubmissions() {
                 const { data, error } = await supabase
                     .from('coinsubmissions')
                     .select('*')
-                    .eq('userid', session.user.id)
+                    .eq('user_id', session.user.id)
                     .order('submissiontime', { ascending: false });
 
                 if (error) {
@@ -321,7 +321,7 @@ export default function TaskHistoryPage() {
             const { data, error } = await supabase
                 .from('usertasks')
                 .select('status')
-                .eq('userid', userId);
+                .eq('user_id', userId);
 
             if (error) {
                 console.error("Error fetching task counts for stats:", error);
