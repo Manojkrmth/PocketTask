@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Save, Link as LinkIcon, Settings, Image as ImageIcon, Text, Info, ToggleLeft, IndianRupee, Megaphone, ListTodo, Wallet } from 'lucide-react';
+import { Loader2, Save, Link as LinkIcon, Settings, Image as ImageIcon, Text, Info, ToggleLeft, IndianRupee, Megaphone, ListTodo, Wallet, Gift } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { InstagramIcon, TelegramIcon, WhatsAppIcon } from '@/components/icons';
 import { Switch } from '@/components/ui/switch';
@@ -100,6 +100,18 @@ export default function SettingsPage() {
                 <h1 className="text-3xl font-bold">App Settings</h1>
                 <p className="text-muted-foreground">Manage global settings for your application.</p>
             </div>
+            
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Gift className="h-5 w-5 text-primary" /> Featured Offers</CardTitle>
+                    <CardDescription>Control the promotional offers carousel on the home page.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button onClick={() => router.push('/cmadmin/settings/offers')}>
+                        Manage Featured Offers
+                    </Button>
+                </CardContent>
+            </Card>
 
             <Card>
                 <CardHeader>
