@@ -26,12 +26,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { ListFilter, Loader2, CheckCircle2, XCircle, Hourglass, Mail, Type, User, Users, Hash } from "lucide-react";
+import { ListFilter, Loader2, CheckCircle2, XCircle, Hourglass, Mail, Type, User, Users, Hash, Coins } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/page-header';
 import { useCurrency } from '@/context/currency-context';
 import { supabase } from '@/lib/supabase';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const ITEMS_PER_PAGE = 10;
 type Status = 'Approved' | 'Pending' | 'Rejected';
@@ -221,6 +222,139 @@ function TaskSubmissions() {
   )
 }
 
+function CoinSubmissions() {
+  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [history, setHistory] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const [statusFilters, setStatusFilters] = useState<Status[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const { formatCurrency } = useCurrency();
+
+  useEffect(() => {
+    const fetchUserAndHistory = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+            setUser(session.user);
+            const { data, error } = await supabase
+                .from('coinsubmissions')
+                .select('*')
+                .eq('user_id', session.user.id)
+                .order('created_at', { ascending: false });
+            
+            if (error) {
+                console.error("Error fetching coin history:", error);
+            } else {
+                setHistory(data || []);
+            }
+        }
+        setIsLoading(false);
+    };
+    fetchUserAndHistory();
+  }, []);
+  
+  const filteredItems = useMemo(() => {
+     if (!history) return [];
+     let items = statusFilters.length > 0 
+      ? history.filter((item: any) => statusFilters.includes(item.status as Status)) 
+      : history;
+     return items;
+  }, [history, statusFilters]);
+
+  const currentItems = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredItems.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredItems, currentPage]);
+
+  const canLoadMore = currentPage * ITEMS_PER_PAGE < filteredItems.length;
+  const canGoBack = currentPage > 1;
+
+  const toggleFilter = (status: Status) => {
+    setCurrentPage(1);
+    setStatusFilters(prev => 
+      prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
+    );
+  };
+  
+  const formatDate = (date: any) => {
+    if (!date) return 'N/A';
+    return new Date(date).toLocaleString();
+  }
+
+  const loadMore = () => { if (canLoadMore) setCurrentPage(prev => prev + 1); };
+  const goBack = () => { if (canGoBack) setCurrentPage(prev => prev - 1); };
+
+  return (
+      <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Coin Submissions</CardTitle>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 gap-1">
+                  <ListFilter className="h-3.5 w-3.5" />
+                  <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Filter</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Filter by status</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuCheckboxItem checked={statusFilters.includes('Approved')} onCheckedChange={() => toggleFilter('Approved')}>Approved</DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem checked={statusFilters.includes('Pending')} onCheckedChange={() => toggleFilter('Pending')}>Pending</DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem checked={statusFilters.includes('Rejected')} onCheckedChange={() => toggleFilter('Rejected')}>Rejected</DropdownMenuCheckboxItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Details</TableHead>
+                  <TableHead>Reward</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Date</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading && <TableRow><TableCell colSpan={4} className="h-24 text-center"><div className="flex justify-center items-center gap-2"><Loader2 className="h-6 w-6 animate-spin"/> Loading...</div></TableCell></TableRow>}
+                {!isLoading && currentItems.map((item: any) => (
+                  <TableRow key={item.id}>
+                    <TableCell>
+                      <div className="font-medium flex items-center gap-2 capitalize">
+                        <Coins className="h-4 w-4 text-muted-foreground"/> {item.coin_type.replace(/-/g, ' ')}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                         {item.coin_amount} Coins | Order ID: {item.order_id}
+                      </div>
+                    </TableCell>
+                    <TableCell><div className="font-medium text-green-600">{item.reward_inr ? formatCurrency(item.reward_inr) : 'N/A'}</div></TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={cn(
+                          item.status === "Approved" && "bg-green-100 text-green-800 border-green-200",
+                          item.status === "Pending" && "bg-yellow-100 text-yellow-800 border-yellow-200",
+                          item.status === "Rejected" && "bg-red-100 text-red-800 border-red-200"
+                        )}>{item.status}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-medium text-xs">{formatDate(item.submission_time)}</TableCell>
+                  </TableRow>
+                ))}
+                {!isLoading && currentItems.length === 0 && (
+                  <TableRow><TableCell colSpan={4} className="text-center py-10 text-muted-foreground h-24">No coin submissions found.</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+            <div className="pt-4 flex justify-center gap-2">
+                {canGoBack && (
+                    <Button onClick={goBack} variant="outline">Previous</Button>
+                )}
+                {canLoadMore && (
+                    <Button onClick={loadMore} variant="outline">Load More</Button>
+                )}
+            </div>
+          </CardContent>
+        </Card>
+  )
+}
+
 
 export default function TaskHistoryPage() {
     const [user, setUser] = useState<SupabaseUser | null>(null);
@@ -295,7 +429,18 @@ export default function TaskHistoryPage() {
             </Card>
         </div>
         
-        <TaskSubmissions />
+        <Tabs defaultValue="tasks" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="tasks">Task Submissions</TabsTrigger>
+                <TabsTrigger value="coins">Coin Submissions</TabsTrigger>
+            </TabsList>
+            <TabsContent value="tasks">
+                <TaskSubmissions />
+            </TabsContent>
+            <TabsContent value="coins">
+                <CoinSubmissions />
+            </TabsContent>
+        </Tabs>
       </main>
     </div>
   );
