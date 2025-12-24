@@ -80,8 +80,13 @@ export default function WithdrawPage() {
 
         setBalances({ available: availableBalance, hold: holdBalance });
         
-        // Mocking settings data
-        setSettingsData({ withdrawal: { chargesPercent: 2, minAmount: 500, methods: { upi: true, bank: true } } });
+        // Mocking settings data - In a real app this should come from your DB
+        const { data: appSettings } = await supabase.from('settings').select('*').single();
+        if (appSettings) {
+            setSettingsData(appSettings.settings_data);
+        } else {
+             setSettingsData({ withdrawal: { chargesPercent: 2, minAmount: 500, methods: [{id: 'upi', name: 'UPI', enabled: true}] } });
+        }
         
         setDataLoading(false);
     };
@@ -115,19 +120,9 @@ export default function WithdrawPage() {
     fetchProfile();
   }, [user]);
 
-  const withdrawalSettings = settingsData?.withdrawal || { chargesPercent: 2, minAmount: 500, methods: { upi: true } };
-  const availableMethods = Object.entries(withdrawalSettings.methods || {})
-    .filter(([_, isEnabled]) => isEnabled)
-    .map(([key]) => key);
+  const withdrawalSettings = settingsData?.withdrawal || { chargesPercent: 2, minAmount: 500, methods: [{id: 'upi', name: 'UPI', enabled: true}] };
+  const availableMethods = (withdrawalSettings.methods || []).filter((m: any) => m.enabled);
 
-  const getMethodLabel = (method: string) => {
-    switch (method) {
-      case 'upi': return 'UPI';
-      case 'bank': return 'Bank Transfer';
-      case 'usdt_bep20': return 'USDT (BEP20)';
-      default: return method;
-    }
-  }
 
   const getPlaceholder = (method: string) => {
     switch (method) {
@@ -182,7 +177,7 @@ export default function WithdrawPage() {
               .insert({
                   user_id: user.id,
                   amount: amountInr,
-                  payment_method: getMethodLabel(selectedMethod),
+                  payment_method: selectedMethod,
                   payment_details: paymentDetails,
                   status: 'Pending',
               });
@@ -213,7 +208,7 @@ export default function WithdrawPage() {
   const holdBalanceDisplay = formatCurrency(balances.hold || 0);
 
   const getUsdValue = () => {
-    if (selectedMethod !== 'usdt_bep20' || !amount) return null;
+    if (selectedMethod !== 'USDT (BEP20)' || !amount) return null;
     const usdRate = settingsData?.usdToInrRate || 85;
     const amountInr = currency === 'USD' ? parseFloat(amount) * usdRate : parseFloat(amount);
     const chargeInr = amountInr * (withdrawalSettings.chargesPercent / 100);
@@ -221,6 +216,9 @@ export default function WithdrawPage() {
     const finalUsd = finalAmountInr / usdRate;
     return finalUsd.toFixed(4);
   }
+  
+  const selectedMethodObj = availableMethods.find((m: any) => m.name === selectedMethod);
+
 
   return (
     <div>
@@ -267,8 +265,8 @@ export default function WithdrawPage() {
                       <SelectValue placeholder="Select a method" />
                   </SelectTrigger>
                   <SelectContent>
-                     {availableMethods.length > 0 ? availableMethods.map(method => (
-                          <SelectItem key={method} value={method}>{getMethodLabel(method)}</SelectItem>
+                     {availableMethods.length > 0 ? availableMethods.map((method: any) => (
+                          <SelectItem key={method.id} value={method.name}>{method.name}</SelectItem>
                      )) : <SelectItem value="none" disabled>No methods available</SelectItem>}
                   </SelectContent>
               </Select>
@@ -284,10 +282,10 @@ export default function WithdrawPage() {
 
                 <div>
                   <Label htmlFor="payment-details" className="font-bold">Payment Details</Label>
-                  <Input id="payment-details" type="text" placeholder={getPlaceholder(selectedMethod)} className="h-12 mt-1" value={paymentDetails} onChange={e => setPaymentDetails(e.target.value)} disabled={isUserBlocked} />
+                  <Input id="payment-details" type="text" placeholder={getPlaceholder(selectedMethodObj.id)} className="h-12 mt-1" value={paymentDetails} onChange={e => setPaymentDetails(e.target.value)} disabled={isUserBlocked} />
                 </div>
                 
-                {selectedMethod === 'upi' && (
+                {selectedMethodObj.id === 'upi' && (
                   <Alert variant="destructive" className="bg-yellow-50 border-yellow-200 text-yellow-800">
                     <Info className="h-4 w-4 !text-yellow-600" />
                     <AlertTitle>Check Your UPI ID</AlertTitle>
@@ -297,7 +295,7 @@ export default function WithdrawPage() {
                   </Alert>
                 )}
                 
-                {selectedMethod === 'bank' && (
+                {selectedMethodObj.id === 'bank' && (
                   <Alert variant="destructive" className="bg-yellow-50 border-yellow-200 text-yellow-800">
                     <Info className="h-4 w-4 !text-yellow-600" />
                     <AlertTitle>Check Your Bank Details</AlertTitle>
@@ -307,7 +305,7 @@ export default function WithdrawPage() {
                   </Alert>
                 )}
 
-                {selectedMethod === 'usdt_bep20' && (
+                {selectedMethodObj.id === 'usdt_bep20' && (
                   <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-800">
                     <AlertTriangle className="h-4 w-4 !text-red-600" />
                     <AlertTitle>Important Notice</AlertTitle>
@@ -321,7 +319,7 @@ export default function WithdrawPage() {
                   <AlertDescription>
                     <p>Withdraw Charges ({withdrawalSettings.chargesPercent}%): <span className="font-semibold">{formatCurrency(charge)}</span></p>
                     <p className="font-bold">You'll receive: <span className="font-semibold">{formatCurrency(receiveAmount)}</span></p>
-                    {selectedMethod === 'usdt_bep20' && getUsdValue() && (
+                    {selectedMethodObj.id === 'usdt_bep20' && getUsdValue() && (
                       <p className="font-bold mt-1">Approx. <span className="text-green-600">${getUsdValue()}</span></p>
                     )}
                   </AlertDescription>
@@ -347,7 +345,7 @@ export default function WithdrawPage() {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Method:</span>
-                        <span className="font-bold">{getMethodLabel(selectedMethod)}</span>
+                        <span className="font-bold">{selectedMethod}</span>
                       </div>
                       <div className="flex justify-between items-start">
                         <span className="text-muted-foreground">Details:</span>
@@ -358,7 +356,7 @@ export default function WithdrawPage() {
                         <span className="text-muted-foreground">You Will Receive:</span>
                         <span className="font-bold text-green-600">{formatCurrency(receiveAmount)}</span>
                       </div>
-                      {selectedMethod === 'usdt_bep20' && getUsdValue() && (
+                      {selectedMethodObj.id === 'usdt_bep20' && getUsdValue() && (
                         <div className="flex justify-between text-base">
                           <span className="text-muted-foreground">Approx. USD:</span>
                           <span className="font-bold text-green-600">${getUsdValue()}</span>
