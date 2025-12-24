@@ -17,29 +17,22 @@ import { LoadingScreen } from '@/components/loading-screen';
 import { CopyButton } from '@/components/copy-button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-const getTaskConfig = (taskType: string) => {
-    const configs: { [key: string]: any } = {
-        'niva-coin': {
-            title: 'Niva Coin Task',
-            rewardRate: 0.1, // INR per coin
-            description: 'Submit your Niva Coins to earn rewards.',
-            receiverId: 'NIVA-RECEIVER-123',
-            rules: 'Only submit coins earned through official tasks;Any fraudulent submissions will result in an account ban;Submissions are verified within 24 hours.'
-        },
-        'top-coin': {
-            title: 'Top Coin Task',
-            rewardRate: 0.15, // INR per coin
-            description: 'Submit your Top Coins for even greater rewards.',
-            receiverId: 'TOP-COIN-RECEIVER-456',
-            rules: 'Coins must be from partnered apps;Ensure your Insta ID is correct;Minimum 100 coins per submission.'
-        },
-    };
-    const config = configs[taskType];
+const getTaskConfig = (taskType: string, allSettings: any[]) => {
+    const config = allSettings.find(t => t.id === taskType);
     if (!config) return null;
     
+    // You can add task-specific data here if needed in the future
+    let receiverId = 'RECEIVER-ID-NOT-SET';
+    if (taskType === 'niva-coin') receiverId = 'NIVA-RECEIVER-123';
+    if (taskType === 'top-coin') receiverId = 'TOP-COIN-RECEIVER-456';
+
     return {
         id: `${taskType.toUpperCase()}-${Date.now()}`,
-        ...config,
+        title: config.name,
+        description: config.description,
+        rewardRate: config.reward,
+        rules: config.rules,
+        receiverId: receiverId,
     };
 };
 
@@ -50,6 +43,7 @@ function CoinTaskComponent() {
     const taskType = searchParams.get('type') || '';
     
     const [user, setUser] = useState<User | null>(null);
+    const [taskSettings, setTaskSettings] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     
@@ -58,21 +52,33 @@ function CoinTaskComponent() {
     const [orderId, setOrderId] = useState('');
     const [dateTime, setDateTime] = useState('');
 
-    const task = useMemo(() => getTaskConfig(taskType), [taskType]);
+    const task = useMemo(() => getTaskConfig(taskType, taskSettings), [taskType, taskSettings]);
 
     useEffect(() => {
-        if (!task) {
-            router.push('/tasks');
-            return;
-        }
-        const getUser = async () => {
+        const initialize = async () => {
             const { data: { session } } = await supabase.auth.getSession();
-            if (!session) router.push('/login');
-            else setUser(session.user);
+            if (!session) {
+                router.push('/login');
+                return;
+            }
+            setUser(session.user);
+
+            const { data: settings, error } = await supabase
+                .from('settings')
+                .select('settings_data->taskSettings')
+                .eq('id', 1)
+                .single();
+
+            if (error || !settings || !settings.taskSettings) {
+                toast({ variant: 'destructive', title: 'Error', description: 'Could not load task configuration.' });
+                router.push('/tasks');
+                return;
+            }
+            setTaskSettings(settings.taskSettings as any[]);
             setIsLoading(false);
         };
-        getUser();
-    }, [router, task]);
+        initialize();
+    }, [router, toast]);
 
     const handleSubmit = async () => {
         if (!task || !user) return;

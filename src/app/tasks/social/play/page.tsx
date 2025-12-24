@@ -15,39 +15,28 @@ import { Loader2, CheckCircle, SkipForward, LogOut, ShieldCheck, User as UserIco
 import { useToast } from '@/hooks/use-toast';
 import { LoadingScreen } from '@/components/loading-screen';
 
-const getTaskConfig = (taskType: string) => {
-    const configs: { [key: string]: any } = {
-        'hot-mail': {
-            title: 'Hotmail Task',
-            reward: 12,
-            fields: ['name', 'email', 'password', 'recoveryMail'],
-            description: 'Submit details for a Hotmail account.'
-        },
-        'outlook-mail': {
-            title: 'Outlook Mail Task',
-            reward: 12,
-            fields: ['name', 'email', 'password', 'recoveryMail'],
-            description: 'Submit details for an Outlook account.'
-        },
-        'facebook': {
-            title: 'Facebook Task',
-            reward: 15,
-            fields: ['uid', 'password', 'twoFactor', 'webMail'],
-            description: 'Submit details for a Facebook account.'
-        },
-        'instagram': {
-            title: 'Instagram Task',
-            reward: 15,
-            fields: ['uid', 'password', 'twoFactor', 'webMail'],
-            description: 'Submit details for an Instagram account.'
-        },
-    };
-    const config = configs[taskType];
+const getTaskConfig = (taskType: string, allSettings: any[]) => {
+    const config = allSettings.find(t => t.id === taskType);
     if (!config) return null;
     
+    let fields: string[] = [];
+    switch (taskType) {
+        case 'hot-mail':
+        case 'outlook-mail':
+            fields = ['name', 'email', 'password', 'recoveryMail'];
+            break;
+        case 'facebook':
+        case 'instagram':
+            fields = ['uid', 'password', 'twoFactor', 'webMail'];
+            break;
+    }
+
     return {
         id: `${taskType.toUpperCase()}-${Date.now()}`,
-        ...config,
+        title: config.name,
+        reward: config.reward,
+        description: config.description,
+        fields: fields,
     };
 };
 
@@ -58,25 +47,38 @@ function SocialTaskComponent() {
     const taskType = searchParams.get('type') || '';
     
     const [user, setUser] = useState<User | null>(null);
+    const [taskSettings, setTaskSettings] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formState, setFormState] = useState<{[key: string]: string}>({});
 
-    const task = useMemo(() => getTaskConfig(taskType), [taskType]);
+    const task = useMemo(() => getTaskConfig(taskType, taskSettings), [taskType, taskSettings]);
 
     useEffect(() => {
-        if (!task) {
-            router.push('/tasks');
-            return;
-        }
-        const getUser = async () => {
+        const initialize = async () => {
             const { data: { session } } = await supabase.auth.getSession();
-            if (!session) router.push('/login');
-            else setUser(session.user);
+            if (!session) {
+                router.push('/login');
+                return;
+            }
+            setUser(session.user);
+
+            const { data: settings, error } = await supabase
+                .from('settings')
+                .select('settings_data->taskSettings')
+                .eq('id', 1)
+                .single();
+
+            if (error || !settings || !settings.taskSettings) {
+                toast({ variant: 'destructive', title: 'Error', description: 'Could not load task configuration.' });
+                router.push('/tasks');
+                return;
+            }
+            setTaskSettings(settings.taskSettings as any[]);
             setIsLoading(false);
         };
-        getUser();
-    }, [router, task]);
+        initialize();
+    }, [router, toast]);
 
     const handleInputChange = (field: string, value: string) => {
         setFormState(prev => ({ ...prev, [field]: value }));

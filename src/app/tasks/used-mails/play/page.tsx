@@ -17,14 +17,6 @@ import { supabase } from '@/lib/supabase';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 
-interface UsedMailData {
-    email: string;
-    password?: string;
-    recoveryMail?: string;
-}
-
-const RATE_PER_EMAIL = 2; // INR में उदाहरण दर
-
 export default function UsedMailsPage() {
     const { toast } = useToast();
     const { formatCurrency } = useCurrency();
@@ -32,32 +24,47 @@ export default function UsedMailsPage() {
 
     const [user, setUser] = useState<SupabaseUser | null>(null);
     const [isLoadingUser, setIsLoadingUser] = useState(true);
+    const [taskConfig, setTaskConfig] = useState<any>(null);
 
-    // एकल सबमिशन के लिए स्थिति
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [recoveryMail, setRecoveryMail] = useState('');
     const [isSubmittingSingle, setIsSubmittingSingle] = useState(false);
 
-    // बल्क सबमिशन के लिए स्थिति
     const [csvFile, setCsvFile] = useState<File | null>(null);
     const [fileName, setFileName] = useState('');
-    const [parsedData, setParsedData] = useState<UsedMailData[]>([]);
+    const [parsedData, setParsedData] = useState<any[]>([]);
     const [isParsing, setIsParsing] = useState(false);
     const [isSubmittingBulk, setIsSubmittingBulk] = useState(false);
 
     useEffect(() => {
-        const getUser = async () => {
+        const initialize = async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (session) {
                 setUser(session.user);
             } else {
                 router.push('/login');
             }
+            
+            const { data: settings, error } = await supabase
+                .from('settings')
+                .select('settings_data->taskSettings')
+                .eq('id', 1)
+                .single();
+
+            if (error || !settings || !settings.taskSettings) {
+                toast({ variant: 'destructive', title: 'Error', description: 'Could not load task configuration.' });
+            } else {
+                const config = (settings.taskSettings as any[]).find(t => t.id === 'used-mails');
+                setTaskConfig(config || { reward: 2 }); // Fallback reward
+            }
+            
             setIsLoadingUser(false);
         };
-        getUser();
-    }, [router]);
+        initialize();
+    }, [router, toast]);
+    
+    const ratePerEmail = taskConfig?.reward || 0;
 
     const handleSingleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -74,9 +81,9 @@ export default function UsedMailsPage() {
         
         const submission = {
             user_id: user.id,
-            reward: RATE_PER_EMAIL,
+            reward: ratePerEmail,
             status: 'Pending',
-            task_type: 'used-mail-single', // एकल के लिए अलग प्रकार
+            task_type: 'used-mail-single',
             submission_data: { 
                 email, 
                 password, 
@@ -107,14 +114,14 @@ export default function UsedMailsPage() {
             }
             setCsvFile(file);
             setFileName(file.name);
-            setParsedData([]); // पिछला डेटा रीसेट करें
+            setParsedData([]);
 
             setIsParsing(true);
             Papa.parse(file, {
                 header: true,
                 skipEmptyLines: true,
                 complete: (results) => {
-                    const validData = results.data.filter((row: any) => row.email && typeof row.email === 'string' && row.email.includes('@')) as UsedMailData[];
+                    const validData = results.data.filter((row: any) => row.email && typeof row.email === 'string' && row.email.includes('@'));
                     if (validData.length === 0) {
                         toast({ variant: 'destructive', title: 'No valid data found', description: 'Please check your CSV file. It must have an "email" column.' });
                     }
@@ -141,10 +148,9 @@ export default function UsedMailsPage() {
 
         setIsSubmittingBulk(true);
         
-        const totalReward = parsedData.length * RATE_PER_EMAIL;
+        const totalReward = parsedData.length * ratePerEmail;
 
         try {
-            // चरण 1: usertasks टेबल में एक सिंगल बैच एंट्री बनाएँ
             const { data: taskData, error: taskError } = await supabase
                 .from('usertasks')
                 .insert({
@@ -163,7 +169,6 @@ export default function UsedMailsPage() {
             if (taskError) throw taskError;
 
             toast({ title: 'Success', description: `${parsedData.length} emails have been submitted for verification.` });
-            // स्थिति रीसेट करें
             setCsvFile(null);
             setFileName('');
             setParsedData([]);
@@ -189,7 +194,7 @@ export default function UsedMailsPage() {
         }
     };
 
-    const totalEarning = parsedData.length * RATE_PER_EMAIL;
+    const totalEarning = parsedData.length * ratePerEmail;
     const isLoading = isLoadingUser || isSubmittingSingle || isSubmittingBulk || isParsing;
 
     return (
@@ -223,9 +228,9 @@ export default function UsedMailsPage() {
                                     </div>
                                 </CardContent>
                                 <CardFooter>
-                                    <Button type="submit" className="w-full" disabled={isLoading || !email}>
+                                    <Button type="submit" className="w-full" disabled={isLoading || !email || ratePerEmail === 0}>
                                         {isSubmittingSingle && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                        Submit Single Email ({formatCurrency(RATE_PER_EMAIL)})
+                                        Submit Single Email ({formatCurrency(ratePerEmail)})
                                     </Button>
                                 </CardFooter>
                             </form>
@@ -285,7 +290,7 @@ export default function UsedMailsPage() {
                                 )}
                             </CardContent>
                              <CardFooter>
-                                <Button className="w-full" onClick={handleBulkSubmit} disabled={isLoading || parsedData.length === 0}>
+                                <Button className="w-full" onClick={handleBulkSubmit} disabled={isLoading || parsedData.length === 0 || ratePerEmail === 0}>
                                     {isSubmittingBulk && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     Submit {parsedData.length > 0 ? `${parsedData.length} Emails` : 'Emails'}
                                 </Button>

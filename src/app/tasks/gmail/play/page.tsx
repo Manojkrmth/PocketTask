@@ -7,10 +7,10 @@ import { LoadingScreen } from '@/components/loading-screen';
 import { PageHeader } from '@/components/page-header';
 import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { XCircle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const TASK_STORAGE_KEY = 'gmailTaskData';
 
@@ -22,10 +22,34 @@ export default function GmailTaskPage() {
     const [expiryTimestamp, setExpiryTimestamp] = useState(0);
     const [submitCooldownExpiryTimestamp, setSubmitCooldownExpiryTimestamp] = useState(0);
     const router = useRouter();
+    const { toast } = useToast();
 
     const loadNewTask = async (user: User) => {
         setIsLoading(true);
         setNoTasksAvailable(false);
+
+        // Fetch task settings first
+        const { data: settingsData, error: settingsError } = await supabase
+            .from('settings')
+            .select('settings_data')
+            .eq('id', 1)
+            .single();
+        
+        if (settingsError || !settingsData) {
+            toast({ variant: "destructive", title: "Error", description: "Could not load task configuration." });
+            setNoTasksAvailable(true);
+            setIsLoading(false);
+            return;
+        }
+
+        const gmailTaskConfig = settingsData.settings_data.taskSettings.find((t: any) => t.id === 'gmail');
+
+        if (!gmailTaskConfig) {
+            toast({ variant: "destructive", title: "Configuration Error", description: "Gmail task is not configured in settings." });
+            setNoTasksAvailable(true);
+            setIsLoading(false);
+            return;
+        }
 
         const { data, error } = await supabase.rpc('get_and_assign_gmail_task', {
             user_id_input: user.id
@@ -41,25 +65,23 @@ export default function GmailTaskPage() {
         const newTask = data && data.length > 0 ? data[0] : null;
 
         if (newTask) {
-            // Task को API से मिले डेटा के अनुसार फॉर्मेट करें
             const formattedTask = {
               id: newTask.id,
-              title: newTask.title,
-              reward: newTask.reward,
-              description: newTask.description,
-              rules: newTask.rules,
-              batchId: `BATCH-${newTask.id}`, // एक बैच आईडी बनाएँ
+              title: gmailTaskConfig.name,
+              reward: gmailTaskConfig.reward,
+              description: gmailTaskConfig.description,
+              rules: gmailTaskConfig.rules,
+              batchId: `BATCH-${newTask.id}`,
               prefilledData: {
                   fullName: newTask.full_name,
-                  // पूरा जीमेल पता बनाएँ
                   gmail: `${newTask.gmail_user}@gmail.com`, 
                   password: newTask.password,
                   recoveryMail: newTask.recovery_mail,
               },
             };
 
-            const newExpiryTimestamp = Date.now() + 10 * 60 * 1000; // 10 मिनट
-            const newSubmitCooldownTimestamp = Date.now() + 1 * 60 * 1000; // 1 मिनट
+            const newExpiryTimestamp = Date.now() + 10 * 60 * 1000; // 10 minutes
+            const newSubmitCooldownTimestamp = Date.now() + 1 * 60 * 1000; // 1 minute
 
             const taskData = {
                 task: formattedTask,
@@ -103,7 +125,6 @@ export default function GmailTaskPage() {
                     console.error("Failed to parse stored task data", error);
                 }
             }
-            // अगर कोई एक्टिव टास्क नहीं है, तो नया लोड करें
             await loadNewTask(session.user);
         };
 
@@ -117,8 +138,6 @@ export default function GmailTaskPage() {
         }
     };
     
-    // Gmail regenerate अब GmailTaskCenter के अंदर ही रहेगा क्योंकि उसे UI से इंटरैक्ट करना है
-
     if (isLoading) {
         return <LoadingScreen />;
     }
@@ -138,12 +157,12 @@ export default function GmailTaskPage() {
     }
 
     if (!task) {
-        return <LoadingScreen />; // अगर कोई टास्क नहीं है तो लोडिंग स्क्रीन दिखाएँ
+        return <LoadingScreen />;
     }
 
     return (
         <div>
-            <PageHeader title="Gmail Task" />
+            <PageHeader title={task.title || "Gmail Task"} />
             <GmailTaskCenter
                 task={task}
                 currentGmail={task.prefilledData.gmail}
@@ -151,7 +170,6 @@ export default function GmailTaskPage() {
                 submitCooldownExpiryTimestamp={submitCooldownExpiryTimestamp}
                 onTaskComplete={handleTaskComplete}
                 onGmailRegenerate={(newGmail) => {
-                    // UI में और sessionStorage में जीमेल अपडेट करें
                     const updatedTask = { ...task, prefilledData: { ...task.prefilledData, gmail: newGmail } };
                     setTask(updatedTask);
                     const stored = JSON.parse(sessionStorage.getItem(TASK_STORAGE_KEY) || '{}');

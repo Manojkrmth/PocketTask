@@ -57,12 +57,20 @@ export default function VisitAndEarnPage() {
             setIsLoading(false);
             return;
         }
-
+        
+        const { data: settingsData, error: settingsError } = await supabase
+            .from('settings')
+            .select('settings_data->taskSettings')
+            .eq('id', 1)
+            .single();
+        
+        const taskConfig = settingsData?.taskSettings?.find((t:any) => t.id === 'visit-earn');
         const newTask = data && data.length > 0 ? data[0] : null;
 
-        if (newTask && newTask.id) {
-            sessionStorage.setItem(TASK_STORAGE_KEY, JSON.stringify(newTask));
-            setTask(newTask);
+        if (newTask && newTask.id && taskConfig) {
+            const enrichedTask = { ...newTask, reward: taskConfig.reward, title: taskConfig.name, description: taskConfig.description };
+            sessionStorage.setItem(TASK_STORAGE_KEY, JSON.stringify(enrichedTask));
+            setTask(enrichedTask);
         } else {
             setNoTasksAvailable(true);
         }
@@ -83,9 +91,6 @@ export default function VisitAndEarnPage() {
             if (storedTask) {
                 try {
                     const parsedTask = JSON.parse(storedTask);
-                    // Ensure stored task has not expired or been completed
-                    // For now, we will just load it if it exists.
-                    // A better check might involve an expiry timestamp.
                     setTask(parsedTask);
                     setIsLoading(false);
                 } catch {
@@ -120,23 +125,6 @@ export default function VisitAndEarnPage() {
         try {
             if (!user) throw new Error("User not found");
 
-            const { data: profile, error: profileError } = await supabase
-                .from('users')
-                .select('balance_available')
-                .eq('id', user.id)
-                .single();
-
-            if (profileError) throw profileError;
-
-            const newBalance = profile.balance_available + task.reward;
-
-            const { error: balanceError } = await supabase
-                .from('users')
-                .update({ balance_available: newBalance })
-                .eq('id', user.id);
-
-            if (balanceError) throw balanceError;
-            
             const { error: taskError } = await supabase.from('usertasks').insert({
                 user_id: user.id,
                 task_type: 'visit-earn',
@@ -168,14 +156,14 @@ export default function VisitAndEarnPage() {
         } catch (error: any) {
              toast({ variant: 'destructive', title: 'Submission Failed', description: error.message });
              setIsSubmitting(false);
-        } finally {
-            setIsVerifying(false);
+             setIsVerifying(false);
         }
     };
 
     const handleSkip = () => {
         setVerificationCode('');
         setIsSubmitting(false);
+        setIsVerifying(false);
         if (user) {
             loadNewTask(user.id);
         }

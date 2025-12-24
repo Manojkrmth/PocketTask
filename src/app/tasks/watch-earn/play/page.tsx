@@ -59,10 +59,18 @@ export default function WatchAndEarnPage() {
             return;
         }
 
+        const { data: settingsData, error: settingsError } = await supabase
+            .from('settings')
+            .select('settings_data->taskSettings')
+            .eq('id', 1)
+            .single();
+        
+        const taskConfig = settingsData?.taskSettings?.find((t:any) => t.id === 'watch-earn');
         const newTask = data && data.length > 0 ? data[0] : null;
 
-        if (newTask && newTask.id) {
-            setTask(newTask);
+        if (newTask && newTask.id && taskConfig) {
+             const enrichedTask = { ...newTask, reward: taskConfig.reward, title: taskConfig.name, description: taskConfig.description };
+            setTask(enrichedTask);
         } else {
             setNoTasksAvailable(true);
         }
@@ -104,23 +112,6 @@ export default function WatchAndEarnPage() {
         
         try {
             if (!user) throw new Error("User not found");
-
-            const { data: profile, error: profileError } = await supabase
-                .from('users')
-                .select('balance_available')
-                .eq('id', user.id)
-                .single();
-
-            if (profileError) throw profileError;
-
-            const newBalance = profile.balance_available + task.reward;
-
-            const { error: balanceError } = await supabase
-                .from('users')
-                .update({ balance_available: newBalance })
-                .eq('id', user.id);
-
-            if (balanceError) throw balanceError;
             
             const { error: taskError } = await supabase.from('usertasks').insert({
                 user_id: user.id,

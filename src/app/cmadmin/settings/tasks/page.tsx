@@ -9,6 +9,8 @@ import { Loader2, Save, ListTodo } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 interface TaskSetting {
     id: string;
@@ -16,6 +18,8 @@ interface TaskSetting {
     description: string;
     badge: string | null;
     enabled: boolean;
+    reward: number;
+    rules: string; // Semicolon-separated rules
 }
 
 export default function TaskSettingsPage() {
@@ -39,17 +43,23 @@ export default function TaskSettingsPage() {
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch app settings.' });
             } else {
                 setSettings(data.settings_data);
-                setTaskSettings(data.settings_data.taskSettings || []);
+                // Ensure default values if fields are missing
+                const initializedSettings = (data.settings_data.taskSettings || []).map((task: any) => ({
+                    reward: 0,
+                    rules: '',
+                    ...task
+                }));
+                setTaskSettings(initializedSettings);
             }
             setLoading(false);
         };
         fetchSettings();
     }, [toast]);
 
-    const handleToggleChange = (taskId: string, enabled: boolean) => {
+    const handleFieldChange = (taskId: string, field: keyof TaskSetting, value: any) => {
         setTaskSettings(prev => 
             prev.map(task => 
-                task.id === taskId ? { ...task, enabled } : task
+                task.id === taskId ? { ...task, [field]: value } : task
             )
         );
     };
@@ -82,42 +92,66 @@ export default function TaskSettingsPage() {
         <div className="space-y-6">
             <div>
                 <h1 className="text-3xl font-bold">Task Settings</h1>
-                <p className="text-muted-foreground">Enable or disable different task categories for users.</p>
+                <p className="text-muted-foreground">Enable, disable, and configure all task categories for users.</p>
             </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Manage Task Categories</CardTitle>
-                    <CardDescription>Use the toggles to show or hide task types from the user's task list.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    {taskSettings.length > 0 ? (
-                        taskSettings.map(task => (
-                             <div key={task.id} className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                <div className="space-y-0.5">
-                                    <Label htmlFor={`task-${task.id}`} className="text-base font-medium">{task.name}</Label>
-                                    <p className="text-sm text-muted-foreground">
-                                        {task.description}
-                                    </p>
+            <div className="space-y-6">
+                {taskSettings.length > 0 ? (
+                    taskSettings.map(task => (
+                        <Card key={task.id}>
+                            <CardHeader>
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="capitalize">{task.name}</CardTitle>
+                                    <Switch
+                                        checked={task.enabled}
+                                        onCheckedChange={(checked) => handleFieldChange(task.id, 'enabled', checked)}
+                                        disabled={isSaving}
+                                    />
                                 </div>
-                                <Switch
-                                    id={`task-${task.id}`}
-                                    checked={task.enabled}
-                                    onCheckedChange={(checked) => handleToggleChange(task.id, checked)}
-                                    disabled={isSaving}
-                                />
-                            </div>
-                        ))
-                    ) : (
-                        <p>No task settings found. Please initialize them in the database.</p>
-                    )}
-                </CardContent>
-            </Card>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="grid md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Name</Label>
+                                        <Input value={task.name} onChange={(e) => handleFieldChange(task.id, 'name', e.target.value)} disabled={isSaving} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Description</Label>
+                                        <Input value={task.description} onChange={(e) => handleFieldChange(task.id, 'description', e.target.value)} disabled={isSaving} />
+                                    </div>
+                                </div>
+                                 <div className="grid md:grid-cols-2 gap-4">
+                                     <div className="space-y-2">
+                                        <Label>Badge Text (Optional)</Label>
+                                        <Input value={task.badge || ''} onChange={(e) => handleFieldChange(task.id, 'badge', e.target.value)} disabled={isSaving} placeholder="e.g., HOT, NEW" />
+                                    </div>
+                                     <div className="space-y-2">
+                                        <Label>Reward (INR)</Label>
+                                        <Input type="number" value={task.reward} onChange={(e) => handleFieldChange(task.id, 'reward', parseFloat(e.target.value) || 0)} disabled={isSaving} />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Rules (separated by semicolon ';')</Label>
+                                    <Textarea 
+                                        value={task.rules} 
+                                        onChange={(e) => handleFieldChange(task.id, 'rules', e.target.value)}
+                                        placeholder="e.g., Rule 1; Rule 2; Rule 3"
+                                        disabled={isSaving}
+                                        rows={3}
+                                    />
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))
+                ) : (
+                    <p>No task settings found. Please initialize them in the database.</p>
+                )}
+            </div>
 
             <div className="flex justify-end gap-2">
                 <Button onClick={handleSaveChanges} disabled={isSaving || loading}>
                     {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                    Save Task Settings
+                    Save All Task Settings
                 </Button>
             </div>
         </div>
