@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -14,14 +15,14 @@ import Image from 'next/image';
 const segments: WheelSegment[] = [
   { text: '5', color: '#D81B60' },
   { text: '10', color: '#43A047' },
-  { text: 'Try Again', color: '#1E88E5' },
-  { text: '8', color: '#6A1B9A' },
-  { text: 'Bonus', color: '#FB8C00' },
+  { text: '8', color: '#1E88E5' },
+  { text: '12', color: '#6A1B9A' },
+  { text: '7', color: '#FB8C00' },
   { text: '15', color: '#d32f2f' },
-  { text: '7', color: '#00796b' },
-  { text: 'Try Again', color: '#512da8' },
-  { text: '9', color: '#c2185b' },
-  { text: 'Bonus', color: '#fbc02d' },
+  { text: '6', color: '#00796b' },
+  { text: '9', color: '#512da8' },
+  { text: '11', color: '#c2185b' },
+  { text: '14', color: '#fbc02d' },
 ];
 
 const DAILY_SPIN_CHANCES = 50;
@@ -104,10 +105,7 @@ export default function SpinRewardPage() {
   const onSpinComplete = useCallback((selectedSegment: WheelSegment) => {
     setIsSpinning(false);
     setResult(selectedSegment);
-
-    if (selectedSegment.text !== 'Try Again') {
-      setShowConfetti(true);
-    }
+    setShowConfetti(true);
 
     const chancesLeft = spinChances - 1;
     if (chancesLeft > 0) {
@@ -115,7 +113,7 @@ export default function SpinRewardPage() {
         setShowAd(true);
         setAdClicked(false);
         setCountdown(COUNTDOWN_SECONDS);
-      }, 1000);
+      }, 2000); // Wait for confetti
     }
   }, [spinChances]);
 
@@ -131,7 +129,7 @@ export default function SpinRewardPage() {
       if (isSpinning) return { text: 'Spinning...', disabled: true };
       if (allSpinsUsedToday) return { text: 'Come back tomorrow', disabled: true};
       if (showAd && countdown > 0) return { text: `Next Spin in ${countdown}s`, disabled: true };
-      if (showAd && countdown === 0) return { text: 'Click Ad to Spin', disabled: true };
+      if (showAd && countdown === 0) return { text: 'Click Ad to Spin Again', disabled: true };
       return { text: 'SPIN NOW', disabled: false };
   }
 
@@ -152,16 +150,20 @@ export default function SpinRewardPage() {
             <p className="text-2xl font-bold">{spinChances}</p>
           </CardContent>
         </Card>
+        
+        <Alert>
+          <AlertTitle className="font-bold">Note: 1000 Points = 10 INR</AlertTitle>
+        </Alert>
 
         <div className="flex-1 flex flex-col items-center justify-center space-y-8">
           <SpinWheel segments={segments} isSpinning={isSpinning} onSpinComplete={onSpinComplete} />
 
           {result && !showAd && (
-             <Alert className={`max-w-sm animate-in fade-in-50 ${result.text.toLowerCase().includes('try') ? 'bg-gray-100' : 'bg-yellow-100 border-yellow-300'}`}>
+             <Alert className={'bg-yellow-100 border-yellow-300 animate-in fade-in-50'}>
                 <Award className="h-4 w-4" />
                 <AlertTitle>You Won:</AlertTitle>
                 <AlertDescription className="text-lg font-bold">
-                    {result.text.toLowerCase().includes('try') || result.text.toLowerCase().includes('bonus') ? result.text : `${result.text} Points`}
+                    {`${result.text} Points`}
                 </AlertDescription>
             </Alert>
           )}
@@ -210,3 +212,5 @@ export default function SpinRewardPage() {
     </div>
   );
 }
+
+    
