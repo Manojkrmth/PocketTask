@@ -346,7 +346,7 @@ export default function TaskManagerPage() {
       const { data: pendingTasks, error } = await supabase
         .from('usertasks')
         .select('*')
-        .eq('batch_id', selectedBatchForBulkAction.id)
+        .eq('batch_id', String(selectedBatchForBulkAction.id))
         .eq('status', 'Pending');
       
       if (error) {
