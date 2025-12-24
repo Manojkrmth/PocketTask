@@ -37,25 +37,42 @@ interface LevelData {
 export default function TeamPage() {
   const router = useRouter();
   const { formatCurrency } = useCurrency();
-
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // --- Start of Dummy Data ---
   const [teamStats, setTeamStats] = useState({
-    totalTeamSize: 1234,
-    activeMembers: 56,
-    myEarning: 750.50,
+    totalTeamSize: 0,
+    activeMembers: 0,
+    myEarning: 0,
   });
 
-  const [teamData, setTeamData] = useState<LevelData[]>([
-    { level: 1, commission: 10, members: 10, earnings: 250 },
-    { level: 2, commission: 5, members: 78, earnings: 180.75 },
-    { level: 3, commission: 3, members: 245, earnings: 155.25 },
-    { level: 4, commission: 2, members: 511, earnings: 114.50 },
-    { level: 5, commission: 1, members: 390, earnings: 50.00 },
-  ]);
-  // --- End of Dummy Data ---
+  const [teamData, setTeamData] = useState<LevelData[]>([]);
   
+  const fetchTeamData = useCallback(async (userId: string) => {
+    setIsLoading(true);
+    const { data, error } = await supabase.rpc('get_user_team_data', { p_user_id: userId });
+
+    if (error) {
+        console.error("Error fetching team data:", error);
+    } else if (data) {
+        const fullTeamData = data.levelData;
+        const levels = Array.from({ length: 5 }, (_, i) => i + 1);
+        const processedTeamData = levels.map(level => {
+            const foundLevel = fullTeamData.find((d: LevelData) => d.level === level);
+            return foundLevel || {
+                level: level,
+                commission: [10, 5, 3, 2, 1][level - 1] || 0,
+                members: 0,
+                earnings: 0
+            };
+        });
+        setTeamData(processedTeamData);
+        setTeamStats(data.teamStats);
+    }
+    
+    setIsLoading(false);
+  }, []);
+
   useEffect(() => {
     const checkUserStatus = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -63,6 +80,8 @@ export default function TeamPage() {
         router.push('/login');
         return;
       }
+      
+      setCurrentUser(session.user);
       
       const { data: profile } = await supabase
         .from('users')
@@ -75,10 +94,10 @@ export default function TeamPage() {
         return;
       }
       
-      setIsLoading(false); // Only set loading to false after checks pass
+      await fetchTeamData(session.user.id);
     };
     checkUserStatus();
-  }, [router]);
+  }, [router, fetchTeamData]);
 
   const statCards = [
     {
