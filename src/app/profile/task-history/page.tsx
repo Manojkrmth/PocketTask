@@ -237,21 +237,15 @@ function CoinSubmissions() {
     }, []);
 
     const currentItems = useMemo(() => {
-        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-        const endIndex = startIndex + ITEMS_PER_PAGE;
-        return coinHistory?.slice(startIndex, endIndex) || [];
+        const endIndex = currentPage * ITEMS_PER_PAGE;
+        return coinHistory?.slice(0, endIndex) || [];
     }, [coinHistory, currentPage]);
     
     const canLoadMore = currentPage * ITEMS_PER_PAGE < (coinHistory?.length || 0);
-    const canGoBack = currentPage > 1;
 
     const loadMore = () => {
         if(canLoadMore) setCurrentPage(prev => prev + 1);
     };
-    
-    const goBack = () => {
-        if(canGoBack) setCurrentPage(prev => prev - 1);
-    }
 
     const formatDate = (date: any) => {
         if (!date) return 'N/A';
@@ -297,9 +291,6 @@ function CoinSubmissions() {
                     </TableBody>
                 </Table>
                 <div className="pt-4 flex justify-center gap-2">
-                    {canGoBack && (
-                        <Button onClick={goBack} variant="outline">Previous</Button>
-                    )}
                     {canLoadMore && (
                         <Button onClick={loadMore} variant="outline">Load More</Button>
                     )}
