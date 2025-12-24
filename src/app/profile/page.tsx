@@ -22,7 +22,7 @@ import { AddReferralDialog } from '@/components/add-referral-dialog';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/page-header';
@@ -113,7 +113,8 @@ export default function ProfilePage() {
       }
   });
 
-  const fetchProfileData = async (sessionUser: SupabaseUser) => {
+  const fetchProfileData = useCallback(async (sessionUser: SupabaseUser) => {
+    setIsLoading(true);
     const { data: profile, error } = await supabase
       .from('users')
       .select('*')
@@ -125,12 +126,12 @@ export default function ProfilePage() {
     } else {
       setUserProfile(profile);
     }
-  };
+    setIsLoading(false);
+  }, []);
 
 
   useEffect(() => {
       const checkSession = async () => {
-          setIsLoading(true);
           const { data: { session } } = await supabase.auth.getSession();
           if (!session) {
               router.push('/login');
@@ -138,10 +139,9 @@ export default function ProfilePage() {
           }
           setUser(session.user);
           await fetchProfileData(session.user);
-          setIsLoading(false);
       };
       checkSession();
-  }, [router]);
+  }, [router, fetchProfileData]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -165,7 +165,7 @@ export default function ProfilePage() {
 
       <main className="px-4 space-y-6 py-6">
         
-        {isLoading ? <Loader2 className="mx-auto h-6 w-6 animate-spin"/> : 
+        {isLoading ? <div className="flex justify-center"><Loader2 className="mx-auto h-6 w-6 animate-spin"/></div> : 
           user && !hasReferrer ? (
              <Card>
                <CardHeader>
@@ -173,9 +173,9 @@ export default function ProfilePage() {
                </CardHeader>
                <CardContent>
                   <p className="text-sm text-muted-foreground mb-3">
-                      Were you referred by a friend? Add their code here to join their team.
+                      Were you referred by a friend? Add their code here to join their team and get a bonus!
                   </p>
-                  <AddReferralDialog onFinished={() => user && fetchProfileData(user)} />
+                  <AddReferralDialog onFinished={() => fetchProfileData(user)} />
                </CardContent>
              </Card>
           ) : (

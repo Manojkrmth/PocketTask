@@ -19,37 +19,6 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 
-function ReferrerName({ userId, onData }: { userId: string, onData: (name: string) => void }) {
-    const [name, setName] = useState<string>('');
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchName = async () => {
-            const { data, error } = await supabase
-                .from('users')
-                .select('full_name')
-                .eq('id', userId)
-                .single();
-
-            if (data) {
-                setName(data.full_name);
-                onData(data.full_name);
-            }
-            setLoading(false);
-        }
-        fetchName();
-    }, [userId, onData]);
-
-
-    if (loading) {
-        return <Loader2 className="h-4 w-4 animate-spin" />
-    }
-    if (!name) {
-        return <span className="font-bold text-lg text-destructive">User Not Found</span>;
-    }
-    return <span className="font-bold text-lg text-primary">{name}</span>;
-}
-
 export function AddReferralDialog({ onFinished }: { onFinished?: () => void }) {
     const [referralCode, setReferralCode] = useState('');
     const [isVerifying, startVerifying] = useTransition();
@@ -62,12 +31,14 @@ export function AddReferralDialog({ onFinished }: { onFinished?: () => void }) {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
 
     useEffect(() => {
-        const getUser = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            setCurrentUser(user);
-        };
-        getUser();
-    }, []);
+        if (isOpen) {
+            const getUser = async () => {
+                const { data: { user } } = await supabase.auth.getUser();
+                setCurrentUser(user);
+            };
+            getUser();
+        }
+    }, [isOpen]);
 
     const handleVerify = async () => {
         if (!referralCode) {
@@ -78,17 +49,19 @@ export function AddReferralDialog({ onFinished }: { onFinished?: () => void }) {
             setError(null);
             setFoundUser(null);
             
+            const upperCaseCode = referralCode.trim().toUpperCase();
+
             const { data, error: queryError } = await supabase
                 .from('users')
                 .select('id, full_name')
-                .eq('referral_code', referralCode.trim().toUpperCase())
+                .eq('referral_code', upperCaseCode)
                 .single();
             
             if (queryError || !data) {
                 setError('Invalid referral code. Please check and try again.');
             } else {
                 if (data.id === currentUser?.id) {
-                   setError('You cannot refer yourself.');
+                   setError('You cannot use your own referral code.');
                    return;
                 }
                 setFoundUser(data);
@@ -102,20 +75,16 @@ export function AddReferralDialog({ onFinished }: { onFinished?: () => void }) {
             return;
         }
         
-        const updatedData = {
-          referred_by: referralCode.trim().toUpperCase()
-        };
-
         startConfirming(async () => {
-            const { error } = await supabase
-              .from('users')
-              .update(updatedData)
-              .eq('id', currentUser.id)
+             const { data, error } = await supabase.rpc('update_referral_and_add_bonus', {
+                referee_id: currentUser.id,
+                referrer_code: referralCode.trim().toUpperCase()
+            });
 
-            if(error) {
-                 toast({ variant: 'destructive', title: 'Error', description: error.message });
+            if(error || data.status === 'error') {
+                 toast({ variant: 'destructive', title: 'Error', description: error?.message || data.message });
             } else {
-                 toast({ title: 'Success!', description: `Your referral has been added.` });
+                 toast({ title: 'Success!', description: `Referral applied! You and your friend have received a bonus.` });
                  setIsOpen(false);
                  if (onFinished) {
                     onFinished();
@@ -126,6 +95,7 @@ export function AddReferralDialog({ onFinished }: { onFinished?: () => void }) {
     
     const handleOpenChange = (open: boolean) => {
         if (!open) {
+            // Reset state when closing the dialog
             setFoundUser(null); 
             setError(null); 
             setReferralCode('');
