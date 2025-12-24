@@ -10,12 +10,12 @@ import { SpinWheel, type WheelSegment } from '@/components/spin-wheel';
 import Confetti from 'react-confetti';
 import { useWindowSize } from '@/hooks/use-mobile';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import type { User } from '@supabase/supabase-js';
 import { LoadingScreen } from '@/components/loading-screen';
 import { useRouter } from 'next/navigation';
+import AdComponent from '@/components/ad-component';
 
 const segments: WheelSegment[] = [
   { id: 'seg1', text: '5', color: '#D81B60' },
@@ -168,7 +168,7 @@ export default function SpinRewardPage() {
                 spins_used_today: spinsToday,
                 last_spin_date: today,
                 updated_at: new Date().toISOString(),
-             })
+             }, { onConflict: 'user_id' })
             .select()
             .single();
       
@@ -292,21 +292,13 @@ export default function SpinRewardPage() {
           )}
 
           {showAd && (
-            <div className="w-full max-w-sm space-y-2">
-                <Card 
+            <div className="w-full max-w-sm space-y-2 flex flex-col items-center">
+                <div 
                     className="overflow-hidden border-2 border-primary shadow-lg cursor-pointer hover:border-green-500 transition-all"
                     onClick={handleAdClick}
                 >
-                    <div className="relative aspect-video">
-                        <Image
-                            src="https://picsum.photos/seed/ad1/600/340"
-                            alt="Advertisement"
-                            fill
-                            className="object-cover"
-                            data-ai-hint="advertisement banner"
-                        />
-                    </div>
-                </Card>
+                    <AdComponent />
+                </div>
                  <p className="text-center text-sm font-bold text-primary animate-pulse">
                     Click the ad to unlock your next spin!
                 </p>
