@@ -27,7 +27,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { ListFilter, Loader2, CheckCircle2, XCircle, Hourglass } from "lucide-react";
+import { ListFilter, Loader2, CheckCircle2, XCircle, Hourglass, Mail, Type } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/page-header';
 import { useCurrency } from '@/context/currency-context';
@@ -57,7 +57,7 @@ function TaskSubmissions() {
                 .from('usertasks')
                 .select('*')
                 .eq('userid', session.user.id)
-                .order('submissiontime', { ascending: false });
+                .order('submission_time', { ascending: false });
             
             if (error) {
                 console.error("Error fetching task history:", error);
@@ -120,7 +120,7 @@ function TaskSubmissions() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Gmail ID</TableHead>
+                  <TableHead>Task Details</TableHead>
                   <TableHead>Reward</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Submitted At</TableHead>
@@ -130,7 +130,16 @@ function TaskSubmissions() {
                 {isHistoryLoading && <TableRow><TableCell colSpan={4} className="h-24 text-center"><div className="flex justify-center items-center gap-2"><Loader2 className="h-6 w-6 animate-spin"/> Loading...</div></TableCell></TableRow>}
                 {!isHistoryLoading && currentTasks.map((task: any, index: number) => (
                   <TableRow key={task.id}>
-                    <TableCell><div className="font-medium">{task.gmail}</div></TableCell>
+                    <TableCell>
+                      <div className="font-medium flex items-center gap-2">
+                        <Type className="h-4 w-4 text-muted-foreground"/> {task.task_type || 'Unknown Task'}
+                      </div>
+                      {task.submission_data?.gmail && (
+                         <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1">
+                           <Mail className="h-3 w-3"/> {task.submission_data.gmail}
+                         </div>
+                      )}
+                    </TableCell>
                     <TableCell><div className="font-medium text-green-600">{task.reward ? formatCurrency(task.reward) : 'N/A'}</div></TableCell>
                     <TableCell>
                       <Badge variant="outline" className={cn(
@@ -139,7 +148,7 @@ function TaskSubmissions() {
                           task.status === "Rejected" && "bg-red-100 text-red-800 border-red-200"
                         )}>{task.status}</Badge>
                     </TableCell>
-                    <TableCell className="text-right font-medium text-xs">{formatDate(task.submissiontime)}</TableCell>
+                    <TableCell className="text-right font-medium text-xs">{formatDate(task.submission_time)}</TableCell>
                   </TableRow>
                 ))}
                 {!isHistoryLoading && (!currentTasks || currentTasks.length === 0) && (
@@ -328,5 +337,3 @@ export default function TaskHistoryPage() {
     </div>
   );
 }
-
-    
