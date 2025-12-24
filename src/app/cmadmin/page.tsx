@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -53,9 +54,9 @@ export default function AdminDashboardPage() {
     const fetchData = async () => {
       setIsLoading(true);
 
-      const { count: totalUsers } = await supabase
+      const { count: totalUsers, error: usersError } = await supabase
         .from('users')
-        .select('id', { count: 'exact' });
+        .select('id', { count: 'exact', head: true });
 
       const { count: pendingTasks } = await supabase
         .from('usertasks')
