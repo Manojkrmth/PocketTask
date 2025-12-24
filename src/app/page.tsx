@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -47,24 +48,40 @@ export default function HomePage() {
   const [systemSettings, setSystemSettings] = React.useState<any>(null);
   const [featuredOffers, setFeaturedOffers] = React.useState<any[]>([]);
   const [taskCounts, setTaskCounts] = React.useState({ approved: 0, pending: 0, rejected: 0 });
-
+  const [balances, setBalances] = React.useState({ available: 0, hold: 0 });
 
   const autoplay = React.useRef(Autoplay({ delay: 2000, stopOnInteraction: false }));
 
   React.useEffect(() => {
-    const fetchUserProfile = async (userId: string) => {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single();
-      
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching user profile:', error);
-        return null;
-      }
-      return data;
-    }
+    const fetchWalletBalances = async (userId: string) => {
+        const { data: walletData, error: walletError } = await supabase
+            .from('wallet_history')
+            .select('amount, status')
+            .eq('user_id', userId);
+
+        let availableBalance = 0;
+        if (walletData) {
+            availableBalance = walletData.reduce((acc, item) => {
+                if (item.status === 'Completed') {
+                    return acc + item.amount;
+                }
+                return acc;
+            }, 0);
+        }
+
+        const { data: pendingTasks, error: pendingError } = await supabase
+            .from('usertasks')
+            .select('reward')
+            .eq('user_id', userId)
+            .eq('status', 'Pending');
+            
+        let holdBalance = 0;
+        if (pendingTasks) {
+            holdBalance = pendingTasks.reduce((acc, task) => acc + task.reward, 0);
+        }
+        
+        setBalances({ available: availableBalance, hold: holdBalance });
+    };
 
     const fetchNotificationCount = async () => {
         const { count, error } = await supabase
@@ -98,12 +115,16 @@ export default function HomePage() {
 
     const setupUser = async (sessionUser: User) => {
       setUser(sessionUser);
-      const profile = await fetchUserProfile(sessionUser.id);
-      if (profile) {
-        setUserProfile(profile);
-      }
-      await fetchNotificationCount();
-      await fetchTaskCounts(sessionUser.id);
+      // Fetch user profile to get referral code and name
+      const { data: profile } = await supabase.from('users').select('full_name, referral_code, referral_earnings').eq('id', sessionUser.id).single();
+      setUserProfile(profile);
+
+      await Promise.all([
+        fetchWalletBalances(sessionUser.id),
+        fetchNotificationCount(),
+        fetchTaskCounts(sessionUser.id)
+      ]);
+      
       setLoading(false);
     }
     
@@ -254,7 +275,7 @@ export default function HomePage() {
               <CardTitle className="text-sm font-medium flex items-center gap-2"><Wallet /> Available Balance</CardTitle>
             </CardHeader>
             <CardContent>
-              {isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : <div className="text-2xl font-bold">{formatCurrency(userProfile?.balance_available || 0)}</div>}
+              {isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : <div className="text-2xl font-bold">{formatCurrency(balances.available)}</div>}
             </CardContent>
           </Card>
           <Card className="flex-1 bg-orange-400 text-white shadow-lg border-0">
@@ -262,7 +283,7 @@ export default function HomePage() {
               <CardTitle className="text-sm font-medium flex items-center gap-2"><Lock /> Hold Balance</CardTitle>
             </CardHeader>
             <CardContent>
-              {isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : <div className="text-2xl font-bold">{formatCurrency(userProfile?.balance_hold || 0)}</div>}
+              {isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : <div className="text-2xl font-bold">{formatCurrency(balances.hold)}</div>}
             </CardContent>
           </Card>
         </div>
@@ -464,24 +485,5 @@ export default function HomePage() {
       </main>
     </div>
   );
-
-    
-
-    
-
-
-
-
-    
-
-
-
-    
-
-    
-
-
-
-    
 
     
