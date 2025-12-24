@@ -453,7 +453,7 @@ export default function TasksPage() {
         <div className="flex items-center gap-2 border p-2 rounded-lg bg-muted/50">
             <p className="text-sm font-semibold">Bulk Actions</p>
             <div className="ml-auto flex gap-2">
-                 <Button size="sm" variant="default" className="bg-green-600 hover:bg-green-700" onClick={() => handleBulkActionClick('approve')}><CheckCircle className="mr-2 h-4 w-4"/> Bulk Approve</Button>
+                 <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleBulkActionClick('approve')}><CheckCircle className="mr-2 h-4 w-4"/> Bulk Approve</Button>
                  <Button size="sm" variant="destructive" onClick={() => handleBulkActionClick('reject')}><XCircle className="mr-2 h-4 w-4"/> Bulk Reject</Button>
                  <Button size="sm" variant="secondary" className="bg-yellow-400 hover:bg-yellow-500 text-black" onClick={() => setDownloadDialogOpen(true)}>
                     <Download className="mr-2 h-4 w-4"/> Download as CSV
@@ -669,32 +669,36 @@ export default function TasksPage() {
                   </Alert>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Step 4: {bulkActionType === 'reject' ? 'Reason for Rejection' : 'Note for Approval (Optional)'}</Label>
-                  <Textarea
-                    placeholder={bulkActionType === 'reject' ? 'Enter reason...' : 'Enter optional note...'}
-                    value={bulkReason}
-                    onChange={(e) => setBulkReason(e.target.value)}
-                    disabled={isUpdating}
-                  />
-                </div>
+                {bulkActionType === 'reject' && (
+                    <div className="space-y-2">
+                        <Label>Step 4: Reason for Rejection</Label>
+                        <Textarea
+                            placeholder={'Enter reason...'}
+                            value={bulkReason}
+                            onChange={(e) => setBulkReason(e.target.value)}
+                            disabled={isUpdating}
+                        />
+                    </div>
+                )}
               </>
             )}
 
           </div>
           <DialogFooter>
             <DialogClose asChild><Button type="button" variant="secondary" disabled={isUpdating}>Cancel</Button></DialogClose>
-            {bulkCsvData.length > 0 && identifierColumn && (
-                <Button 
-                    type="button" 
-                    onClick={handleBulkUpdate} 
-                    disabled={isUpdating || !identifierColumn || (bulkActionType === 'reject' && !bulkReason.trim())}
-                    className={cn(bulkActionType === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-destructive hover:bg-destructive/90')}
-                >
-                {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                {isUpdating ? 'Updating...' : `Confirm Bulk ${bulkActionType?.charAt(0).toUpperCase()}${bulkActionType?.slice(1)}`}
-                </Button>
-            )}
+            
+            <Button 
+                type="button" 
+                onClick={handleBulkUpdate} 
+                disabled={isUpdating || !identifierColumn || (bulkActionType === 'reject' && !bulkReason.trim())}
+                className={cn(bulkActionType === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-destructive hover:bg-destructive/90',
+                    (!identifierColumn) && 'hidden'
+                )}
+            >
+            {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+            {isUpdating ? 'Updating...' : `Confirm Bulk ${bulkActionType?.charAt(0).toUpperCase()}${bulkActionType?.slice(1)}`}
+            </Button>
+            
           </DialogFooter>
         </DialogContent>
       </Dialog>
