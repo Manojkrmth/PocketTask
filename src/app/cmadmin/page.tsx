@@ -30,10 +30,12 @@ import {
   Coins,
   UserPlus,
   ArrowRight,
+  Eye,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import Link from 'next/link';
 import { format, formatDistanceToNow } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface DashboardStats {
   totalUsers: number;
@@ -43,6 +45,15 @@ interface DashboardStats {
   completedTasks: number;
   pendingCoins: number;
 }
+
+const dummyTopUsers = [
+  { id: 'user1', full_name: 'Ravi Kumar', email: 'ravi.k@example.com', mobile: '9876543210', referral_code: 'CMRAV123', balance_available: 1500.75 },
+  { id: 'user2', full_name: 'Sunita Sharma', email: 'sunita.sh@example.com', mobile: '9876543211', referral_code: 'CMSUN456', balance_available: 1250.00 },
+  { id: 'user3', full_name: 'Amit Patel', email: 'amit.p@example.com', mobile: '9876543212', referral_code: 'CMAMI789', balance_available: 1100.50 },
+  { id: 'user4', full_name: 'Priya Singh', email: 'priya.s@example.com', mobile: '9876543213', referral_code: 'CMPRI012', balance_available: 950.00 },
+  { id: 'user5', full_name: 'Vikram Rathore', email: 'vikram.r@example.com', mobile: '9876543214', referral_code: 'CMVIK345', balance_available: 800.25 },
+];
+
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -119,104 +130,75 @@ export default function AdminDashboardPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="space-y-8">
+      <div className="flex justify-between items-start">
+        <div>
+            <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+            <p className="text-muted-foreground">Welcome back, Super Admin!</p>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {statCards.map(card => (
-            <Card key={card.title}>
+            <Card key={card.title} className="bg-blue-50 border-blue-200">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
+                    <CardTitle className="text-sm font-medium text-blue-800">{card.title}</CardTitle>
                     <card.icon className={`h-5 w-5 ${card.color}`} />
                 </CardHeader>
                 <CardContent>
                     {isLoading ? (
                         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                     ) : (
-                        <div className="text-2xl font-bold">{card.value}</div>
+                        <div className="text-3xl font-bold text-blue-900">{card.value}</div>
                     )}
                 </CardContent>
             </Card>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div className="flex items-center gap-2">
-                <UserPlus className="h-5 w-5" />
-                <CardTitle>Recent Registrations</CardTitle>
-            </div>
-            <Button variant="outline" size="sm" asChild>
-                <Link href="/cmadmin/users">View All <ArrowRight className="ml-2 h-4 w-4"/></Link>
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead className="text-right">Joined</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                    <TableRow><TableCell colSpan={2} className="text-center h-24"><Loader2 className="mx-auto h-6 w-6 animate-spin"/></TableCell></TableRow>
-                ) : recentUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>
-                      <div className="font-medium">{user.full_name}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {user.email}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right text-sm">{formatDistanceToNow(new Date(user.created_at), { addSuffix: true })}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div className="flex items-center gap-2">
-                <Wallet className="h-5 w-5" />
-                <CardTitle>Pending Withdrawals</CardTitle>
-            </div>
-             <Button variant="outline" size="sm" asChild>
-                <Link href="/cmadmin/withdrawals">View All <ArrowRight className="ml-2 h-4 w-4"/></Link>
-              </Button>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                 {isLoading ? (
-                    <TableRow><TableCell colSpan={2} className="text-center h-24"><Loader2 className="mx-auto h-6 w-6 animate-spin"/></TableCell></TableRow>
-                ) : pendingWithdrawals.length === 0 ? (
-                    <TableRow><TableCell colSpan={2} className="text-center h-24 text-muted-foreground">No pending withdrawals.</TableCell></TableRow>
-                ) : pendingWithdrawals.map((req) => (
-                  <TableRow key={req.id}>
-                    <TableCell>
-                      <div className="font-medium">{req.users?.full_name || 'N/A'}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {formatDistanceToNow(new Date(req.created_at), { addSuffix: true })}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right font-bold text-green-600">
-                      ₹{req.amount.toLocaleString('en-IN')}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
+       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-3">
+            <Card>
+                <CardHeader>
+                <CardTitle>Top Users by Balance</CardTitle>
+                <CardDescription>Your most active users.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                <Table>
+                    <TableHeader>
+                    <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Mobile</TableHead>
+                        <TableHead>Referral Code</TableHead>
+                        <TableHead>Available Balance</TableHead>
+                        <TableHead className="text-right">Action</TableHead>
+                    </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                    {isLoading && <TableRow><TableCell colSpan={6} className="text-center h-24">Loading top users...</TableCell></TableRow>}
+                    {!isLoading && dummyTopUsers.map((user) => (
+                        <TableRow key={user.id}>
+                        <TableCell className="font-medium">{user.full_name}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{user.email}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{user.mobile}</TableCell>
+                        <TableCell className="font-mono text-xs">{user.referral_code}</TableCell>
+                        <TableCell className="font-bold text-green-600">₹{user.balance_available?.toLocaleString('en-IN') || '0'}</TableCell>
+                        <TableCell className="text-right">
+                           <Link href={`/cmadmin/users/${user.id}`} className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}>
+                                <Eye className="h-4 w-4 mr-2" /> View User
+                            </Link>
+                        </TableCell>
+                        </TableRow>
+                    ))}
+                     {!isLoading && (!dummyTopUsers || dummyTopUsers.length === 0) && (
+                        <TableRow><TableCell colSpan={6} className="text-center h-24">No users with balance found.</TableCell></TableRow>
+                     )}
+                    </TableBody>
+                </Table>
+                </CardContent>
+            </Card>
+        </div>
+       </div>
     </div>
   );
 }
