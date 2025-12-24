@@ -40,11 +40,11 @@ const ITEMS_PER_PAGE = 10;
 type Status = 'Approved' | 'Pending' | 'Rejected';
 
 function TaskSubmissions() {
-  const [statusFilters, setStatusFilters] = useState<Status[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [taskHistory, setTaskHistory] = useState<any[]>([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
   
+  const [statusFilters, setStatusFilters] = useState<Status[]>([]);
   const [visibleItems, setVisibleItems] = useState(ITEMS_PER_PAGE);
   const { formatCurrency } = useCurrency();
 
@@ -259,7 +259,7 @@ export default function TaskHistoryPage() {
                 setUser(session.user);
                 const { data, error } = await supabase
                     .from('users')
-                    .select('tasksapproved, taskspending, tasksrejected')
+                    .select('*')
                     .eq('id', session.user.id)
                     .single();
 
@@ -289,7 +289,7 @@ export default function TaskHistoryPage() {
                     <CheckCircle2 className="h-4 w-4 text-green-600" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold text-green-900">{isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : userProfile?.tasksapproved || 0}</div>
+                    <div className="text-2xl font-bold text-green-900">{isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : userProfile?.tasks_approved || 0}</div>
                 </CardContent>
             </Card>
             <Card className="bg-yellow-50 border-yellow-200">
@@ -298,7 +298,7 @@ export default function TaskHistoryPage() {
                     <Hourglass className="h-4 w-4 text-yellow-600" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold text-yellow-900">{isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : userProfile?.taskspending || 0}</div>
+                    <div className="text-2xl font-bold text-yellow-900">{isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : userProfile?.tasks_pending || 0}</div>
                 </CardContent>
             </Card>
             <Card className="bg-red-50 border-red-200">
@@ -307,7 +307,7 @@ export default function TaskHistoryPage() {
                     <XCircle className="h-4 w-4 text-red-600" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold text-red-900">{isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : userProfile?.tasksrejected || 0}</div>
+                    <div className="text-2xl font-bold text-red-900">{isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : userProfile?.tasks_rejected || 0}</div>
                 </CardContent>
             </Card>
         </div>
@@ -328,3 +328,5 @@ export default function TaskHistoryPage() {
     </div>
   );
 }
+
+    
