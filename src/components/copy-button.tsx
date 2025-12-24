@@ -23,7 +23,7 @@ export function CopyButton({ value, children, className, ...props }: CopyButtonP
     };
 
     return (
-        <Button onClick={handleCopy} className={cn("bg-slate-200 hover:bg-slate-300 text-slate-700", className)} {...props}>
+        <Button onClick={handleCopy} className={cn(className)} {...props}>
             {children}
         </Button>
     );

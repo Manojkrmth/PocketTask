@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, CheckCircle, SkipForward, LogOut, ShieldCheck, FileText, Coins, User as UserIcon, Copy, Info } from 'lucide-react';
+import { Loader2, CheckCircle, SkipForward, LogOut, ShieldCheck, FileText, Coins, User as UserIcon, Copy, Info, Hash, Calendar } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { LoadingScreen } from '@/components/loading-screen';
 import { CopyButton } from '@/components/copy-button';
@@ -55,6 +55,8 @@ function CoinTaskComponent() {
     
     const [instaId, setInstaId] = useState('');
     const [coinAmount, setCoinAmount] = useState('');
+    const [orderId, setOrderId] = useState('');
+    const [dateTime, setDateTime] = useState('');
 
     const task = useMemo(() => getTaskConfig(taskType), [taskType]);
 
@@ -75,8 +77,8 @@ function CoinTaskComponent() {
     const handleSubmit = async () => {
         if (!task || !user) return;
         
-        if (!instaId || !coinAmount || parseInt(coinAmount) <= 0) {
-            toast({ variant: 'destructive', title: 'Missing Information', description: 'Please provide a valid Insta ID and coin amount.' });
+        if (!instaId || !coinAmount || parseInt(coinAmount) <= 0 || !orderId || !dateTime) {
+            toast({ variant: 'destructive', title: 'Missing Information', description: 'Please fill all the required fields.' });
             return;
         }
         
@@ -85,12 +87,13 @@ function CoinTaskComponent() {
             const submissionData = {
                 userId: user.id,
                 taskId: task.id,
-                taskType: taskType,
+                coinType: taskType,
                 instaId: instaId,
                 coinAmount: parseInt(coinAmount),
                 rewardInr: parseInt(coinAmount) * task.rewardRate,
+                orderId: orderId,
+                submissionTime: new Date(dateTime).toISOString(),
                 status: 'Pending',
-                submissionTime: new Date().toISOString(),
             };
 
             const { error } = await supabase.from('coinSubmissions').insert(submissionData);
@@ -147,8 +150,34 @@ function CoinTaskComponent() {
                             <Label htmlFor="receiverId" className="font-bold">Receiver ID</Label>
                             <div className="flex gap-1 mt-1">
                                 <Input id="receiverId" value={task.receiverId} readOnly className="font-mono bg-muted"/>
-                                <CopyButton value={task.receiverId} />
+                                <CopyButton value={task.receiverId} className="h-10 w-10 shrink-0">
+                                   <Copy className="h-4 w-4"/>
+                                </CopyButton>
                             </div>
+                        </div>
+
+                        <div>
+                            <Label htmlFor="orderId" className="font-bold flex items-center gap-2"><Hash className="h-4 w-4" /> Order ID</Label>
+                            <Input
+                                id="orderId"
+                                value={orderId}
+                                onChange={(e) => setOrderId(e.target.value)}
+                                placeholder="Enter the Order ID"
+                                disabled={isSubmitting}
+                                className="mt-1"
+                            />
+                        </div>
+
+                        <div>
+                            <Label htmlFor="dateTime" className="font-bold flex items-center gap-2"><Calendar className="h-4 w-4" /> Date & Time</Label>
+                            <Input
+                                id="dateTime"
+                                type="datetime-local"
+                                value={dateTime}
+                                onChange={(e) => setDateTime(e.target.value)}
+                                disabled={isSubmitting}
+                                className="mt-1"
+                            />
                         </div>
 
                         <div>
@@ -188,7 +217,7 @@ function CoinTaskComponent() {
                         <Button
                             className="w-full h-12 text-base font-bold"
                             onClick={handleSubmit}
-                            disabled={isSubmitting || !instaId || !coinAmount}
+                            disabled={isSubmitting || !instaId || !coinAmount || !orderId || !dateTime}
                         >
                             {isSubmitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <CheckCircle className="mr-2 h-5 w-5" />}
                             {isSubmitting ? 'Submitting...' : 'Submit'}
