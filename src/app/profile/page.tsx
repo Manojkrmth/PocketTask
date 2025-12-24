@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Link from 'next/link';
@@ -46,7 +47,7 @@ const legalItems = [
 ];
 
 function ReferrerInfoCard({ referralCode }: { referralCode: string }) {
-    const [referrer, setReferrer] = useState<{ full_name: string; referral_code: string } | null>(null);
+    const [referrer, setReferrer] = useState<{ full_name: string; referral_code: string; email: string; } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -59,7 +60,7 @@ function ReferrerInfoCard({ referralCode }: { referralCode: string }) {
             const upperCaseCode = referralCode.toUpperCase();
             const { data, error } = await supabase
                 .from('users')
-                .select('full_name, referral_code')
+                .select('full_name, referral_code, email')
                 .eq('referral_code', upperCaseCode)
                 .single();
             
@@ -84,11 +85,11 @@ function ReferrerInfoCard({ referralCode }: { referralCode: string }) {
                     <div className="flex items-center gap-4">
                         <Avatar>
                             <AvatarFallback className={cn("font-bold")}>
-                              {referrer.full_name ? referrer.full_name.substring(0, 1).toUpperCase() : 'U'}
+                              {referrer.full_name ? referrer.full_name.substring(0, 1).toUpperCase() : (referrer.email ? referrer.email.substring(0, 1).toUpperCase() : 'U')}
                             </AvatarFallback>
                         </Avatar>
                         <div>
-                            <h4 className="font-bold text-md">{referrer.full_name}</h4>
+                            <h4 className="font-bold text-md">{referrer.full_name || referrer.email}</h4>
                             <p className="text-xs text-muted-foreground">{referrer.referral_code}</p>
                         </div>
                     </div>
@@ -177,7 +178,7 @@ export default function ProfilePage() {
                   <p className="text-sm text-muted-foreground mb-3">
                       Were you referred by a friend? Add their code here to join their team and get a bonus!
                   </p>
-                  <AddReferralDialog onFinished={() => fetchProfileData(user)} />
+                  <AddReferralDialog onFinished={() => user && fetchProfileData(user)} />
                </CardContent>
              </Card>
           ) : (
