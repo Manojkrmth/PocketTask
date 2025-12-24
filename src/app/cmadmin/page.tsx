@@ -36,6 +36,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import Link from 'next/link';
 import { format, formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { createClient } from '@supabase/supabase-js';
 
 interface DashboardStats {
   total_users: number;
@@ -65,36 +66,58 @@ export default function AdminDashboardPage() {
     const fetchData = async () => {
       setIsLoading(true);
 
-      // Use RPC call to get all stats at once, bypassing RLS for counts
-      const { data: statsData, error: statsError } = await supabase.rpc('get_dashboard_stats');
-      
-      if (statsError) {
-        console.error('Error fetching dashboard stats:', statsError);
-        // Fallback to individual (potentially RLS-limited) queries on error
-         const { count: totalUsersCount } = await supabase.from('users').select('*', { count: 'exact', head: true });
-         setStats({
-            total_users: totalUsersCount || 0,
+      // IMPORTANT: Use service_role for counts to bypass RLS.
+      // This is safe because this page is admin-only and the key is not exposed to the client browser.
+      const supabaseAdmin = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY!,
+      );
+
+      try {
+        const [
+          { count: total_users },
+          { count: pending_tasks },
+          { count: pending_withdrawals },
+          { data: total_paid_data },
+          { count: completed_tasks },
+          { count: pending_coins },
+          { data: recentUsersData }
+        ] = await Promise.all([
+          supabaseAdmin.from('users').select('*', { count: 'exact', head: true }),
+          supabaseAdmin.from('usertasks').select('*', { count: 'exact', head: true }).eq('status', 'Pending'),
+          supabaseAdmin.from('payments').select('*', { count: 'exact', head: true }).eq('status', 'Pending'),
+          supabaseAdmin.from('payments').select('amount').eq('status', 'Completed'),
+          supabaseAdmin.from('usertasks').select('*', { count: 'exact', head: true }).eq('status', 'Approved'),
+          supabaseAdmin.from('coinsubmissions').select('*', { count: 'exact', head: true }).eq('status', 'Pending'),
+          supabase.from('users').select('*').order('created_at', { ascending: false }).limit(5)
+        ]);
+        
+        const total_paid = total_paid_data?.reduce((sum, item) => sum + item.amount, 0) || 0;
+
+        setStats({
+          total_users: total_users || 0,
+          pending_tasks: pending_tasks || 0,
+          pending_withdrawals: pending_withdrawals || 0,
+          total_paid: total_paid,
+          completed_tasks: completed_tasks || 0,
+          pending_coins: pending_coins || 0
+        });
+
+        setRecentUsers(recentUsersData || []);
+
+      } catch (error) {
+          console.error("Error fetching dashboard stats with service_role:", error);
+          setStats({
+            total_users: 0,
             pending_tasks: 0,
             pending_withdrawals: 0,
             total_paid: 0,
             completed_tasks: 0,
-            pending_coins: 0,
-         });
-
-      } else if (statsData) {
-        // Since RPC returns an array, even for a single row, we take the first element.
-        const fetchedStats = Array.isArray(statsData) ? statsData[0] : statsData;
-        setStats(fetchedStats);
+            pending_coins: 0
+          });
+      } finally {
+        setIsLoading(false);
       }
-      
-      const { data: recentUsersData } = await supabase
-        .from('users')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      setRecentUsers(recentUsersData || []);
-      setIsLoading(false);
     };
 
     fetchData();
