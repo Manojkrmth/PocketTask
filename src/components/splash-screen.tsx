@@ -2,10 +2,10 @@
 
 import { cn } from "@/lib/utils";
 
-export function LoadingScreen() {
+export function SplashScreen() {
     return (
       <div className={cn(
-          "flex min-h-screen flex-col items-center justify-center gap-4 bg-background",
+          "fixed inset-0 z-[200] flex min-h-screen flex-col items-center justify-center gap-4 bg-background",
           "text-foreground"
         )}>
         <div className="flex items-center gap-3">
