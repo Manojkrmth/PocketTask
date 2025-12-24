@@ -90,42 +90,83 @@ export default function VisitAndEarnPage() {
             return;
         }
 
-        setIsVerifying(true);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        if (verificationCode.trim().toUpperCase() === task.correctCode.toUpperCase()) {
-            
-            setIsSubmitting(true);
-            try {
-                if(!user) throw new Error("User not found");
-                
-                toast({
-                    title: 'Verification Successful!',
-                    description: `Reward of ₹${task.reward} will be added soon.`,
-                });
-                
-                await new Promise(resolve => setTimeout(resolve, 4000));
-
-                handleSkip();
-            } catch (error: any) {
-                 toast({ variant: 'destructive', title: 'Submission Failed', description: error.message });
-            } finally {
-                setIsSubmitting(false);
-            }
-            
-        } else {
+        if (verificationCode.trim().toUpperCase() !== task.correctCode.toUpperCase()) {
             toast({
                 variant: 'destructive',
                 title: 'Verification Failed',
                 description: 'The code you entered is incorrect. Please try again.',
             });
+            return;
         }
 
-        setIsVerifying(false);
+        setIsVerifying(true);
+        setIsSubmitting(true);
+        
+        try {
+            if (!user) throw new Error("User not found");
+
+            // 1. उपयोगकर्ता की प्रोफाइल को चुनें
+            const { data: profile, error: profileError } = await supabase
+                .from('users')
+                .select('balance_available')
+                .eq('id', user.id)
+                .single();
+
+            if (profileError) throw profileError;
+
+            const newBalance = profile.balance_available + task.reward;
+
+            // 2. इनाम को सीधे उपयोगकर्ता के बैलेंस में जोड़ें
+            const { error: balanceError } = await supabase
+                .from('users')
+                .update({ balance_available: newBalance })
+                .eq('id', user.id);
+
+            if (balanceError) throw balanceError;
+            
+            // 3. usertasks में एक स्वीकृत (approved) एंट्री बनाएँ
+            const { error: taskError } = await supabase.from('usertasks').insert({
+                user_id: user.id,
+                task_type: 'visit-earn',
+                reward: task.reward,
+                status: 'Approved',
+                submission_data: { code: verificationCode.trim().toUpperCase() }
+            });
+
+            if (taskError) throw taskError;
+
+            // 4. वॉलेट हिस्ट्री में एक रिकॉर्ड बनाएँ
+            const { error: walletError } = await supabase.from('wallet_history').insert({
+                user_id: user.id,
+                amount: task.reward,
+                type: 'task_reward',
+                status: 'Completed',
+                description: `Reward for Visit & Earn Task #${task.id}`
+            });
+
+            if (walletError) throw walletError;
+
+            toast({
+                title: 'Verification Successful!',
+                description: `Reward of ₹${task.reward} has been added to your balance.`,
+            });
+            
+            // कंफ़ेटी और सफलता स्क्रीन कुछ सेकंड के लिए दिखाएँ
+            await new Promise(resolve => setTimeout(resolve, 4000));
+            handleSkip(); // नया कार्य लोड करें
+
+        } catch (error: any) {
+             toast({ variant: 'destructive', title: 'Submission Failed', description: error.message });
+             setIsSubmitting(false); // त्रुटि होने पर सबमिटिंग स्थिति को रीसेट करें
+        } finally {
+            setIsVerifying(false);
+            // सफलतापूर्वक सबमिट होने पर भी isSubmitting बना रहेगा ताकि सफलता स्क्रीन दिखे
+        }
     };
 
     const handleSkip = () => {
         setVerificationCode('');
+        setIsSubmitting(false);
         sessionStorage.removeItem(TASK_STORAGE_KEY);
         loadNewTask();
     };
@@ -142,10 +183,10 @@ export default function VisitAndEarnPage() {
      if (isSubmitting) {
         return (
             <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-br from-green-400 to-cyan-500 text-white">
-                <Confetti width={width} height={height} recycle={false} numberOfPieces={500} />
+                <Confetti width={width || 0} height={height || 0} recycle={false} numberOfPieces={500} onConfettiComplete={() => setIsSubmitting(false)} />
                 <div className="text-center animate-in fade-in-0 zoom-in-95">
-                    <h1 className="text-4xl font-bold tracking-tight">Task Verified!</h1>
-                    <p className="mt-2 text-lg opacity-80">Your reward is being processed.</p>
+                    <h1 className="text-4xl font-bold tracking-tight">Task Approved!</h1>
+                    <p className="mt-2 text-lg opacity-80">Your reward has been added to your balance.</p>
                 </div>
             </div>
         );
