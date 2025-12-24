@@ -46,6 +46,8 @@ export default function HomePage() {
   const { toast } = useToast();
   const [systemSettings, setSystemSettings] = React.useState<any>(null);
   const [featuredOffers, setFeaturedOffers] = React.useState<any[]>([]);
+  const [taskCounts, setTaskCounts] = React.useState({ approved: 0, pending: 0, rejected: 0 });
+
 
   const autoplay = React.useRef(Autoplay({ delay: 2000, stopOnInteraction: false }));
 
@@ -75,6 +77,24 @@ export default function HomePage() {
             setNotificationCount(count || 0);
         }
     };
+    
+    const fetchTaskCounts = async (userId: string) => {
+      const { data, error } = await supabase
+        .from('usertasks')
+        .select('status')
+        .eq('userid', userId);
+
+      if (error) {
+        console.error('Error fetching task counts:', error);
+      } else if (data) {
+        const counts = {
+          approved: data.filter(t => t.status === 'Approved').length,
+          pending: data.filter(t => t.status === 'Pending').length,
+          rejected: data.filter(t => t.status === 'Rejected').length,
+        };
+        setTaskCounts(counts);
+      }
+    };
 
     const setupUser = async (sessionUser: User) => {
       setUser(sessionUser);
@@ -83,6 +103,7 @@ export default function HomePage() {
         setUserProfile(profile);
       }
       await fetchNotificationCount();
+      await fetchTaskCounts(sessionUser.id);
       setLoading(false);
     }
     
@@ -254,7 +275,7 @@ export default function HomePage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : <p className="text-2xl font-bold text-gray-800">{userProfile?.tasks_approved || 0}</p>}
+              {isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : <p className="text-2xl font-bold text-gray-800">{taskCounts.approved}</p>}
             </CardContent>
           </Card>
           <Card className="flex-1 bg-orange-50 border border-orange-100 shadow-sm">
@@ -459,3 +480,6 @@ export default function HomePage() {
 
     
 
+
+
+    
