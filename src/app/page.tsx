@@ -39,6 +39,7 @@ import { useToast } from '@/hooks/use-toast';
 export default function HomePage() {
   const [user, setUser] = React.useState<User | null>(null);
   const [userProfile, setUserProfile] = React.useState<any>(null);
+  const [notificationCount, setNotificationCount] = React.useState(0);
   const [loading, setLoading] = React.useState(true);
   const router = useRouter();
   const { formatCurrency } = useCurrency();
@@ -63,12 +64,25 @@ export default function HomePage() {
       return data;
     }
 
+    const fetchNotificationCount = async () => {
+        const { count, error } = await supabase
+            .from('notifications')
+            .select('id', { count: 'exact', head: true });
+
+        if (error) {
+            console.error('Error fetching notification count:', error);
+        } else {
+            setNotificationCount(count || 0);
+        }
+    };
+
     const setupUser = async (sessionUser: User) => {
       setUser(sessionUser);
       const profile = await fetchUserProfile(sessionUser.id);
       if (profile) {
         setUserProfile(profile);
       }
+      await fetchNotificationCount();
       setLoading(false);
     }
     
@@ -90,6 +104,7 @@ export default function HomePage() {
       } else {
         setUser(null);
         setUserProfile(null);
+        setNotificationCount(0);
         router.push('/login');
       }
     });
@@ -176,10 +191,11 @@ export default function HomePage() {
              <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-white/20 relative h-9 w-9 rounded-full" asChild>
               <Link href="/notifications">
                 <Bell className="h-5 w-5" />
-                <span className="absolute top-1 right-1 flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                </span>
+                {notificationCount > 0 && (
+                   <span className="absolute top-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+                     {notificationCount}
+                   </span>
+                )}
               </Link>
             </Button>
           </div>
@@ -442,3 +458,4 @@ export default function HomePage() {
     
 
     
+
