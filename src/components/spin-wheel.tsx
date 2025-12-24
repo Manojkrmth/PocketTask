@@ -22,25 +22,26 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
 
   useEffect(() => {
     if (isSpinning) {
-      // Determine the winning segment
       const winningSegmentIndex = Math.floor(Math.random() * numSegments);
-      // Spin to a random point *within* the segment, not on the edge.
+      
       const randomOffset = (Math.random() - 0.5) * anglePerSegment * 0.8;
       
-      // Calculate rotation: 5 full spins + rotation to the winning segment's middle
       const targetRotation = (360 * 5) + (360 - (winningSegmentIndex * anglePerSegment)) - (anglePerSegment / 2) + randomOffset;
       
       setRotation(prev => prev + targetRotation);
 
       setTimeout(() => {
         onSpinComplete(segments[winningSegmentIndex]);
-      }, 5000); // Corresponds to the animation duration
+      }, 5000); // Must match animation duration
     }
   }, [isSpinning, numSegments, segments, anglePerSegment, onSpinComplete]);
 
 
   return (
     <div className="relative w-72 h-72 md:w-80 md:h-80">
+      {/* Pointer */}
+      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-2 w-0 h-0 border-l-[15px] border-l-transparent border-r-[15px] border-r-transparent border-t-[30px] border-t-red-600 drop-shadow-lg z-10"></div>
+      
       {/* The Wheel */}
       <div 
         className={cn(
@@ -57,25 +58,35 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
         }}
       >
         {segments.map((segment, index) => {
-          const rotateAngle = index * anglePerSegment + anglePerSegment / 2;
+          const rotateAngle = index * anglePerSegment;
+          const textAngle = - (rotateAngle + anglePerSegment / 2);
+
           return (
-            <div
+             <div
               key={index}
               className="absolute w-full h-full"
               style={{ transform: `rotate(${rotateAngle}deg)` }}
             >
-              <span 
-                className="absolute left-[55%] top-[15%] -translate-x-1/2 text-sm font-bold text-white"
-                style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.7)'}}
+              <div 
+                className="absolute flex items-center justify-center w-1/2 h-1/2 origin-top-left"
+                style={{ 
+                  transform: `rotate(${anglePerSegment / 2}deg) translate(0, -5%)` 
+                }}
               >
-                  {segment.text}
-              </span>
+                  <span 
+                    className="text-sm font-bold text-white"
+                    style={{ 
+                        transform: `rotate(${textAngle}deg)`,
+                        textShadow: '1px 1px 2px rgba(0,0,0,0.7)',
+                    }}
+                  >
+                      {segment.text}
+                  </span>
+              </div>
             </div>
           );
         })}
       </div>
-      {/* Pointer */}
-      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-2 w-0 h-0 border-l-[15px] border-l-transparent border-r-[15px] border-r-transparent border-t-[30px] border-t-red-600 drop-shadow-lg z-10"></div>
       
       {/* Center Circle */}
       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-white border-4 border-gray-200 shadow-inner flex items-center justify-center font-bold text-gray-700 z-10">
@@ -84,5 +95,3 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
     </div>
   );
 }
-
-    

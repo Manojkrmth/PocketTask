@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,22 +13,23 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Image from 'next/image';
 
 const segments: WheelSegment[] = [
-  { text: '₹10', color: '#6A1B9A' },   // Purple
-  { text: 'Try Again', color: '#455A64' }, // Blue Grey
-  { text: '₹5', color: '#1E88E5' },    // Blue
-  { text: 'Bonus', color: '#FDD835' },    // Yellow
-  { text: '₹20', color: '#D81B60' },   // Pink
-  { text: 'Try Again', color: '#455A64' }, // Blue Grey
-  { text: '₹2', color: '#43A047' },    // Green
-  { text: '₹50', color: '#FB8C00' },   // Orange
-  { text: '₹1', color: '#e53935' },    // Red
-  { text: 'Try Again', color: '#455A64' }, // Blue Grey
-  { text: '₹100', color: '#00ACC1' },  // Cyan
-  { text: 'Bonus', color: '#FDD835' },    // Yellow
+  { text: '₹10', color: '#6A1B9A' },
+  { text: 'Try Again', color: '#455A64' },
+  { text: '₹5', color: '#1E88E5' },
+  { text: 'Bonus', color: '#FDD835' },
+  { text: '₹20', color: '#D81B60' },
+  { text: 'Try Again', color: '#455A64' },
+  { text: '₹2', color: '#43A047' },
+  { text: '₹50', color: '#FB8C00' },
+  { text: '₹1', color: '#e53935' },
+  { text: 'Try Again', color: '#455A64' },
+  { text: '₹100', color: '#00ACC1' },
+  { text: 'Bonus', color: '#FDD835' },
 ];
 
 const DAILY_SPIN_CHANCES = 50;
 const SPIN_STORAGE_KEY = 'spinRewardData';
+const COUNTDOWN_SECONDS = 15;
 
 interface SpinData {
   lastSpinDate: string;
@@ -41,9 +42,9 @@ export default function SpinRewardPage() {
   const [showConfetti, setShowConfetti] = useState(false);
   const { width, height } = useWindowSize();
   const [spinChances, setSpinChances] = useState(DAILY_SPIN_CHANCES);
-  const [isFinished, setIsFinished] = useState(false);
+  const [allSpinsUsedToday, setAllSpinsUsedToday] = useState(false);
   const [showAd, setShowAd] = useState(false);
-  const [adClicked, setAdClicked] = useState(false);
+  const [countdown, setCountdown] = useState(0);
 
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -55,8 +56,8 @@ export default function SpinRewardPage() {
         if (data.lastSpinDate === today) {
           const chancesLeft = DAILY_SPIN_CHANCES - data.spinsUsed;
           setSpinChances(chancesLeft);
-          if(chancesLeft <= 0) {
-              setIsFinished(true);
+          if (chancesLeft <= 0) {
+            setAllSpinsUsedToday(true);
           }
         } else {
           // It's a new day, reset.
@@ -73,13 +74,20 @@ export default function SpinRewardPage() {
     }
   }, []);
 
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [countdown]);
+
+
   const handleSpinClick = () => {
-    if (isSpinning || spinChances <= 0 || showAd) return;
+    if (isSpinning || spinChances <= 0 || countdown > 0) return;
 
     setIsSpinning(true);
     setResult(null);
     setShowConfetti(false);
-    setAdClicked(false);
     
     const today = new Date().toISOString().split('T')[0];
     const storedData = localStorage.getItem(SPIN_STORAGE_KEY);
@@ -100,34 +108,33 @@ export default function SpinRewardPage() {
     setSpinChances(chancesLeft);
 
     if(chancesLeft <= 0) {
-        setTimeout(() => setIsFinished(true), 5000); 
+        setTimeout(() => setAllSpinsUsedToday(true), 5000); 
     }
   };
   
-  const onSpinComplete = (selectedSegment: WheelSegment) => {
+  const onSpinComplete = useCallback((selectedSegment: WheelSegment) => {
     setIsSpinning(false);
     setResult(selectedSegment);
+
     if (selectedSegment.text !== 'Try Again') {
       setShowConfetti(true);
     }
-    // Show ad after spin if there are chances left
-    const chancesLeft = spinChances - 1; // Calculate based on the spin that just completed
+
+    const chancesLeft = spinChances - 1;
     if (chancesLeft > 0) {
-        setTimeout(() => {
-            setShowAd(true);
-        }, 1000); // show ad 1 second after result
+      setTimeout(() => {
+        setShowAd(true);
+        setCountdown(COUNTDOWN_SECONDS);
+      }, 1000);
     }
-  };
+  }, [spinChances]);
 
-  const handleAdClick = () => {
-    setShowAd(false);
-    setAdClicked(true); 
-  };
+  const handleNextSpin = () => {
+      setShowAd(false);
+      setResult(null);
+  }
 
-  const hasSpinsLeft = spinChances > 0 && !isFinished;
-  // Spin button should be disabled if spinning, or if an ad is shown and not yet clicked.
-  const isSpinButtonDisabled = isSpinning || showAd || !hasSpinsLeft;
-
+  const isSpinButtonDisabled = isSpinning || countdown > 0 || allSpinsUsedToday;
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -161,7 +168,6 @@ export default function SpinRewardPage() {
             <div className="w-full max-w-sm animate-in fade-in-50 space-y-2">
                 <Card 
                     className="overflow-hidden border-2 border-primary shadow-lg cursor-pointer hover:border-green-500 transition-all"
-                    onClick={handleAdClick}
                 >
                     <div className="relative aspect-video">
                         <Image
@@ -174,7 +180,7 @@ export default function SpinRewardPage() {
                     </div>
                 </Card>
                  <p className="text-center text-sm font-bold text-primary animate-pulse">
-                    Click the ad above to unlock your next spin!
+                    Next spin will be available soon!
                 </p>
             </div>
           )}
@@ -182,9 +188,11 @@ export default function SpinRewardPage() {
         </div>
         
         <div className="text-center space-y-4 pt-4">
-            {!isFinished ? (
+            {!allSpinsUsedToday ? (
                  <Button onClick={handleSpinClick} size="lg" className="w-full max-w-sm h-14 text-xl font-bold" disabled={isSpinButtonDisabled}>
-                    {isSpinning ? <Loader2 className="h-6 w-6 animate-spin"/> : 'SPIN'}
+                    {isSpinning && <Loader2 className="h-6 w-6 animate-spin"/>}
+                    {!isSpinning && countdown > 0 && `Next spin in ${countdown}s`}
+                    {!isSpinning && countdown === 0 && 'SPIN'}
                 </Button>
             ) : (
                 <Alert className="max-w-sm mx-auto">
