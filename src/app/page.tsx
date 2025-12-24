@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Image from 'next/image';
@@ -251,7 +252,7 @@ export default function HomePage() {
             <div className="flex justify-between items-center gap-2">
                 <div>
                     <p className="text-xs font-medium text-white/80">Referral ID</p>
-                    <p className="text-lg font-mono font-bold tracking-wider">{referralCode}</p>
+                    <p className="text-lg font-mono font-bold tracking-wider text-white">{referralCode}</p>
                 </div>
                 <InstallPWAButton />
             </div>
@@ -448,6 +449,7 @@ export default function HomePage() {
     
 
     
+
 
 
 
