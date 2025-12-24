@@ -168,7 +168,7 @@ export default function TasksPage() {
             (task.users?.full_name?.toLowerCase().includes(filter.toLowerCase())) ||
             (task.users?.email?.toLowerCase().includes(filter.toLowerCase())) ||
             (task.task_type?.toLowerCase().includes(filter.toLowerCase())) ||
-            (task.id.toLowerCase().includes(filter.toLowerCase())) ||
+            (String(task.id).toLowerCase().includes(filter.toLowerCase())) ||
             (task.user_id.toLowerCase().includes(filter.toLowerCase()));
             
         return matchesStatus && matchesSearch;
