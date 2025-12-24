@@ -24,7 +24,7 @@ const getTaskTypeDetails = (taskType: string) => {
         'gmail': { name: 'Gmail Task', available: true },
         'instagram': { name: 'Instagram Task', available: false },
         'facebook': { name: 'Facebook Task', available: true },
-        'used-mails': { name: 'Used Mails Task', available: false },
+        'used-mails': { name: 'Used Mails Task', available: true },
         'hot-mail': { name: 'Hot Mail Task', available: false },
         'outlook-mail': { name: 'Outlook Mail Task', available: false },
         'visit-earn': { name: 'Visit & Earn Task', available: true },
@@ -92,6 +92,8 @@ export default function StartTaskPage() {
         router.push('/tasks/watch-earn/play');
       } else if (taskType === 'visit-earn') {
         router.push('/tasks/visit-earn/play');
+      } else if (taskType === 'used-mails') {
+        router.push('/tasks/used-mails/play');
       } else if (['google-map-review', 'playstore-app-review'].includes(taskType)) {
         router.push(`/tasks/review/play?type=${taskType}`);
       }
