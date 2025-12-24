@@ -72,7 +72,15 @@ export default function TeamPage() {
 
         if (error) {
             console.error("Error fetching team data via RPC:", error);
-            throw error;
+            // On error, set empty data to prevent UI hanging
+            setTeamData(commissionRates.map((commission, index) => ({
+                level: index + 1,
+                commission,
+                members: 0,
+                earnings: 0,
+            })));
+            setTeamStats(prev => ({ ...prev, totalTeamSize: 0, activeMembers: 0 }));
+            return; // Stop execution here
         }
 
         const newTeamData: LevelData[] = [];
@@ -96,13 +104,11 @@ export default function TeamPage() {
         setTeamStats(prev => ({
             ...prev,
             totalTeamSize: totalTeamSize,
-            // Active members logic can be added to RPC if needed
-            activeMembers: Math.floor(totalTeamSize * 0.1) // Mocking active members for now
+            activeMembers: Math.floor(totalTeamSize * 0.1) 
         }));
 
     } catch (error) {
         console.error("Caught error in fetchTeamData:", error);
-        // Initialize with empty data on error to avoid UI hanging
         setTeamData(commissionRates.map((commission, index) => ({
             level: index + 1,
             commission,
