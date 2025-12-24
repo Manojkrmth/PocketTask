@@ -24,110 +24,110 @@ import Link from 'next/link';
 
 const taskTypes = [
   {
+    id: 'gmail',
     name: 'Gmail',
     icon: <Mail className="h-8 w-8 text-red-500" />,
-    href: '/tasks/gmail',
     description: 'Read emails & earn rewards.',
     badge: 'HOT',
   },
   {
+    id: 'used-mails',
     name: 'Used Mails',
     icon: <MailOpen className="h-8 w-8 text-gray-500" />,
-    href: '#',
     description: 'Tasks for used mail accounts.',
     badge: 'NEW',
   },
   {
+    id: 'hot-mail',
     name: 'Hot Mail',
     icon: <Flame className="h-8 w-8 text-orange-500" />,
-    href: '#',
     description: 'High priority mail tasks.',
     badge: 'HOT',
   },
   {
+    id: 'outlook-mail',
     name: 'Outlook Mail',
     icon: <Mail className="h-8 w-8 text-blue-500" />,
-    href: '#',
     description: 'Tasks for Outlook accounts.',
     badge: 'NEW',
   },
   {
+    id: 'instagram',
     name: 'Instagram',
     icon: <Instagram className="h-8 w-8 text-pink-500" />,
-    href: '#',
     description: 'Like, follow & comment.',
     badge: 'HOT',
   },
   {
+    id: 'facebook',
     name: 'Facebook',
     icon: <Facebook className="h-8 w-8 text-blue-600" />,
-    href: '#',
     description: 'Engage with posts & pages.',
     badge: 'POPULAR',
   },
    {
+    id: 'visit-earn',
     name: 'Visit & Earn',
     icon: <MousePointerClick className="h-8 w-8 text-indigo-500" />,
-    href: '#',
     description: 'Visit websites to earn.',
     badge: 'NEW',
   },
   {
+    id: 'watch-earn',
     name: 'Watch & Earn',
     icon: <PlayCircle className="h-8 w-8 text-red-600" />,
-    href: '#',
     description: 'Watch videos for rewards.',
     badge: 'HOT',
   },
   {
+    id: 'kyc-task',
     name: 'KYC Task',
     icon: <UserCheck className="h-8 w-8 text-teal-500" />,
-    href: '#',
     description: 'Complete KYC verification.',
     badge: 'HIGH PAY',
   },
    {
+    id: 'app-install',
     name: 'App Install Task',
     icon: <AppWindow className="h-8 w-8 text-cyan-500" />,
-    href: '#',
     description: 'Install apps and get paid.',
     badge: 'POPULAR',
   },
   {
+    id: 'niva-coin',
     name: 'Niva Coin',
     icon: <Coins className="h-8 w-8 text-yellow-500" />,
-    href: '#',
     description: 'Special coin tasks.',
     badge: 'HOT',
   },
   {
+    id: 'top-coin',
     name: 'Top Coin',
     icon: <Coins className="h-8 w-8 text-amber-600" />,
-    href: '#',
     description: 'High value coin offers.',
   },
   {
+    id: 'google-map-review',
     name: 'Google Map Review',
     icon: <MapPin className="h-8 w-8 text-green-600" />,
-    href: '#',
     description: 'Review places you have visited.',
   },
   {
+    id: 'playstore-app-review',
     name: 'Playstore App Review',
     icon: <Download className="h-8 w-8 text-sky-500" />,
-    href: '#',
     description: 'Review apps on Playstore.',
   },
   {
+    id: 'amazon-product-review',
     name: 'Amazon Product Review',
     icon: <ShoppingBag className="h-8 w-8 text-orange-500" />,
-    href: '#',
     description: 'Review products on Amazon.',
   },
   {
+    id: 'survey',
     name: 'Survey',
     icon: <ClipboardList className="h-8 w-8 text-purple-500" />,
-    href: '#',
     description: 'Share your opinion & earn.',
   },
 ];
@@ -164,7 +164,7 @@ export default function ChooseTaskTypePage() {
       <main className="p-4 space-y-4">
         <div className="grid grid-cols-2 gap-4">
           {taskTypes.map((task) => (
-            <Link href={task.href} key={task.name} className="group">
+            <Link href={`/tasks/${task.id}`} key={task.name} className="group">
               <Card className="hover:bg-primary/5 hover:border-primary/50 transition-all duration-200 h-full overflow-hidden relative">
                 {task.badge && (
                    <Badge 
