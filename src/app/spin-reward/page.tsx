@@ -75,25 +75,9 @@ export default function SpinRewardPage() {
       
       const today = new Date().toISOString().split('T')[0];
 
-      if (error && error.code === 'PGRST116') { // No row found, create one
-        const { data: newData, error: insertError } = await supabase
-          .from('spin_rewards')
-          .insert({ 
-            user_id: session.user.id, 
-            last_spin_date: today,
-            spin_points: 0,
-            spins_used_today: 0
-          })
-          .select()
-          .single();
-        if (insertError) {
-            toast({ variant: "destructive", title: "Error", description: "Could not initialize spin data." });
-            console.error(insertError);
-        } else {
-            setSpinData(newData);
-        }
-      } else if (data) {
-        if (data.last_spin_date !== today) { // Reset daily spins
+      if (data) {
+        // If data exists, check if we need to reset daily spins
+        if (data.last_spin_date !== today) {
           const { data: updatedData, error: updateError } = await supabase
             .from('spin_rewards')
             .update({ spins_used_today: 0, last_spin_date: today })
@@ -102,16 +86,19 @@ export default function SpinRewardPage() {
             .single();
           if (updateError) {
              toast({ variant: "destructive", title: "Error", description: "Could not reset daily spins." });
+             setSpinData(data); // Use stale data on error
           } else {
             setSpinData(updatedData);
           }
         } else {
           setSpinData(data);
         }
-      } else if (error) {
+      } else if (error && error.code !== 'PGRST116') {
+        // Handle actual errors, but ignore 'PGRST116' (no row found)
         toast({ variant: "destructive", title: "Error", description: "Could not fetch your spin data." });
-        console.error(error);
       }
+      // If no data is found (new user), spinData will remain null, which is fine.
+      // The first spin will create the record via RPC.
       setIsLoading(false);
     };
 
@@ -131,7 +118,7 @@ export default function SpinRewardPage() {
   }, [countdown, result, spinData]);
 
   const handleSpinClick = async () => {
-    if (!user || !spinData || isSpinning || spinData.spins_used_today >= DAILY_SPIN_CHANCES || countdown > 0 || (showAd && !adClicked)) return;
+    if (!user || isSpinning || (spinData && spinData.spins_used_today >= DAILY_SPIN_CHANCES) || countdown > 0 || (showAd && !adClicked)) return;
 
     setIsSpinning(true);
     setResult(null);
@@ -140,8 +127,11 @@ export default function SpinRewardPage() {
     setAdClicked(false);
     
     // Optimistically update spins used
-    const newSpinsUsed = spinData.spins_used_today + 1;
-    setSpinData(prev => prev ? { ...prev, spins_used_today: newSpinsUsed } : null);
+    const newSpinsUsed = (spinData?.spins_used_today || 0) + 1;
+    setSpinData(prev => ({ 
+        ...(prev || { spin_points: 0, last_spin_date: new Date().toISOString().split('T')[0] }), 
+        spins_used_today: newSpinsUsed 
+    }));
   };
   
   const onSpinComplete = useCallback(async (selectedSegment: WheelSegment) => {
@@ -219,7 +209,7 @@ export default function SpinRewardPage() {
     }
   };
 
-  const spinsLeft = spinData ? DAILY_SPIN_CHANCES - spinData.spins_used_today : 0;
+  const spinsLeft = spinData ? DAILY_SPIN_CHANCES - spinData.spins_used_today : DAILY_SPIN_CHANCES;
   const allSpinsUsedToday = spinsLeft <= 0;
   
   const getButtonState = () => {
@@ -330,5 +320,3 @@ export default function SpinRewardPage() {
     </div>
   );
 }
-
-    
