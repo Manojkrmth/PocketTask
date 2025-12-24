@@ -708,15 +708,26 @@ export default function TasksPage() {
                   </Alert>
                 </div>
 
-                 {(bulkActionType === 'reject' || bulkActionType === 'approve') && (
+                 {(bulkActionType === 'reject') && (
                     <div className="space-y-2">
-                        <Label>Step 4: {bulkActionType === 'reject' ? 'Reason for Rejection' : 'Note for Approval (Optional)'}</Label>
+                        <Label>Step 4: Reason for Rejection</Label>
                         <Textarea
-                            placeholder={bulkActionType === 'reject' ? 'Enter reason...' : 'Optional note...'}
+                            placeholder={'Enter reason...'}
                             value={bulkReason}
                             onChange={(e) => setBulkReason(e.target.value)}
                             disabled={isUpdating}
                         />
+                         <Button 
+                            type="button" 
+                            onClick={handleBulkUpdate} 
+                            disabled={isUpdating || !identifierColumn || !bulkReason.trim()}
+                            className={cn('w-full',
+                                'bg-destructive hover:bg-destructive/90'
+                            )}
+                        >
+                            {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                            {isUpdating ? 'Updating...' : `Confirm Bulk Reject`}
+                        </Button>
                     </div>
                 )}
               </>
@@ -726,18 +737,20 @@ export default function TasksPage() {
           <DialogFooter>
             <DialogClose asChild><Button type="button" variant="secondary" disabled={isUpdating}>Cancel</Button></DialogClose>
             
-            <Button 
-                type="button" 
-                onClick={handleBulkUpdate} 
-                disabled={isUpdating || !identifierColumn || (bulkActionType === 'reject' && !bulkReason.trim())}
-                className={cn(
-                    bulkActionType === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-destructive hover:bg-destructive/90',
-                    !identifierColumn && 'hidden'
-                )}
-            >
-            {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-            {isUpdating ? 'Updating...' : `Confirm Bulk ${bulkActionType?.charAt(0).toUpperCase()}${bulkActionType?.slice(1)}`}
-            </Button>
+            {bulkActionType === 'approve' && (
+              <Button 
+                  type="button" 
+                  onClick={handleBulkUpdate} 
+                  disabled={isUpdating || !identifierColumn}
+                  className={cn(
+                      'bg-green-600 hover:bg-green-700',
+                      !identifierColumn && 'hidden'
+                  )}
+              >
+              {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+              {isUpdating ? 'Updating...' : `Confirm Bulk Approve`}
+              </Button>
+            )}
             
           </DialogFooter>
         </DialogContent>
