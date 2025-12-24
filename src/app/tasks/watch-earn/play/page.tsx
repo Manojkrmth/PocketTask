@@ -62,9 +62,9 @@ export default function WatchAndEarnPage() {
             return;
         }
 
-        const newTask = data && data.length > 0 ? data[0] : null;
+        const newTask = data;
 
-        if (newTask) {
+        if (newTask && newTask.id) {
             sessionStorage.setItem(TASK_STORAGE_KEY, JSON.stringify(newTask));
             setTask(newTask);
         } else {
@@ -193,7 +193,7 @@ export default function WatchAndEarnPage() {
     if (noTasksAvailable) {
       return (
         <div>
-            <PageHeader title="Watch & Earn" />
+            <PageHeader title="Watch &amp; Earn" />
             <div className="flex flex-col items-center justify-center h-[calc(100vh-150px)] text-center p-4">
                 <XCircle className="h-16 w-16 text-muted-foreground mb-4" />
                 <h2 className="text-2xl font-bold text-gray-800 mb-2">No New Tasks Available</h2>
@@ -223,7 +223,7 @@ export default function WatchAndEarnPage() {
 
     return (
         <div className="min-h-screen bg-muted/40">
-            <PageHeader title="Watch & Earn" />
+            <PageHeader title="Watch &amp; Earn" />
             <main className="p-4 space-y-6">
                 <Card>
                     <CardHeader>
@@ -243,7 +243,7 @@ export default function WatchAndEarnPage() {
                         <a href={task.redirect_url} target="_blank" rel="noopener noreferrer" className="block">
                             <Button className="w-full h-12 text-base font-bold bg-blue-500 hover:bg-blue-600">
                                 <ExternalLink className="mr-2 h-5 w-5" />
-                                Go to Video & Get Code
+                                Go to Video &amp; Get Code
                             </Button>
                         </a>
                         <Alert>
@@ -283,7 +283,7 @@ export default function WatchAndEarnPage() {
                             disabled={isVerifying || !verificationCode}
                         >
                             {isVerifying ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <CheckCircle className="mr-2 h-5 w-5" />}
-                            {isVerifying ? 'Verifying...' : 'Verify & Claim Reward'}
+                            {isVerifying ? 'Verifying...' : 'Verify &amp; Claim Reward'}
                         </Button>
                     </CardContent>
                 </Card>
