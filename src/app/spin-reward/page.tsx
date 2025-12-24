@@ -93,12 +93,14 @@ export default function SpinRewardPage() {
         } else {
           setSpinData(data);
         }
-      } else if (error && error.code !== 'PGRST116') {
-        // Handle actual errors, but ignore 'PGRST116' (no row found)
+      } else if (error && error.code === 'PGRST116') {
+        // No row found, which is fine for a new user. It will be created on the first spin.
+        setSpinData(null);
+      } else if (error) {
+        // Handle actual errors
         toast({ variant: "destructive", title: "Error", description: "Could not fetch your spin data." });
       }
-      // If no data is found (new user), spinData will remain null, which is fine.
-      // The first spin will create the record via RPC.
+      
       setIsLoading(false);
     };
 
@@ -151,7 +153,6 @@ export default function SpinRewardPage() {
       
       if (error) {
          toast({ variant: "destructive", title: "Error", description: "Failed to update points." });
-         console.error(error);
          // Revert optimistic update if DB fails
          setSpinData(prev => prev ? { ...prev, spins_used_today: prev.spins_used_today -1 } : null);
       } else {
