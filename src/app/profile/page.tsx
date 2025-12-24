@@ -41,7 +41,7 @@ const menuItems = [
 ];
 
 const legalItems = [
-  { href: '/contact', icon: Contact, label: 'Contact Us' },
+  { href: '/support-ticket', icon: Contact, label: 'Support Ticket' },
   { href: '/disclaimer', icon: Info, label: 'Disclaimer' },
   { href: '/privacy', icon: Info, label: 'Privacy Policy' },
   { href: '/terms', icon: Info, label: 'Terms & Conditions' },
@@ -197,12 +197,6 @@ export default function ProfilePage() {
                 <ChevronRight className="h-5 w-5 ml-auto text-muted-foreground" />
               </Link>
             ))}
-             <div className="flex items-center py-4 text-md font-medium" onClick={handleComingSoon}>
-                <PlusSquare className="h-5 w-5 mr-4 text-primary" />
-                <span className="flex-1">Post a Task</span>
-                 <Badge variant="destructive" className="text-xs mr-2">Soon</Badge>
-                <ChevronRight className="h-5 w-5 ml-auto text-muted-foreground" />
-            </div>
           </CardContent>
         </Card>
 

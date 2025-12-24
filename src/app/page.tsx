@@ -354,19 +354,18 @@ export default function HomePage() {
                 </div>
             </ShareReferralDialog>
 
-            <div className="group block relative" onClick={handleComingSoon}>
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-400 to-pink-400 rounded-lg blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
+            <Link href="/spin-reward" className="group block relative">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-amber-400 to-orange-500 rounded-lg blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
               <Card className="relative p-4 flex items-center gap-4 h-full bg-white transition-all duration-200 group-hover:scale-105 overflow-visible">
-                <Badge variant="destructive" className="absolute -top-2 -right-2 text-xs">Soon</Badge>
                 <div className="p-3 bg-white/80 backdrop-blur-sm rounded-full shadow-md">
-                  <ShoppingCart className="h-6 w-6 text-purple-500" />
+                  <Target className="h-6 w-6 text-amber-600" />
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-semibold text-md text-gray-700">Shop</h4>
-                  <p className="text-xs text-gray-500">Explore products</p>
+                  <h4 className="font-semibold text-md text-gray-700">Spin &amp; Win</h4>
+                  <p className="text-xs text-gray-500">Win prizes</p>
                 </div>
               </Card>
-            </div>
+            </Link>
 
             <Link href="/contact" className="group block relative">
               <div className="absolute -inset-0.5 bg-gradient-to-r from-teal-400 to-cyan-400 rounded-lg blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
@@ -425,34 +424,6 @@ export default function HomePage() {
         </div>
 
         <div className="my-6 grid grid-cols-2 gap-4">
-            <div className="group block relative" onClick={handleComingSoon}>
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-400 to-sky-500 rounded-lg blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
-              <Card className="relative p-4 flex items-center gap-4 h-full bg-white transition-all duration-200 group-hover:scale-105 overflow-visible">
-                 <Badge variant="destructive" className="absolute -top-2 -right-2 text-xs">Soon</Badge>
-                <div className="p-3 bg-white/80 backdrop-blur-sm rounded-full shadow-md">
-                  <Repeat className="h-6 w-6 text-sky-600" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold text-md text-gray-700">BUY/SELL USDT</h4>
-                  <p className="text-xs text-gray-500">Crypto exchange</p>
-                </div>
-              </Card>
-            </div>
-            <Link href="/spin-reward" className="group block relative">
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-amber-400 to-orange-500 rounded-lg blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
-              <Card className="relative p-4 flex items-center gap-4 h-full bg-white transition-all duration-200 group-hover:scale-105 overflow-visible">
-                <div className="p-3 bg-white/80 backdrop-blur-sm rounded-full shadow-md">
-                  <Target className="h-6 w-6 text-amber-600" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold text-md text-gray-700">Spin &amp; Win</h4>
-                  <p className="text-xs text-gray-500">Win prizes</p>
-                </div>
-              </Card>
-            </Link>
-        </div>
-
-        <div className="mb-6 grid grid-cols-2 gap-4">
           <a href={socialLinks?.whatsapp || '#'} target="_blank" rel="noopener noreferrer" className="group block relative"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
@@ -477,22 +448,6 @@ export default function HomePage() {
           </a>
         </div>
         
-        <div className="mb-6 flex justify-center">
-            <Button 
-                onClick={handleComingSoon} 
-                className="w-full max-w-xs h-14 text-lg font-bold rounded-xl relative overflow-hidden bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg transition-transform hover:scale-105"
-            >
-                <div className="absolute inset-0 bg-black/20"></div>
-                <div className="relative flex flex-col items-center">
-                    <div className="flex items-center gap-2">
-                        <PlusSquare className="h-5 w-5" />
-                        <span>Post a Task</span>
-                    </div>
-                    <span className="text-xs font-normal opacity-80">Become a Partner</span>
-                </div>
-                <Badge variant="destructive" className="absolute top-2 right-2 text-xs">Soon</Badge>
-            </Button>
-        </div>
       </main>
     </div>
   );
@@ -500,3 +455,4 @@ export default function HomePage() {
     
 
     
+
