@@ -17,6 +17,8 @@ import { LoadingScreen } from '@/components/loading-screen';
 import { CopyButton } from '@/components/copy-button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
+const MIN_COIN_SUBMISSION = 1000;
+
 const getTaskConfig = (taskType: string, allSettings: any[]) => {
     const config = allSettings.find(t => t.id === taskType);
     if (!config) return null;
@@ -78,8 +80,15 @@ function CoinTaskComponent() {
     const handleSubmit = async () => {
         if (!task || !user) return;
         
-        if (!instaId || !coinAmount || parseInt(coinAmount) <= 0 || !orderId || !dateTime) {
+        const amount = parseInt(coinAmount);
+
+        if (!instaId || !coinAmount || amount <= 0 || !orderId || !dateTime) {
             toast({ variant: 'destructive', title: 'Missing Information', description: 'Please fill all the required fields.' });
+            return;
+        }
+
+        if (amount < MIN_COIN_SUBMISSION) {
+             toast({ variant: 'destructive', title: 'Amount Too Low', description: `Minimum coin submission is ${MIN_COIN_SUBMISSION}.` });
             return;
         }
         
@@ -90,8 +99,8 @@ function CoinTaskComponent() {
                 task_id: task.id,
                 coin_type: taskType,
                 insta_id: instaId,
-                coin_amount: parseInt(coinAmount),
-                reward_inr: parseInt(coinAmount) * task.rewardRate,
+                coin_amount: amount,
+                reward_inr: (amount / 1000) * task.rewardRate,
                 order_id: orderId,
                 submission_time: new Date(dateTime).toISOString(),
                 status: 'Pending',
@@ -117,7 +126,7 @@ function CoinTaskComponent() {
     }
     
     const rulesList = task.rules?.split(';').map((r: string) => r.trim()).filter(Boolean) || [];
-    const calculatedReward = (parseInt(coinAmount) || 0) * task.rewardRate;
+    const calculatedReward = (parseInt(coinAmount) || 0) > 0 ? ((parseInt(coinAmount) / 1000) * task.rewardRate) : 0;
 
     return (
         <div className="min-h-screen bg-muted/40">
@@ -133,7 +142,7 @@ function CoinTaskComponent() {
                             <Info className="h-4 w-4" />
                             <AlertTitle>Coin Rate</AlertTitle>
                             <AlertDescription>
-                                1 Coin = ₹{task.rewardRate} INR
+                                1000 Coins = ₹{task.rewardRate} INR
                             </AlertDescription>
                         </Alert>
                     </CardContent>
@@ -200,7 +209,7 @@ function CoinTaskComponent() {
                                 type="number"
                                 value={coinAmount}
                                 onChange={(e) => setCoinAmount(e.target.value)}
-                                placeholder="e.g., 100"
+                                placeholder={`e.g., ${MIN_COIN_SUBMISSION}`}
                                 disabled={isSubmitting}
                                 className="mt-1"
                             />
@@ -232,6 +241,7 @@ function CoinTaskComponent() {
                     </CardHeader>
                     <CardContent>
                          <ul className="text-sm text-muted-foreground space-y-2 list-disc list-inside">
+                            <li>Minimum coin submission is {MIN_COIN_SUBMISSION}.</li>
                             {rulesList.length > 0 ? rulesList.map((rule: string, index: number) => <li key={index}>{rule}</li>) : <li>No specific rules for this task.</li>}
                         </ul>
                     </CardContent>

@@ -127,7 +127,9 @@ export default function TaskSettingsPage() {
                                         <Input value={task.badge || ''} onChange={(e) => handleFieldChange(task.id, 'badge', e.target.value)} disabled={isSaving} placeholder="e.g., HOT, NEW" />
                                     </div>
                                      <div className="space-y-2">
-                                        <Label>Reward (INR)</Label>
+                                        <Label>
+                                           {(task.id === 'niva-coin' || task.id === 'top-coin') ? 'Reward per 1000 Coins (INR)' : 'Reward (INR)'}
+                                        </Label>
                                         <Input type="number" value={task.reward} onChange={(e) => handleFieldChange(task.id, 'reward', parseFloat(e.target.value) || 0)} disabled={isSaving} />
                                     </div>
                                 </div>
