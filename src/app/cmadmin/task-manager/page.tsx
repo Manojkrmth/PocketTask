@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Upload, Trash2, FileDown, CheckCircle, XCircle, Play, Pause, List, Clock, Edit, Save } from 'lucide-react';
+import { Loader2, Upload, Trash2, FileDown, CheckCircle, XCircle, Play, Pause, Edit, Save, MoreHorizontal } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Papa from 'papaparse';
 import {
@@ -21,12 +21,17 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useCurrency } from '@/context/currency-context';
-import { Progress } from '@/components/ui/progress';
 
 interface Batch {
   id: number;
@@ -46,7 +51,6 @@ interface Batch {
 
 export default function TaskManagerPage() {
   const { toast } = useToast();
-  const { formatCurrency } = useCurrency();
   const [batches, setBatches] = useState<Batch[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, startUploading] = useTransition();
