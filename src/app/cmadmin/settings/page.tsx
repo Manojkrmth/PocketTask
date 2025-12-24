@@ -82,20 +82,22 @@ export default function AdminSettingsPage() {
       const { data, error } = await supabase
         .from('settings')
         .select('settings_data')
+        .eq('id', 1)
         .single();
       
       if (data && data.settings_data) {
         // Merge fetched data with initial settings to ensure all keys exist
         setSettings((prev: any) => ({
-          ...prev,
+          ...initialSettings,
           ...data.settings_data,
-          withdrawal: { ...prev.withdrawal, ...(data.settings_data.withdrawal || {}) },
-          referral: { ...prev.referral, ...(data.settings_data.referral || {}) },
-          ui: { ...prev.ui, ...(data.settings_data.ui || {}) },
-          socialLinks: { ...prev.socialLinks, ...(data.settings_data.socialLinks || {}) },
-          popupNotice: { ...prev.popupNotice, ...(data.settings_data.popupNotice || {}) },
+          general: { ...initialSettings.general, ...(data.settings_data.general || {})},
+          withdrawal: { ...initialSettings.withdrawal, ...(data.settings_data.withdrawal || {}) },
+          referral: { ...initialSettings.referral, ...(data.settings_data.referral || {}) },
+          ui: { ...initialSettings.ui, ...(data.settings_data.ui || {}) },
+          socialLinks: { ...initialSettings.socialLinks, ...(data.settings_data.socialLinks || {}) },
+          popupNotice: { ...initialSettings.popupNotice, ...(data.settings_data.popupNotice || {}) },
         }));
-      } else if (error && error.code !== 'PGRST116') {
+      } else if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
         toast({ variant: 'destructive', title: 'Error', description: 'Failed to load settings.' });
       }
       setIsLoading(false);
@@ -467,5 +469,3 @@ export default function AdminSettingsPage() {
     </div>
   );
 }
-
-    
