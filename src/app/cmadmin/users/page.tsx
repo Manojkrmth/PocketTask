@@ -31,12 +31,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, Loader2, User as UserIcon, Mail, Phone, Calendar, UserX, UserCheck } from 'lucide-react';
+import { MoreHorizontal, Loader2, User as UserIcon, Mail, Phone, Calendar, UserX, UserCheck, Eye } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { useCurrency } from '@/context/currency-context';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface AppUser {
   id: string;
@@ -57,6 +59,7 @@ export default function UsersPage() {
   const [filter, setFilter] = useState('');
   const { formatCurrency } = useCurrency();
   const { toast } = useToast();
+  const router = useRouter();
   
   const [isUpdating, startUpdateTransition] = useTransition();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -197,8 +200,13 @@ export default function UsersPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem disabled>View Details</DropdownMenuItem>
-                          <DropdownMenuItem disabled>Edit User</DropdownMenuItem>
+                           <DropdownMenuItem onSelect={() => router.push(`/cmadmin/users/${user.id}`)}>
+                            <Eye className="mr-2 h-4 w-4"/>
+                            View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem disabled>
+                            Edit User
+                          </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           {user.status !== 'Blocked' ? (
                             <DropdownMenuItem 
@@ -253,5 +261,3 @@ export default function UsersPage() {
     </>
   );
 }
-
-    
