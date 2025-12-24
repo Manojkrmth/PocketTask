@@ -54,7 +54,7 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
       const offsetToCenter = pointerAngle - centerOfSegmentAngle;
       
       // Add more rotations for a longer spin
-      const totalRotation = (finalRotation - (finalRotation % 360)) + (360 * 10) + offsetToCenter;
+      const totalRotation = (finalRotation - (finalRotation % 360)) + (360 * 30) + offsetToCenter;
 
       setRotation(totalRotation);
       setFinalRotation(totalRotation); 
