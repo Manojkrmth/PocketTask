@@ -15,7 +15,7 @@ interface SpinWheelProps {
 }
 
 const RADIUS = 150;
-const TEXT_RADIUS = RADIUS * 0.75;
+const TEXT_RADIUS = RADIUS * 0.65;
 const WHEEL_SIZE = RADIUS * 2;
 
 export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelProps) {
@@ -54,7 +54,7 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
 
       setTimeout(() => {
         onSpinComplete(segments[winningSegmentIndex]);
-      }, 5000); 
+      }, 1000); 
     }
   }, [isSpinning, numSegments, segments, anglePerSegment, onSpinComplete]);
 
@@ -65,17 +65,15 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
         style={{ width: `${WHEEL_SIZE}px`, height: `${WHEEL_SIZE}px` }}
       >
         <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[28px] z-20 drop-shadow-lg">
-           <svg width="60" height="80" viewBox="0 0 60 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M30 45L0.717968 0L59.282 0L30 45Z" fill="#FDD835"/>
-            <path d="M30 80C41.0457 80 50 71.0457 50 60C50 48.9543 41.0457 40 30 40C18.9543 40 10 48.9543 10 60C10 71.0457 18.9543 80 30 80Z" fill="#D81B60"/>
-            <circle cx="30" cy="60" r="8" fill="#FDD835"/>
-          </svg>
+           <svg width="60" height="45" viewBox="0 0 60 45" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M30 45L0.717968 0L59.282 0L30 45Z" fill="#FDD835"/>
+            </svg>
         </div>
         
         <div
           className={cn(
-            "w-full h-full rounded-full transition-transform duration-[5000ms] ease-out",
-            "select-none shadow-2xl" 
+            "w-full h-full rounded-full transition-transform duration-[1000ms] ease-out",
+            "select-none shadow-2xl border-8 border-red-700" 
           )}
           style={{ transform: `rotate(${rotation}deg)` }}
         >
@@ -127,7 +125,7 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
                 })}
             </svg>
         </div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full bg-red-800 border-8 border-yellow-400 shadow-inner z-10"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-red-800 border-4 border-yellow-400 shadow-inner z-10"></div>
       </div>
       <div className="relative w-[200px] h-[60px] -mt-2">
          <svg width="200" height="60" viewBox="0 0 200 60" fill="none" xmlns="http://www.w3.org/2000/svg">
