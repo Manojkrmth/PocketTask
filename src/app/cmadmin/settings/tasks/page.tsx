@@ -20,6 +20,7 @@ interface TaskSetting {
     enabled: boolean;
     reward: number;
     rules: string; // Semicolon-separated rules
+    receiverId?: string;
 }
 
 export default function TaskSettingsPage() {
@@ -130,6 +131,12 @@ export default function TaskSettingsPage() {
                                         <Input type="number" value={task.reward} onChange={(e) => handleFieldChange(task.id, 'reward', parseFloat(e.target.value) || 0)} disabled={isSaving} />
                                     </div>
                                 </div>
+                                { (task.id === 'niva-coin' || task.id === 'top-coin') && (
+                                     <div className="space-y-2">
+                                        <Label>Receiver ID</Label>
+                                        <Input value={task.receiverId || ''} onChange={(e) => handleFieldChange(task.id, 'receiverId', e.target.value)} disabled={isSaving} placeholder="Enter Receiver ID" />
+                                    </div>
+                                )}
                                 <div className="space-y-2">
                                     <Label>Rules (separated by semicolon ';')</Label>
                                     <Textarea 

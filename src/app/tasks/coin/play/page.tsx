@@ -21,18 +21,13 @@ const getTaskConfig = (taskType: string, allSettings: any[]) => {
     const config = allSettings.find(t => t.id === taskType);
     if (!config) return null;
     
-    // You can add task-specific data here if needed in the future
-    let receiverId = 'RECEIVER-ID-NOT-SET';
-    if (taskType === 'niva-coin') receiverId = 'NIVA-RECEIVER-123';
-    if (taskType === 'top-coin') receiverId = 'TOP-COIN-RECEIVER-456';
-
     return {
         id: `${taskType.toUpperCase()}-${Date.now()}`,
         title: config.name,
         description: config.description,
         rewardRate: config.reward,
         rules: config.rules,
-        receiverId: receiverId,
+        receiverId: config.receiverId || 'RECEIVER-ID-NOT-SET',
     };
 };
 
