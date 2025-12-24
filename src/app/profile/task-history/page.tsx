@@ -1,6 +1,4 @@
 
-
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -28,7 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { ListFilter, Loader2, CheckCircle2, XCircle, Hourglass, Mail, Type, User, Users } from "lucide-react";
+import { ListFilter, Loader2, CheckCircle2, XCircle, Hourglass, Mail, Type, User, Users, Hash } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/page-header';
 import { useCurrency } from '@/context/currency-context';
@@ -120,21 +118,28 @@ function TaskSubmissions() {
     if (task.task_type === 'gmail') {
       return 'Gmail Creation Task';
     }
+    if (task.task_type === 'visit-earn') {
+      return 'Visit & Earn Task';
+    }
+     if (task.task_type === 'watch-earn') {
+      return 'Watch & Earn Task';
+    }
     if (task.submission_data?.appName) {
         return 'App Install Task';
     }
-    return task.task_type ? task.task_type.replace(/_/g, ' ').replace(/-/g, ' ') : 'Unknown Task';
+    return task.task_type ? task.task_type.replace(/_/g, ' ').replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) : 'Unknown Task';
   };
 
   const getSubmissionDetail = (task: any) => {
     const data = task.submission_data;
     if (!data) return null;
     
-    // For 'used-mail-single' and 'gmail' tasks
+    if (data.code) {
+        return <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1"><Hash className="h-3 w-3"/> Code: {data.code}</div>;
+    }
     if (data.email || data.gmail) {
       return <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1"><Mail className="h-3 w-3"/> {data.email || data.gmail}</div>;
     }
-    // For 'used-mail-bulk' tasks
     if (data.file_name) {
          return <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1"><Users className="h-3 w-3"/> {data.file_name}</div>;
     }
@@ -182,7 +187,7 @@ function TaskSubmissions() {
                 {!isHistoryLoading && currentTasks.map((task: any, index: number) => (
                   <TableRow key={task.id || index}>
                     <TableCell>
-                      <div className="font-medium flex items-center gap-2 capitalize">
+                      <div className="font-medium flex items-center gap-2">
                         <Type className="h-4 w-4 text-muted-foreground"/> {getTaskDisplayType(task)}
                       </div>
                       {getSubmissionDetail(task)}
