@@ -26,6 +26,7 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCurrency } from '@/context/currency-context';
+import { Progress } from '@/components/ui/progress';
 
 interface Batch {
   id: number;
@@ -33,7 +34,7 @@ interface Batch {
   batch_name: string;
   status: 'active' | 'paused' | 'archived';
   total_tasks: number;
-  file_path: string | null; // Can be null now
+  file_path: string | null;
   task_category: string;
   reward_price: number;
   stats?: {
@@ -197,8 +198,6 @@ export default function TaskManagerPage() {
           return;
       }
       
-      // No need to delete from storage anymore
-
       toast({ title: 'Batch Deleted', description: `Batch "${batch.batch_name}" and its tasks have been removed.` });
       await fetchBatches();
   }
@@ -227,6 +226,33 @@ export default function TaskManagerPage() {
         setEditingBatch(null);
         await fetchBatches();
     }
+  }
+
+  const handleDownloadByStatus = async (batchId: number, status: 'todo' | 'Pending' | 'Approved' | 'Rejected') => {
+      try {
+        const { data, error } = await supabase.rpc('get_tasks_by_batch_and_status', { p_batch_id: batchId, p_status: status });
+        
+        if (error) throw error;
+        
+        if (!data || data.length === 0) {
+            toast({ variant: 'default', title: 'No Data', description: `No tasks found with status "${status}" for this batch.` });
+            return;
+        }
+
+        const csv = Papa.unparse(data);
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `batch_${batchId}_${status}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast({ title: 'Download Started', description: `Downloading ${status} tasks for batch ${batchId}.`});
+
+      } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Download Failed', description: error.message });
+      }
   }
 
   const handleComingSoon = () => {
@@ -293,77 +319,92 @@ export default function TaskManagerPage() {
          ) : batches.length === 0 ? (
             <p className="text-muted-foreground text-center py-10">No batches have been uploaded yet.</p>
          ) : (
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 {batches.map(batch => (
-                    <Card key={batch.id} className="flex flex-col">
-                        <CardHeader>
-                            <div className="flex justify-between items-start">
-                                <CardTitle className="truncate">{batch.batch_name}</CardTitle>
-                                <Badge variant={batch.status === 'active' ? 'default' : 'secondary'} className={cn(batch.status === 'active' && 'bg-green-600')}>{batch.status}</Badge>
-                            </div>
-                            <CardDescription>
-                                Uploaded {formatDistanceToNow(new Date(batch.created_at), { addSuffix: true })}
-                            </CardDescription>
-                            <div className="flex items-center gap-4 text-sm pt-2">
-                                <p><span className="font-semibold text-muted-foreground">Category:</span> <span className="font-bold capitalize">{batch.task_category}</span></p>
-                                <p><span className="font-semibold text-muted-foreground">Reward:</span> <span className="font-bold">{formatCurrency(batch.reward_price)}</span></p>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="flex-grow space-y-4">
-                            <div className="grid grid-cols-2 gap-4 text-center">
-                                <div className="p-2 bg-muted rounded-md">
-                                    <p className="text-2xl font-bold">{batch.total_tasks}</p>
-                                    <p className="text-xs font-medium text-muted-foreground flex items-center justify-center gap-1"><List className="h-3 w-3"/> Total</p>
-                                </div>
-                                <div className="p-2 bg-muted rounded-md">
-                                     <p className="text-2xl font-bold">{batch.stats?.approved || 0}</p>
-                                    <p className="text-xs font-medium text-green-600 flex items-center justify-center gap-1"><CheckCircle className="h-3 w-3"/> Approved</p>
-                                </div>
-                                <div className="p-2 bg-muted rounded-md">
-                                     <p className="text-2xl font-bold">{batch.stats?.pending || 0}</p>
-                                    <p className="text-xs font-medium text-yellow-600 flex items-center justify-center gap-1"><Clock className="h-3 w-3"/> Pending</p>
-                                </div>
-                                <div className="p-2 bg-muted rounded-md">
-                                     <p className="text-2xl font-bold">{batch.stats?.rejected || 0}</p>
-                                    <p className="text-xs font-medium text-red-600 flex items-center justify-center gap-1"><XCircle className="h-3 w-3"/> Rejected</p>
-                                </div>
-                            </div>
+             <div className="grid grid-cols-1 gap-4">
+                 {batches.map(batch => {
+                    const stats = batch.stats || { approved: 0, pending: 0, rejected: 0 };
+                    const totalProcessed = stats.approved + stats.pending + stats.rejected;
+                    const approvedPercent = batch.total_tasks > 0 ? (stats.approved / batch.total_tasks) * 100 : 0;
+                    const pendingPercent = batch.total_tasks > 0 ? (stats.pending / batch.total_tasks) * 100 : 0;
+                    const rejectedPercent = batch.total_tasks > 0 ? (stats.rejected / batch.total_tasks) * 100 : 0;
+                    const todoCount = batch.total_tasks - totalProcessed;
 
-                             <div className="space-y-2 pt-4">
-                                <h4 className="font-semibold text-sm">Actions</h4>
-                                <div className="flex gap-2">
-                                     <Button variant="outline" size="sm" onClick={handleComingSoon}><FileDown className="h-4 w-4"/> To-Do CSV</Button>
-                                     <Button variant="outline" size="sm" className="bg-green-50 hover:bg-green-100 border-green-200 text-green-700" onClick={handleComingSoon}><CheckCircle className="h-4 w-4"/> Approve</Button>
-                                     <Button variant="outline" size="sm" className="bg-red-50 hover:bg-red-100 border-red-200 text-red-700" onClick={handleComingSoon}><XCircle className="h-4 w-4"/> Reject</Button>
+                    return (
+                        <Card key={batch.id} className="w-full">
+                            <CardHeader className="p-4">
+                                <div className="flex justify-between items-start gap-4">
+                                    <div>
+                                        <CardTitle className="truncate">{batch.batch_name}</CardTitle>
+                                        <CardDescription>
+                                            Uploaded {formatDistanceToNow(new Date(batch.created_at), { addSuffix: true })}
+                                        </CardDescription>
+                                    </div>
+                                    <div className='flex items-center gap-2'>
+                                        <Badge variant={batch.status === 'active' ? 'default' : 'secondary'} className={cn(batch.status === 'active' && 'bg-green-600')}>{batch.status}</Badge>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                 <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4"/></Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onSelect={() => handleStatusToggle(batch)}>
+                                                    {batch.status === 'active' ? <Pause className="mr-2 h-4 w-4"/> : <Play className="mr-2 h-4 w-4"/>}
+                                                    {batch.status === 'active' ? 'Pause' : 'Resume'}
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onSelect={() => handleEditBatch(batch)}>
+                                                    <Edit className="mr-2 h-4 w-4"/> Edit Batch
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <AlertDialog>
+                                                    <AlertDialogTrigger asChild>
+                                                        <div className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 text-destructive">
+                                                            <Trash2 className="mr-2 h-4 w-4"/> Delete Batch
+                                                        </div>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                            <AlertDialogDescription>This will delete the batch "{batch.batch_name}" and all associated tasks. This action cannot be undone.</AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                            <AlertDialogAction onClick={() => handleDeleteBatch(batch)}>Confirm Delete</AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </div>
                                 </div>
-                            </div>
-                        </CardContent>
-                        <CardFooter className="bg-muted/50 p-2 flex gap-2">
-                             <Button variant="ghost" size="sm" className="w-full" onClick={() => handleStatusToggle(batch)}>
-                                {batch.status === 'active' ? <Pause className="mr-2 h-4 w-4"/> : <Play className="mr-2 h-4 w-4"/>}
-                                {batch.status === 'active' ? 'Pause' : 'Resume'}
-                             </Button>
-                             <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => handleEditBatch(batch)}><Edit className="h-4 w-4"/></Button>
-                             <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="destructive" size="icon" className="h-9 w-9 shrink-0"><Trash2 className="h-4 w-4"/></Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            This will delete the batch "{batch.batch_name}" and all associated tasks. This action cannot be undone.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleDeleteBatch(batch)}>Confirm Delete</AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                             </AlertDialog>
-                        </CardFooter>
-                    </Card>
-                 ))}
+                            </CardHeader>
+                            <CardContent className="p-4 pt-0 space-y-4">
+                                <div className="space-y-2">
+                                     <div className="relative h-4 w-full bg-muted rounded-full overflow-hidden">
+                                        <div className="flex h-full">
+                                            <div className="bg-green-500" style={{ width: `${approvedPercent}%` }}></div>
+                                            <div className="bg-yellow-500" style={{ width: `${pendingPercent}%` }}></div>
+                                            <div className="bg-red-500" style={{ width: `${rejectedPercent}%` }}></div>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-4 text-xs text-center">
+                                        <div className="text-green-600 font-semibold">{stats.approved} Approved</div>
+                                        <div className="text-yellow-600 font-semibold">{stats.pending} Pending</div>
+                                        <div className="text-red-600 font-semibold">{stats.rejected} Rejected</div>
+                                        <div className="text-gray-500 font-semibold">{todoCount} To-Do</div>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                    <Button variant="outline" size="sm" onClick={() => handleDownloadByStatus(batch.id, 'todo')}>To-Do CSV ({todoCount})</Button>
+                                    <Button variant="outline" size="sm" onClick={() => handleDownloadByStatus(batch.id, 'Pending')}>Pending CSV ({stats.pending})</Button>
+                                    <Button variant="outline" size="sm" onClick={() => handleDownloadByStatus(batch.id, 'Approved')}>Approved CSV ({stats.approved})</Button>
+                                    <Button variant="outline" size="sm" onClick={() => handleDownloadByStatus(batch.id, 'Rejected')}>Rejected CSV ({stats.rejected})</Button>
+                                </div>
+                                <div className="flex gap-2">
+                                     <Button variant="outline" size="sm" className="bg-green-50 hover:bg-green-100 border-green-200 text-green-700" onClick={handleComingSoon}><CheckCircle className="h-4 w-4"/> Bulk Approve</Button>
+                                     <Button variant="outline" size="sm" className="bg-red-50 hover:bg-red-100 border-red-200 text-red-700" onClick={handleComingSoon}><XCircle className="h-4 w-4"/> Bulk Reject</Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )
+                 })}
              </div>
          )}
       </div>
@@ -410,5 +451,3 @@ export default function TaskManagerPage() {
     </>
   );
 }
-
-    
