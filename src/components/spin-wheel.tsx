@@ -41,7 +41,10 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
   return (
     <div className="relative w-72 h-72 md:w-80 md:h-80">
       <div 
-        className="absolute w-full h-full rounded-full transition-transform duration-5000 ease-out"
+        className={cn(
+            "absolute w-full h-full rounded-full transition-transform duration-[5000ms] ease-out",
+            isSpinning ? "" : "duration-0" // No transition when not spinning
+        )}
         style={{ 
             transform: `rotate(${rotation}deg)`,
             background: `conic-gradient(from 0deg, ${segments.map((s, i) => 
@@ -60,7 +63,7 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
               style={{ transform: `rotate(${rotateAngle}deg)` }}
             >
               <span 
-                className="transform -rotate-90 text-sm font-bold text-white text-shadow-lg"
+                className="transform -rotate-90 text-sm font-bold text-white"
                 style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.5)'}}
               >
                   {segment.text}
@@ -70,14 +73,12 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
         })}
       </div>
       {/* Pointer */}
-      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-2 w-0 h-0 border-l-[15px] border-l-transparent border-r-[15px] border-r-transparent border-t-[30px] border-t-red-600 drop-shadow-lg"></div>
+      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-2 w-0 h-0 border-l-[15px] border-l-transparent border-r-[15px] border-r-transparent border-t-[30px] border-t-red-600 drop-shadow-lg z-10"></div>
       
       {/* Center Circle */}
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-white border-4 border-gray-200 shadow-inner flex items-center justify-center font-bold text-gray-700">
+      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-white border-4 border-gray-200 shadow-inner flex items-center justify-center font-bold text-gray-700 z-10">
         SPIN
       </div>
     </div>
   );
 }
-
-    

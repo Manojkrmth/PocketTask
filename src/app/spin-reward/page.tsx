@@ -5,11 +5,13 @@ import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Gift, Loader2, Award, Clock } from 'lucide-react';
+import { Gift, Loader2, Award, Clock, MousePointerClick } from 'lucide-react';
 import { SpinWheel, type WheelSegment } from '@/components/spin-wheel';
 import Confetti from 'react-confetti';
 import { useWindowSize } from '@/hooks/use-mobile';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import Image from 'next/image';
+import Link from 'next/link';
 
 const segments: WheelSegment[] = [
   { text: '₹10', color: '#FFD700' },
@@ -37,21 +39,29 @@ export default function SpinRewardPage() {
   const { width, height } = useWindowSize();
   const [spinChances, setSpinChances] = useState(DAILY_SPIN_CHANCES);
   const [isFinished, setIsFinished] = useState(false);
+  const [showAd, setShowAd] = useState(false);
+  const [adClicked, setAdClicked] = useState(false);
 
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
     const storedData = localStorage.getItem(SPIN_STORAGE_KEY);
     
     if (storedData) {
-      const data: SpinData = JSON.parse(storedData);
-      if (data.lastSpinDate === today) {
-        const chancesLeft = DAILY_SPIN_CHANCES - data.spinsUsed;
-        setSpinChances(chancesLeft);
-        if(chancesLeft <= 0) {
-            setIsFinished(true);
+      try {
+        const data: SpinData = JSON.parse(storedData);
+        if (data.lastSpinDate === today) {
+          const chancesLeft = DAILY_SPIN_CHANCES - data.spinsUsed;
+          setSpinChances(chancesLeft);
+          if(chancesLeft <= 0) {
+              setIsFinished(true);
+          }
+        } else {
+          // It's a new day, reset.
+          localStorage.removeItem(SPIN_STORAGE_KEY);
+          setSpinChances(DAILY_SPIN_CHANCES);
         }
-      } else {
-        // It's a new day, reset.
+      } catch (e) {
+        // Data in storage is corrupted, reset
         localStorage.removeItem(SPIN_STORAGE_KEY);
         setSpinChances(DAILY_SPIN_CHANCES);
       }
@@ -61,27 +71,33 @@ export default function SpinRewardPage() {
   }, []);
 
   const handleSpinClick = () => {
-    if (isSpinning || spinChances <= 0) return;
+    if (isSpinning || spinChances <= 0 || showAd) return;
 
     setIsSpinning(true);
     setResult(null);
     setShowConfetti(false);
+    setAdClicked(false);
     
-    // Logic to update local storage
     const today = new Date().toISOString().split('T')[0];
     const storedData = localStorage.getItem(SPIN_STORAGE_KEY);
     let currentSpins = 0;
     if(storedData) {
-        const data: SpinData = JSON.parse(storedData);
-        if(data.lastSpinDate === today) {
-            currentSpins = data.spinsUsed;
+        try {
+            const data: SpinData = JSON.parse(storedData);
+            if(data.lastSpinDate === today) {
+                currentSpins = data.spinsUsed;
+            }
+        } catch (e) {
+            currentSpins = 0;
         }
     }
     const newSpinsUsed = currentSpins + 1;
     localStorage.setItem(SPIN_STORAGE_KEY, JSON.stringify({ lastSpinDate: today, spinsUsed: newSpinsUsed }));
-    setSpinChances(DAILY_SPIN_CHANCES - newSpinsUsed);
-    if(DAILY_SPIN_CHANCES - newSpinsUsed <= 0) {
-        setTimeout(() => setIsFinished(true), 5000); // Set finished after spin animation
+    const chancesLeft = DAILY_SPIN_CHANCES - newSpinsUsed;
+    setSpinChances(chancesLeft);
+
+    if(chancesLeft <= 0) {
+        setTimeout(() => setIsFinished(true), 5000); 
     }
   };
   
@@ -91,11 +107,28 @@ export default function SpinRewardPage() {
     if (selectedSegment.text !== 'Try Again') {
       setShowConfetti(true);
     }
+    // Show ad after spin if there are chances left
+    if (spinChances > 0) {
+        setTimeout(() => {
+            setShowAd(true);
+        }, 1000); // show ad 1 second after result
+    }
   };
+
+  const handleAdClick = () => {
+    setShowAd(false);
+    setAdClicked(true); // This now allows the user to spin again
+    // In a real scenario, you might navigate to the ad's link.
+    // For this example, we just hide the ad.
+  };
+
+  const hasSpinsLeft = spinChances > 0 && !isFinished;
+  // Spin button should be disabled if spinning, or if an ad is shown and not yet clicked.
+  const isSpinButtonDisabled = isSpinning || (showAd && !adClicked) || !hasSpinsLeft;
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
-      {showConfetti && <Confetti width={width} height={height} recycle={false} numberOfPieces={200} onConfettiComplete={() => setShowConfetti(false)} />}
+      {showConfetti && <Confetti width={width || 0} height={height || 0} recycle={false} numberOfPieces={200} onConfettiComplete={() => setShowConfetti(false)} />}
       <PageHeader title="Spin &amp; Win" description="Spin the wheel to win exciting prizes!" />
       <main className="p-4 space-y-6 flex-1 flex flex-col">
         <Card className="bg-primary/10 border-primary/20">
@@ -111,7 +144,7 @@ export default function SpinRewardPage() {
         <div className="flex-1 flex flex-col items-center justify-center space-y-8">
           <SpinWheel segments={segments} isSpinning={isSpinning} onSpinComplete={onSpinComplete} />
 
-          {result && (
+          {result && !showAd && (
              <Alert className={`max-w-sm animate-in fade-in-50 ${result.text === 'Try Again' ? 'bg-gray-100' : 'bg-yellow-100 border-yellow-300'}`}>
                 <Award className="h-4 w-4" />
                 <AlertTitle>You Won:</AlertTitle>
@@ -121,11 +154,41 @@ export default function SpinRewardPage() {
             </Alert>
           )}
 
+          {showAd && (
+            <div className="w-full max-w-sm animate-in fade-in-50 space-y-2">
+                <p className="text-center text-sm font-bold text-primary animate-pulse">
+                    Click the ad below to unlock your next spin!
+                </p>
+                <Card 
+                    className="overflow-hidden border-2 border-primary shadow-lg cursor-pointer hover:border-green-500 transition-all"
+                    onClick={handleAdClick}
+                >
+                    <div className="relative aspect-video">
+                        <Image
+                            src="https://picsum.photos/seed/ad1/600/340"
+                            alt="Advertisement"
+                            fill
+                            className="object-cover"
+                            data-ai-hint="advertisement banner"
+                        />
+                         <div className="absolute inset-0 bg-black/30 flex items-center justify-center flex-col text-white p-4 text-center">
+                            <h3 className="font-bold text-xl drop-shadow-md">Special Offer!</h3>
+                            <p className="text-sm drop-shadow-sm">Click to learn more and unlock your spin!</p>
+                            <div className="mt-4 px-4 py-2 bg-green-500 rounded-full flex items-center gap-2">
+                                <MousePointerClick className="h-4 w-4" />
+                                <span>Click Here</span>
+                            </div>
+                        </div>
+                    </div>
+                </Card>
+            </div>
+          )}
+
         </div>
         
         <div className="text-center space-y-4 pt-4">
             {!isFinished ? (
-                 <Button onClick={handleSpinClick} size="lg" className="w-full max-w-sm h-14 text-xl font-bold" disabled={isSpinning || spinChances <= 0}>
+                 <Button onClick={handleSpinClick} size="lg" className="w-full max-w-sm h-14 text-xl font-bold" disabled={isSpinButtonDisabled}>
                     {isSpinning ? <Loader2 className="h-6 w-6 animate-spin"/> : 'SPIN'}
                 </Button>
             ) : (
@@ -142,5 +205,3 @@ export default function SpinRewardPage() {
     </div>
   );
 }
-
-    
