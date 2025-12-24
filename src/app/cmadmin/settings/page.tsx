@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Save, Link as LinkIcon, Settings, Image as ImageIcon, Text, Info, ToggleLeft, IndianRupee } from 'lucide-react';
+import { Loader2, Save, Link as LinkIcon, Settings, Image as ImageIcon, Text, Info, ToggleLeft, IndianRupee, Megaphone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { InstagramIcon, TelegramIcon, WhatsAppIcon } from '@/components/icons';
 import { Switch } from '@/components/ui/switch';
@@ -114,6 +114,26 @@ export default function SettingsPage() {
                             onChange={(e) => handleTopLevelChange('usdToInrRate', parseFloat(e.target.value) || 0)} 
                             disabled={isSaving}
                             placeholder="e.g., 85"
+                        />
+                    </div>
+                </CardContent>
+            </Card>
+
+             <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Megaphone className="h-5 w-5 text-primary" /> Notice Board</CardTitle>
+                    <CardDescription>This text scrolls across the top of the home page.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="noticeBoardText">Scrolling Notice Text</Label>
+                        <Input 
+                            id="noticeBoardText" 
+                            type="text"
+                            value={settings.noticeBoardText || ''} 
+                            onChange={(e) => handleTopLevelChange('noticeBoardText', e.target.value)} 
+                            disabled={isSaving}
+                            placeholder="e.g., Welcome! New tasks available."
                         />
                     </div>
                 </CardContent>
