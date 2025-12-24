@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -31,6 +32,7 @@ import { useCurrency } from '@/context/currency-context';
 import { CopyButton } from '@/components/copy-button';
 import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
+import { useWindowSize } from '@/hooks/use-mobile';
 
 
 type Task = {
@@ -61,7 +63,7 @@ export function GmailTaskCenter({ task, currentGmail, expiryTimestamp, submitCoo
   const [user, setUser] = useState<User | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-  const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
+  const { width, height } = useWindowSize();
   const { formatCurrency } = useCurrency();
   
   const [recoveryMail, setRecoveryMail] = useState(task.prefilledData.recoveryMail || '');
@@ -79,19 +81,6 @@ export function GmailTaskCenter({ task, currentGmail, expiryTimestamp, submitCoo
         getUser();
     }, []);
 
-  useEffect(() => {
-    const handleResize = () => {
-      const el = document.querySelector('.max-w-md');
-      if (el) {
-        setWindowSize({ width: el.clientWidth, height: el.clientHeight });
-      } else {
-        setWindowSize({ width: window.innerWidth, height: window.innerHeight });
-      }
-    };
-    window.addEventListener('resize', handleResize);
-    handleResize();
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   useEffect(() => {
     if (timeLeft <= 0) {
@@ -130,6 +119,9 @@ export function GmailTaskCenter({ task, currentGmail, expiryTimestamp, submitCoo
     // ALWAYS use the original gmail from the task prop as the base.
     const [username] = task.prefilledData.gmail.split('@');
     
+    // केवल यूज़रनेम का हिस्सा लें, @gmail.com नहीं
+    const baseUsername = username.replace(/@gmail\.com$/, '');
+
     const chars = 'abcdefghijklmnopqrstuvwxyz';
     let randomPrefix = '';
     for (let i = 0; i < 2; i++) {
@@ -138,7 +130,9 @@ export function GmailTaskCenter({ task, currentGmail, expiryTimestamp, submitCoo
 
     const randomNumber = Math.floor(10 + Math.random() * 90);
 
-    const newUsername = `${randomPrefix}${username}${randomNumber}`;
+    // बेस यूज़रनेम से किसी भी मौजूदा नंबर को हटा दें
+    const cleanUsername = baseUsername.replace(/\d+/g, '').replace(/^[a-z]{2}/, '');
+    const newUsername = `${randomPrefix}${cleanUsername}${randomNumber}`;
     const newGmail = `${newUsername}@gmail.com`;
     
     onGmailRegenerate(newGmail);
@@ -154,7 +148,7 @@ export function GmailTaskCenter({ task, currentGmail, expiryTimestamp, submitCoo
         toast({ variant: 'destructive', title: 'Error', description: 'You are not logged in.'});
         return;
     }
-    if (!recoveryMail) {
+    if (!recoveryMail && !prefilledRecoveryMailExists) {
       toast({ variant: 'destructive', title: 'Recovery Mail Required', description: 'Please enter the recovery mail to submit the task.'});
       return;
     }
@@ -166,28 +160,23 @@ export function GmailTaskCenter({ task, currentGmail, expiryTimestamp, submitCoo
     (async () => {
        try {
         const userTaskData = {
-            userId: user.id,
-            taskId: task.id,
-            batchId: task.batchId,
+            user_id: user.id,
+            task_id: task.id.toString(), // task.id BIGINT है
+            batch_id: task.batchId,
             status: 'Pending',
-            submissionTime: new Date().toISOString(),
-            gmail: currentGmail, // Submit the currently displayed (potentially regenerated) Gmail
             reward: task.reward,
-            recoveryMailSubmission: recoveryMail,
+            task_type: 'gmail',
+            submission_data: {
+                gmail: currentGmail,
+                recoveryMailSubmission: recoveryMail,
+                originalFullName: task.prefilledData.fullName,
+                originalPassword: task.prefilledData.password
+            }
         };
-        const { error: insertError } = await supabase.from('userTasks').insert(userTaskData);
+
+        const { error: insertError } = await supabase.from('usertasks').insert(userTaskData);
 
         if (insertError) throw insertError;
-        
-        // To increment numeric fields, you need to use an RPC function in Supabase.
-        // Let's assume you have an RPC function `increment_user_balances`.
-        const { error: rpcError } = await supabase.rpc('increment_user_balances', {
-            user_id_input: user.id,
-            hold_increment: task.reward,
-            pending_increment: 1,
-        });
-
-        if (rpcError) throw rpcError;
         
         toast({
           title: 'Task Submitted!',
@@ -216,7 +205,7 @@ export function GmailTaskCenter({ task, currentGmail, expiryTimestamp, submitCoo
   if (isSubmitting) {
     return (
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-br from-green-400 to-cyan-500 text-white">
-        <Confetti width={windowSize.width} height={windowSize.height} recycle={false} numberOfPieces={500} />
+        <Confetti width={width} height={height} recycle={false} numberOfPieces={500} />
         <div className="text-center animate-in fade-in-0 zoom-in-95">
           <h1 className="text-4xl font-bold tracking-tight">Task Submitted!</h1>
           <p className="mt-2 text-lg opacity-80">Your reward is pending approval.</p>
