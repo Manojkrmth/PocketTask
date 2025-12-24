@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Papa from 'papaparse';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,9 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { UploadCloud, Loader2, FileDown, IndianRupee, FileCheck2, User, KeyRound, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useCurrency } from '@/context/currency-context';
+import { supabase } from '@/lib/supabase';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
+import { useRouter } from 'next/navigation';
 
 interface UsedMailData {
     email: string;
@@ -24,6 +28,10 @@ const RATE_PER_EMAIL = 2; // Example rate in INR
 export default function UsedMailsPage() {
     const { toast } = useToast();
     const { formatCurrency } = useCurrency();
+    const router = useRouter();
+
+    const [user, setUser] = useState<SupabaseUser | null>(null);
+    const [isLoadingUser, setIsLoadingUser] = useState(true);
 
     // State for single submission
     const [email, setEmail] = useState('');
@@ -38,19 +46,49 @@ export default function UsedMailsPage() {
     const [isParsing, setIsParsing] = useState(false);
     const [isSubmittingBulk, setIsSubmittingBulk] = useState(false);
 
+    useEffect(() => {
+        const getUser = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                setUser(session.user);
+            } else {
+                router.push('/login');
+            }
+            setIsLoadingUser(false);
+        };
+        getUser();
+    }, [router]);
+
     const handleSingleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!email) {
             toast({ variant: 'destructive', title: 'Email is required' });
             return;
         }
+        if (!user) {
+            toast({ variant: 'destructive', title: 'You must be logged in' });
+            return;
+        }
+
         setIsSubmittingSingle(true);
-        // Mock API call
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        toast({ title: 'Success', description: 'Used mail submitted successfully.' });
-        setEmail('');
-        setPassword('');
-        setRecoveryMail('');
+        
+        const { error } = await supabase.from('used_mail_submissions').insert({
+            user_id: user.id,
+            email,
+            password: password || null,
+            recovery_mail: recoveryMail || null,
+            reward: RATE_PER_EMAIL,
+            status: 'Pending',
+        });
+        
+        if (error) {
+            toast({ variant: 'destructive', title: 'Submission Failed', description: error.message });
+        } else {
+            toast({ title: 'Success', description: 'Used mail submitted successfully.' });
+            setEmail('');
+            setPassword('');
+            setRecoveryMail('');
+        }
         setIsSubmittingSingle(false);
     };
 
@@ -90,14 +128,33 @@ export default function UsedMailsPage() {
             toast({ variant: 'destructive', title: 'No data to submit' });
             return;
         }
+        if (!user) {
+            toast({ variant: 'destructive', title: 'You must be logged in' });
+            return;
+        }
+
         setIsSubmittingBulk(true);
-        // Mock API call
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        toast({ title: 'Success', description: `${parsedData.length} emails have been submitted.` });
-        // Reset state
-        setCsvFile(null);
-        setFileName('');
-        setParsedData([]);
+        
+        const submissions = parsedData.map(item => ({
+            user_id: user.id,
+            email: item.email,
+            password: item.password || null,
+            recovery_mail: item.recoveryMail || null,
+            reward: RATE_PER_EMAIL,
+            status: 'Pending',
+        }));
+
+        const { error } = await supabase.from('used_mail_submissions').insert(submissions);
+
+        if (error) {
+            toast({ variant: 'destructive', title: 'Bulk Submission Failed', description: error.message });
+        } else {
+            toast({ title: 'Success', description: `${parsedData.length} emails have been submitted.` });
+             // Reset state
+            setCsvFile(null);
+            setFileName('');
+            setParsedData([]);
+        }
         setIsSubmittingBulk(false);
     };
     
@@ -117,6 +174,7 @@ export default function UsedMailsPage() {
     };
 
     const totalEarning = parsedData.length * RATE_PER_EMAIL;
+    const isLoading = isLoadingUser || isSubmittingSingle || isSubmittingBulk || isParsing;
 
     return (
         <div>
@@ -137,19 +195,19 @@ export default function UsedMailsPage() {
                                 <CardContent className="space-y-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="email" className="flex items-center gap-2"><User /> Email Address</Label>
-                                        <Input id="email" type="email" placeholder="used.email@example.com" value={email} onChange={e => setEmail(e.target.value)} required disabled={isSubmittingSingle} />
+                                        <Input id="email" type="email" placeholder="used.email@example.com" value={email} onChange={e => setEmail(e.target.value)} required disabled={isLoading} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="password" className="flex items-center gap-2"><KeyRound /> Password</Label>
-                                        <Input id="password" type="text" placeholder="Account password (optional)" value={password} onChange={e => setPassword(e.target.value)} disabled={isSubmittingSingle} />
+                                        <Input id="password" type="text" placeholder="Account password (optional)" value={password} onChange={e => setPassword(e.target.value)} disabled={isLoading} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="recoveryMail" className="flex items-center gap-2"><Mail /> Recovery Mail</Label>
-                                        <Input id="recoveryMail" type="email" placeholder="recovery.email@example.com (optional)" value={recoveryMail} onChange={e => setRecoveryMail(e.target.value)} disabled={isSubmittingSingle} />
+                                        <Input id="recoveryMail" type="email" placeholder="recovery.email@example.com (optional)" value={recoveryMail} onChange={e => setRecoveryMail(e.target.value)} disabled={isLoading} />
                                     </div>
                                 </CardContent>
                                 <CardFooter>
-                                    <Button type="submit" className="w-full" disabled={isSubmittingSingle || !email}>
+                                    <Button type="submit" className="w-full" disabled={isLoading || !email}>
                                         {isSubmittingSingle && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                         Submit Single Email
                                     </Button>
@@ -179,7 +237,7 @@ export default function UsedMailsPage() {
                                             className="absolute inset-0 opacity-0 w-full h-full cursor-pointer" 
                                             accept=".csv"
                                             onChange={handleFileChange}
-                                            disabled={isSubmittingBulk}
+                                            disabled={isLoading}
                                         />
                                     </div>
                                 </div>
@@ -211,7 +269,7 @@ export default function UsedMailsPage() {
                                 )}
                             </CardContent>
                              <CardFooter>
-                                <Button className="w-full" onClick={handleBulkSubmit} disabled={isSubmittingBulk || parsedData.length === 0 || isParsing}>
+                                <Button className="w-full" onClick={handleBulkSubmit} disabled={isLoading || parsedData.length === 0}>
                                     {isSubmittingBulk && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     Submit {parsedData.length > 0 ? `${parsedData.length} Emails` : 'Emails'}
                                 </Button>

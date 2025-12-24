@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -34,7 +34,6 @@ import { useCurrency } from '@/context/currency-context';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/lib/supabase';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
-import { useEffect } from 'react';
 
 const ITEMS_PER_PAGE = 10;
 type Status = 'Approved' | 'Pending' | 'Rejected';
@@ -220,10 +219,10 @@ function CoinSubmissions() {
             if(session){
                 setUser(session.user);
                 const { data, error } = await supabase
-                    .from('coinsubmissions')
+                    .from('coinSubmissions')
                     .select('*')
-                    .eq('user_id', session.user.id)
-                    .order('submissiontime', { ascending: false });
+                    .eq('userId', session.user.id)
+                    .order('submissionTime', { ascending: false });
 
                 if (error) {
                     console.error("Error fetching coin history:", error);
@@ -280,9 +279,9 @@ function CoinSubmissions() {
                         {isLoading && <TableRow><TableCell colSpan={5} className="h-24 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin"/></TableCell></TableRow>}
                         {!isLoading && currentItems.map((item: any) => (
                             <TableRow key={item.id}>
-                                <TableCell className="font-mono text-xs">{item.orderid}</TableCell>
-                                <TableCell className="font-medium capitalize">{item.cointype} Coin</TableCell>
-                                <TableCell className="font-bold text-green-600">{formatCurrency(item.rewardinr)}</TableCell>
+                                <TableCell className="font-mono text-xs">{item.orderId}</TableCell>
+                                <TableCell className="font-medium capitalize">{item.coinType} Coin</TableCell>
+                                <TableCell className="font-bold text-green-600">{formatCurrency(item.rewardInr)}</TableCell>
                                 <TableCell>
                                     <Badge variant="outline" className={cn(
                                         item.status === "Approved" && "bg-green-100 text-green-800 border-green-200",
@@ -290,7 +289,7 @@ function CoinSubmissions() {
                                         item.status === "Rejected" && "bg-red-100 text-red-800 border-red-200"
                                     )}>{item.status}</Badge>
                                 </TableCell>
-                                <TableCell className="text-right text-xs">{formatDate(item.submissiontime)}</TableCell>
+                                <TableCell className="text-right text-xs">{formatDate(item.submissionTime)}</TableCell>
                             </TableRow>
                         ))}
                         {!isLoading && currentItems.length === 0 && (
@@ -305,6 +304,99 @@ function CoinSubmissions() {
                     {canLoadMore && (
                         <Button onClick={loadMore} variant="outline">Load More</Button>
                     )}
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+
+function UsedMailSubmissions() {
+    const [history, setHistory] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const { formatCurrency } = useCurrency();
+
+    useEffect(() => {
+        const fetchHistory = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                const { data, error } = await supabase
+                    .from('used_mail_submissions')
+                    .select('*')
+                    .eq('user_id', session.user.id)
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    console.error("Error fetching used mail history:", error);
+                } else {
+                    setHistory(data || []);
+                }
+            }
+            setIsLoading(false);
+        };
+        fetchHistory();
+    }, []);
+
+    const currentItems = useMemo(() => {
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        return history.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    }, [history, currentPage]);
+
+    const canLoadMore = currentPage * ITEMS_PER_PAGE < history.length;
+    const canGoBack = currentPage > 1;
+
+    const loadMore = () => {
+        if (canLoadMore) setCurrentPage(prev => prev + 1);
+    };
+
+    const goBack = () => {
+        if (canGoBack) setCurrentPage(prev => prev - 1);
+    };
+    
+    const formatDate = (date: any) => {
+        if (!date) return 'N/A';
+        return new Date(date).toLocaleString();
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Used Mail Submissions</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Reward</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Date</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {isLoading && <TableRow><TableCell colSpan={4} className="h-24 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>}
+                        {!isLoading && currentItems.map((item) => (
+                            <TableRow key={item.id}>
+                                <TableCell className="font-medium">{item.email}</TableCell>
+                                <TableCell className="font-bold text-green-600">{formatCurrency(item.reward)}</TableCell>
+                                <TableCell>
+                                    <Badge variant="outline" className={cn(
+                                        item.status === "Approved" && "bg-green-100 text-green-800 border-green-200",
+                                        item.status === "Pending" && "bg-yellow-100 text-yellow-800 border-yellow-200",
+                                        item.status === "Rejected" && "bg-red-100 text-red-800 border-red-200"
+                                    )}>{item.status}</Badge>
+                                </TableCell>
+                                <TableCell className="text-right text-xs">{formatDate(item.created_at)}</TableCell>
+                            </TableRow>
+                        ))}
+                        {!isLoading && currentItems.length === 0 && (
+                            <TableRow><TableCell colSpan={4} className="h-24 text-center text-muted-foreground">No used mail submissions found.</TableCell></TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+                <div className="pt-4 flex justify-center gap-2">
+                    {canGoBack && <Button onClick={goBack} variant="outline">Previous</Button>}
+                    {canLoadMore && <Button onClick={loadMore} variant="outline">Load More</Button>}
                 </div>
             </CardContent>
         </Card>
@@ -385,15 +477,19 @@ export default function TaskHistoryPage() {
         </div>
         
         <Tabs defaultValue="tasks" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="tasks">Task Submissions</TabsTrigger>
-                <TabsTrigger value="coins">Coin Submissions</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="tasks">Tasks</TabsTrigger>
+                <TabsTrigger value="coins">Coins</TabsTrigger>
+                <TabsTrigger value="used_mails">Used Mails</TabsTrigger>
             </TabsList>
             <TabsContent value="tasks" className="mt-4">
                 <TaskSubmissions />
             </TabsContent>
             <TabsContent value="coins" className="mt-4">
                 <CoinSubmissions />
+            </TabsContent>
+            <TabsContent value="used_mails" className="mt-4">
+                <UsedMailSubmissions />
             </TabsContent>
         </Tabs>
       </main>
@@ -404,3 +500,4 @@ export default function TaskHistoryPage() {
 
 
     
+
