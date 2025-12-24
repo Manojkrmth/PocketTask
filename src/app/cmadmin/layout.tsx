@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { LoadingScreen } from '@/components/loading-screen';
 import type { User } from '@supabase/supabase-js';
-import { BarChart, Users, ListTodo, LogOut, MessageSquare, Settings, Bell, Coins, SlidersHorizontal } from 'lucide-react';
+import { BarChart, Users, ListTodo, LogOut, MessageSquare, Settings, Bell, Coins, SlidersHorizontal, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,7 @@ const navItems = [
   { href: '/cmadmin/task-manager', label: 'Task Manager', icon: SlidersHorizontal },
   { href: '/cmadmin/tasks', label: 'Task Center', icon: ListTodo },
   { href: '/cmadmin/coin-manager', label: 'Coin Manager', icon: Coins },
+  { href: '/cmadmin/withdrawals', label: 'Withdrawals', icon: Wallet },
   { href: '/cmadmin/tickets', label: 'Tickets', icon: MessageSquare },
   { href: '/cmadmin/notifications', label: 'Notifications', icon: Bell },
   { href: '/cmadmin/settings', label: 'Settings', icon: Settings },
