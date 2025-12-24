@@ -453,7 +453,7 @@ export default function TasksPage() {
         <div className="flex items-center gap-2 border p-2 rounded-lg bg-muted/50">
             <p className="text-sm font-semibold">Bulk Actions</p>
             <div className="ml-auto flex gap-2">
-                 <Button size="sm" variant="secondary" onClick={() => handleBulkActionClick('approve')}><CheckCircle className="mr-2 h-4 w-4"/> Bulk Approve</Button>
+                 <Button size="sm" variant="default" className="bg-green-600 hover:bg-green-700" onClick={() => handleBulkActionClick('approve')}><CheckCircle className="mr-2 h-4 w-4"/> Bulk Approve</Button>
                  <Button size="sm" variant="destructive" onClick={() => handleBulkActionClick('reject')}><XCircle className="mr-2 h-4 w-4"/> Bulk Reject</Button>
                  <Button size="sm" variant="secondary" onClick={() => setDownloadDialogOpen(true)}>
                     <Download className="mr-2 h-4 w-4"/> Download as CSV
@@ -684,16 +684,20 @@ export default function TasksPage() {
           </div>
           <DialogFooter>
             <DialogClose asChild><Button type="button" variant="secondary" disabled={isUpdating}>Cancel</Button></DialogClose>
-            <Button type="button" onClick={handleBulkUpdate} disabled={isUpdating || !identifierColumn || (bulkActionType === 'reject' && !bulkReason.trim())}>
-              {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-              {isUpdating ? 'Updating...' : `Confirm Bulk ${bulkActionType?.charAt(0).toUpperCase()}${bulkActionType?.slice(1)}`}
-            </Button>
+            {bulkCsvData.length > 0 && (
+                <Button 
+                    type="button" 
+                    onClick={handleBulkUpdate} 
+                    disabled={isUpdating || !identifierColumn || (bulkActionType === 'reject' && !bulkReason.trim())}
+                    className={cn(bulkActionType === 'approve' && 'bg-green-600 hover:bg-green-700')}
+                >
+                {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                {isUpdating ? 'Updating...' : `Confirm Bulk ${bulkActionType?.charAt(0).toUpperCase()}${bulkActionType?.slice(1)}`}
+                </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
   );
 }
-
-
-    
