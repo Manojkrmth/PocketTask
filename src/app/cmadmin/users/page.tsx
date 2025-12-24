@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -29,9 +28,12 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Loader2, UserX, UserCheck } from 'lucide-react';
+import { MoreHorizontal, Loader2, UserX, UserCheck, Eye, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 type UserProfile = {
   id: string;
@@ -50,6 +52,7 @@ export default function ManageUsersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
+  const router = useRouter();
 
   const fetchUsers = async () => {
     setIsLoading(true);
@@ -112,7 +115,7 @@ export default function ManageUsersPage() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <CardTitle>Manage Users</CardTitle>
             <CardDescription>
@@ -120,6 +123,7 @@ export default function ManageUsersPage() {
             </CardDescription>
           </div>
           <div className="relative w-full md:w-1/3">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search by name, email, or mobile..."
               value={searchTerm}
@@ -136,6 +140,7 @@ export default function ManageUsersPage() {
               <TableRow>
                 <TableHead>User</TableHead>
                 <TableHead>Contact</TableHead>
+                <TableHead>Balance</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Joined On</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -144,13 +149,13 @@ export default function ManageUsersPage() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center">
+                  <TableCell colSpan={6} className="h-24 text-center">
                     <Loader2 className="mx-auto h-6 w-6 animate-spin" />
                   </TableCell>
                 </TableRow>
               ) : filteredUsers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center">
+                  <TableCell colSpan={6} className="h-24 text-center">
                     No users found.
                   </TableCell>
                 </TableRow>
@@ -168,6 +173,9 @@ export default function ManageUsersPage() {
                       <div className="text-xs text-muted-foreground">
                         {user.mobile}
                       </div>
+                    </TableCell>
+                     <TableCell>
+                      <div className="font-semibold text-green-600">₹{user.balance_available.toLocaleString('en-IN')}</div>
                     </TableCell>
                     <TableCell>
                       <Badge
@@ -192,12 +200,11 @@ export default function ManageUsersPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem
-                            onClick={() =>
-                              navigator.clipboard.writeText(user.id)
-                            }
-                          >
-                            Copy User ID
+                          <DropdownMenuItem asChild>
+                             <Link href={`/cmadmin/users/${user.id}`} >
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Details
+                            </Link>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           {user.status === 'Active' ? (
