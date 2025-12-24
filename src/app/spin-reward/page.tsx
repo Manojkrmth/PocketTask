@@ -22,7 +22,7 @@ const segments: WheelSegment[] = [
   { text: '₹2', color: '#43A047' },    // Green
   { text: '₹50', color: '#FB8C00' },   // Orange
   { text: '₹1', color: '#e53935' },    // Red
-  { text 'Try Again', color: '#455A64' }, // Blue Grey
+  { text: 'Try Again', color: '#455A64' }, // Blue Grey
   { text: '₹100', color: '#00ACC1' },  // Cyan
   { text: 'Bonus', color: '#FDD835' },    // Yellow
 ];
@@ -200,5 +200,3 @@ export default function SpinRewardPage() {
     </div>
   );
 }
-
-    
