@@ -15,7 +15,6 @@ import { useCurrency } from '@/context/currency-context';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import { cn } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -29,6 +28,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 
 
 interface AppUser {
@@ -107,23 +107,41 @@ export default function UserDetailsPage() {
   }, [userId, fetchAllData]);
 
   const handleBalanceUpdate = () => {
-    if (!balanceAmount || !balanceDescription) {
+    if (!balanceAmount || !balanceDescription || !financials) {
         toast({ variant: 'destructive', title: 'Missing fields', description: 'Please provide an amount and description.' });
         return;
     }
     
     startBalanceUpdate(async () => {
-        const amount = parseFloat(balanceAmount) * (balanceAction === 'debit' ? -1 : 1);
+        const amount = parseFloat(balanceAmount);
+        const modificationAmount = balanceAction === 'debit' ? -amount : amount;
+
         try {
-            const { error } = await supabase.from('wallet_history').insert({
+            // 1. Insert record into wallet_history
+            const { error: historyError } = await supabase.from('wallet_history').insert({
                 user_id: userId,
-                amount: amount,
+                amount: modificationAmount,
                 type: balanceAction === 'credit' ? 'manual_credit' : 'manual_debit',
                 status: 'Completed',
                 description: `Admin: ${balanceDescription}`
             });
 
-            if (error) throw error;
+            if (historyError) throw historyError;
+
+            // 2. Update the user's balance in the users table
+            const currentBalance = financials.available_balance || 0;
+            const newBalance = currentBalance + modificationAmount;
+
+            const { error: userUpdateError } = await supabase
+              .from('users')
+              .update({ balance_available: newBalance })
+              .eq('id', userId);
+            
+            if (userUpdateError) {
+              // Attempt to rollback or log the inconsistency
+              console.error("CRITICAL: User balance update failed after history was written.", userUpdateError);
+              throw new Error("Failed to update user's main balance. The record was logged but the balance could not be updated.");
+            }
 
             toast({ title: 'Balance Updated', description: 'The user wallet has been updated successfully.' });
             setIsBalanceDialogOpen(false);
@@ -306,3 +324,5 @@ export default function UserDetailsPage() {
     </>
   );
 }
+
+    
