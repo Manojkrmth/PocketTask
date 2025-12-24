@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,6 +39,36 @@ interface SpinRewardData {
   last_spin_date: string;
   spins_used_today: number;
 }
+
+
+const SpinButtonBannerAd: React.FC = () => {
+    const adContainerRef = useRef<HTMLDivElement>(null);
+  
+    useEffect(() => {
+        if (adContainerRef.current && adContainerRef.current.children.length === 0) {
+            const script = document.createElement('script');
+            script.async = true;
+            script.setAttribute('data-cfasync', 'false');
+            script.src = 'https://pl28325955.effectivegatecpm.com/9b25ac22cc9ae57f98a864d22c893580/invoke.js';
+            
+            const containerDiv = document.createElement('div');
+            containerDiv.id = 'container-9b25ac22cc9ae57f98a864d22c893580';
+            
+            adContainerRef.current.appendChild(script);
+            adContainerRef.current.appendChild(containerDiv);
+        }
+
+        // Cleanup function
+        return () => {
+            if (adContainerRef.current) {
+                adContainerRef.current.innerHTML = '';
+            }
+        };
+    }, []);
+
+    return <div ref={adContainerRef} className="flex justify-center mt-4"></div>;
+};
+
 
 export default function SpinRewardPage() {
   const router = useRouter();
@@ -139,7 +169,7 @@ export default function SpinRewardPage() {
     // Optimistically update spins used
     const newSpinsUsed = (spinData?.spins_used_today || 0) + 1;
     setSpinData(prev => ({ 
-        ...(prev || { spin_points: 0, last_spin_date: new Date().toISOString().split('T')[0] }), 
+        ...(prev || { spin_points: 0, last_spin_date: new Date().toISOString().split('T')[0], spins_used_today: 0 }), 
         spins_used_today: newSpinsUsed 
     }));
   };
@@ -334,6 +364,7 @@ export default function SpinRewardPage() {
                     </AlertDescription>
                 </Alert>
             )}
+            <SpinButtonBannerAd />
         </div>
       </main>
     </div>
