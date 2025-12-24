@@ -23,7 +23,7 @@ export function AddReferralDialog({ onFinished }: { onFinished?: () => void }) {
     const [referralCode, setReferralCode] = useState('');
     const [isVerifying, startVerifying] = useTransition();
     const [isConfirming, startConfirming] = useTransition();
-    const [foundUser, setFoundUser] = useState<{ id: string, full_name: string } | null>(null);
+    const [foundUser, setFoundUser] = useState<{ id: string, email: string } | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isOpen, setIsOpen] = useState(false);
     
@@ -53,7 +53,7 @@ export function AddReferralDialog({ onFinished }: { onFinished?: () => void }) {
 
             const { data, error: queryError } = await supabase
                 .from('users')
-                .select('id, full_name')
+                .select('id, email')
                 .eq('referral_code', upperCaseCode)
                 .single();
             
@@ -81,8 +81,8 @@ export function AddReferralDialog({ onFinished }: { onFinished?: () => void }) {
                 referrer_code: referralCode.trim().toUpperCase()
             });
 
-            if(error || data.status === 'error') {
-                 toast({ variant: 'destructive', title: 'Error', description: error?.message || data.message });
+            if(error || (data && data.status === 'error')) {
+                 toast({ variant: 'destructive', title: 'Error', description: error?.message || (data && data.message) });
             } else {
                  toast({ title: 'Success!', description: `Referral applied! You and your friend have received a bonus.` });
                  setIsOpen(false);
@@ -140,7 +140,7 @@ export function AddReferralDialog({ onFinished }: { onFinished?: () => void }) {
                             <AlertTitle className="flex items-center gap-2">Confirm Referrer</AlertTitle>
                             <AlertDescription>
                                 Is this your referrer? <br />
-                                 <span className="font-bold text-lg text-primary">{foundUser.full_name}</span>
+                                 <span className="font-bold text-lg text-primary">{foundUser.email}</span>
                             </AlertDescription>
                         </Alert>
                     )}

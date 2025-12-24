@@ -16,6 +16,7 @@ import {
   PlusSquare,
   History,
   Wallet,
+  Mail,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -47,7 +48,7 @@ const legalItems = [
 ];
 
 function ReferrerInfoCard({ referralCode }: { referralCode: string }) {
-    const [referrer, setReferrer] = useState<{ full_name: string; referral_code: string; email: string; } | null>(null);
+    const [referrerEmail, setReferrerEmail] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -60,14 +61,14 @@ function ReferrerInfoCard({ referralCode }: { referralCode: string }) {
             const upperCaseCode = referralCode.toUpperCase();
             const { data, error } = await supabase
                 .from('users')
-                .select('full_name, referral_code, email')
+                .select('email')
                 .eq('referral_code', upperCaseCode)
                 .single();
             
-            if (error) {
+            if (error && error.code !== 'PGRST116') {
                 console.error("Error fetching referrer data:", error);
             } else if (data) {
-                setReferrer(data);
+                setReferrerEmail(data.email);
             }
             setIsLoading(false);
         };
@@ -81,17 +82,10 @@ function ReferrerInfoCard({ referralCode }: { referralCode: string }) {
                 <CardTitle className='flex items-center gap-2'><Contact className="h-5 w-5 text-primary"/> You Were Referred By</CardTitle>
             </CardHeader>
             <CardContent>
-                {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : referrer ? (
-                    <div className="flex items-center gap-4">
-                        <Avatar>
-                            <AvatarFallback className={cn("font-bold")}>
-                              {referrer.full_name ? referrer.full_name.substring(0, 1).toUpperCase() : (referrer.email ? referrer.email.substring(0, 1).toUpperCase() : 'U')}
-                            </AvatarFallback>
-                        </Avatar>
-                        <div>
-                            <h4 className="font-bold text-md">{referrer.full_name || referrer.email}</h4>
-                            <p className="text-xs text-muted-foreground">{referrer.referral_code}</p>
-                        </div>
+                {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : referrerEmail ? (
+                    <div className="flex items-center gap-2">
+                       <Mail className="h-5 w-5 text-muted-foreground"/>
+                       <p className="font-bold text-md">{referrerEmail}</p>
                     </div>
                 ) : (
                     <p className="text-sm text-muted-foreground">Could not load referrer information.</p>
