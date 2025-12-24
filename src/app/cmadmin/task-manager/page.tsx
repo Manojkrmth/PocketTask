@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Upload, Trash2, FileDown, CheckCircle, XCircle, Play, Pause, Edit, Save, MoreHorizontal } from 'lucide-react';
+import { Loader2, Upload, Trash2, FileDown, CheckCircle, XCircle, Play, Pause, Edit, Save, MoreHorizontal, UploadCloud } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Papa from 'papaparse';
 import {
@@ -22,6 +22,15 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -32,6 +41,10 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { updateTaskStatus } from '@/lib/task-actions';
+import { Textarea } from '@/components/ui/textarea';
+
 
 interface Batch {
   id: number;
@@ -61,6 +74,19 @@ export default function TaskManagerPage() {
   const [csvFile, setCsvFile] = useState<File | null>(null);
   
   const [editingBatch, setEditingBatch] = useState<Batch | null>(null);
+
+  // State for bulk actions
+  const [bulkActionDialogOpen, setBulkActionDialogOpen] = useState(false);
+  const [bulkActionType, setBulkActionType] = useState<'approve' | 'reject' | null>(null);
+  const [bulkCsvFile, setBulkCsvFile] = useState<File | null>(null);
+  const [bulkCsvData, setBulkCsvData] = useState<any[]>([]);
+  const [bulkCsvColumns, setBulkCsvColumns] = useState<string[]>([]);
+  const [identifierColumn, setIdentifierColumn] = useState<string>('');
+  const [isParsing, setIsParsing] = useState(false);
+  const [bulkReason, setBulkReason] = useState('');
+  const [isUpdating, startUpdateTransition] = useTransition();
+  const [selectedBatchForBulkAction, setSelectedBatchForBulkAction] = useState<Batch | null>(null);
+
 
   const fetchBatches = useCallback(async () => {
     setIsLoading(true);
@@ -259,8 +285,107 @@ export default function TaskManagerPage() {
       }
   }
 
-  const handleComingSoon = () => {
-    toast({ title: 'Coming Soon', description: 'This feature is under development.' });
+  // --- Bulk Action Logic ---
+  const handleBulkActionClick = (action: 'approve' | 'reject', batch: Batch) => {
+    setBulkActionType(action);
+    setBulkActionDialogOpen(true);
+    setSelectedBatchForBulkAction(batch);
+    // Reset state
+    setBulkCsvFile(null);
+    setBulkCsvData([]);
+    setBulkCsvColumns([]);
+    setIdentifierColumn('');
+    setBulkReason('');
+  }
+
+  const handleBulkFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (file.type !== 'text/csv') {
+        toast({ variant: 'destructive', title: 'Invalid File Type', description: 'Please upload a CSV file.' });
+        return;
+      }
+      setBulkCsvFile(file);
+      setIsParsing(true);
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          if (results.meta.fields) {
+            setBulkCsvColumns(results.meta.fields);
+          }
+          setBulkCsvData(results.data);
+          setIsParsing(false);
+        },
+        error: (error: any) => {
+          toast({ variant: 'destructive', title: 'CSV Parsing Error', description: error.message });
+          setIsParsing(false);
+        }
+      });
+    }
+  }
+
+  const handleBulkUpdate = () => {
+    if (!bulkActionType || !selectedBatchForBulkAction || !identifierColumn || bulkCsvData.length === 0) {
+        toast({ variant: 'destructive', title: 'Missing Information', description: 'Please complete all steps.' });
+        return;
+    }
+    if (bulkActionType === 'reject' && !bulkReason.trim()) {
+        toast({ variant: 'destructive', title: 'Reason Required', description: 'Please provide a reason for rejection.' });
+        return;
+    }
+
+    startUpdateTransition(async () => {
+      const identifiers = new Set(bulkCsvData.map(row => row[identifierColumn]).filter(Boolean).map(String));
+
+      if (identifiers.size === 0) {
+        toast({ variant: 'destructive', title: 'No Identifiers Found', description: `No valid values found in the selected CSV column '${identifierColumn}'.` });
+        return;
+      }
+
+      const { data: pendingTasks, error } = await supabase
+        .from('usertasks')
+        .select('*')
+        .eq('batch_id', selectedBatchForBulkAction.id)
+        .eq('status', 'Pending');
+      
+      if (error) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch pending tasks for this batch.' });
+        return;
+      }
+
+      const tasksToUpdate = pendingTasks.filter(task => {
+        const submissionIdentifier = task.submission_data?.[identifierColumn] || task.submission_data?.['gmail']?.split('@')[0] || String(task.task_id);
+        const gmailUserIdentifier = task.submission_data?.gmail?.split('@')[0];
+        
+        return (
+          identifiers.has(String(task.task_id)) ||
+          (submissionIdentifier && identifiers.has(String(submissionIdentifier))) ||
+          (gmailUserIdentifier && identifiers.has(String(gmailUserIdentifier)))
+        );
+      });
+      
+      if (tasksToUpdate.length === 0) {
+        toast({ variant: 'warning', title: 'No Matching Tasks', description: 'No pending tasks in this batch matched the identifiers from your CSV file.' });
+        return;
+      }
+
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const task of tasksToUpdate) {
+          try {
+              await updateTaskStatus(task, bulkActionType === 'approve' ? 'Approved' : 'Rejected', bulkReason);
+              successCount++;
+          } catch(e) {
+              errorCount++;
+          }
+      }
+        
+      toast({ title: 'Bulk Update Complete', description: `${successCount} tasks have been ${bulkActionType}d. ${errorCount > 0 ? `${errorCount} failed.` : ''}` });
+      setBulkActionDialogOpen(false);
+      await fetchBatches(); // Refresh data
+    });
   }
 
   return (
@@ -339,7 +464,7 @@ export default function TaskManagerPage() {
                                     <div>
                                         <CardTitle className="truncate">{batch.batch_name}</CardTitle>
                                         <CardDescription>
-                                            Uploaded {formatDistanceToNow(new Date(batch.created_at), { addSuffix: true })}
+                                            Uploaded {formatDistanceToNow(new Date(batch.created_at), { addSuffix: true })} | Reward: ₹{batch.reward_price}
                                         </CardDescription>
                                     </div>
                                     <div className='flex items-center gap-2'>
@@ -402,8 +527,8 @@ export default function TaskManagerPage() {
                                     <Button variant="outline" size="sm" onClick={() => handleDownloadByStatus(batch.id, 'Rejected')}>Rejected CSV ({stats.rejected})</Button>
                                 </div>
                                 <div className="flex gap-2">
-                                     <Button variant="outline" size="sm" className="bg-green-50 hover:bg-green-100 border-green-200 text-green-700" onClick={handleComingSoon}><CheckCircle className="h-4 w-4"/> Bulk Approve</Button>
-                                     <Button variant="outline" size="sm" className="bg-red-50 hover:bg-red-100 border-red-200 text-red-700" onClick={handleComingSoon}><XCircle className="h-4 w-4"/> Bulk Reject</Button>
+                                     <Button variant="outline" size="sm" className="bg-green-50 hover:bg-green-100 border-green-200 text-green-700" onClick={() => handleBulkActionClick('approve', batch)}><CheckCircle className="h-4 w-4"/> Bulk Approve</Button>
+                                     <Button variant="outline" size="sm" className="bg-red-50 hover:bg-red-100 border-red-200 text-red-700" onClick={() => handleBulkActionClick('reject', batch)}><XCircle className="h-4 w-4"/> Bulk Reject</Button>
                                 </div>
                             </CardContent>
                         </Card>
@@ -452,6 +577,79 @@ export default function TaskManagerPage() {
         </AlertDialogContent>
       </AlertDialog>
     )}
+
+    {/* Bulk Action Dialog */}
+     <Dialog open={bulkActionDialogOpen} onOpenChange={setBulkActionDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="capitalize">Bulk {bulkActionType} ({selectedBatchForBulkAction?.batch_name})</DialogTitle>
+            <DialogDescription>
+              Update multiple pending tasks in this batch using a CSV file.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label>Step 1: Upload CSV</Label>
+              <div className="relative">
+                <Button asChild variant="outline" className="w-full h-20 border-dashed border-2 flex-col gap-1 cursor-pointer">
+                  <label htmlFor="bulk-csv-upload">
+                    <UploadCloud className="h-6 w-6 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">{bulkCsvFile?.name || 'Click to upload a file'}</span>
+                  </label>
+                </Button>
+                <Input id="bulk-csv-upload" type="file" className="absolute inset-0 opacity-0 w-full h-full cursor-pointer" accept=".csv" onChange={handleBulkFileChange} disabled={isUpdating} />
+              </div>
+            </div>
+
+            {isParsing && <div className="flex items-center text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Parsing file...</div>}
+            
+            {bulkCsvData.length > 0 && (
+              <>
+                <div className="space-y-2">
+                  <Label>Step 2: Choose Identifier Column</Label>
+                   <Select value={identifierColumn} onValueChange={setIdentifierColumn} disabled={isUpdating}>
+                    <SelectTrigger><SelectValue placeholder="Select CSV column..." /></SelectTrigger>
+                    <SelectContent>
+                      {bulkCsvColumns.map(col => <SelectItem key={col} value={col}>{col}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                   <Alert variant="default">
+                    <FileDown className="h-4 w-4" />
+                    <AlertTitle>File Processed!</AlertTitle>
+                    <AlertDescription>{bulkCsvData.length} rows found. Select the column that uniquely identifies the tasks (e.g., 'task_id', 'gmail_user').</AlertDescription>
+                  </Alert>
+                </div>
+
+                 {bulkActionType === 'reject' && (
+                    <div className="space-y-2">
+                        <Label>Step 3: Reason for Rejection</Label>
+                        <Textarea
+                            placeholder={'Enter reason...'}
+                            value={bulkReason}
+                            onChange={(e) => setBulkReason(e.target.value)}
+                            disabled={isUpdating}
+                        />
+                    </div>
+                )}
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button type="button" variant="secondary" disabled={isUpdating}>Cancel</Button></DialogClose>
+            <Button 
+                type="button" 
+                onClick={handleBulkUpdate} 
+                disabled={isUpdating || !identifierColumn || (bulkActionType === 'reject' && !bulkReason.trim())}
+                className={cn(
+                    bulkActionType === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-destructive hover:bg-destructive/90',
+                )}
+            >
+              {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+              {isUpdating ? 'Updating...' : `Confirm Bulk ${bulkActionType === 'approve' ? 'Approve' : 'Reject'}`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
