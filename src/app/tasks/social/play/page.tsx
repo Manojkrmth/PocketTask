@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Suspense, useMemo, useState, useEffect } from 'react';
@@ -82,7 +83,7 @@ function SocialTaskComponent() {
     };
 
     const handleSubmit = async () => {
-        if (!task) return;
+        if (!task || !user) return;
         
         const isFormValid = task.fields.every((field: string) => {
             if (field === 'recoveryMail') return true; // Optional field
@@ -96,7 +97,18 @@ function SocialTaskComponent() {
         
         setIsSubmitting(true);
         try {
-            await new Promise(r => setTimeout(r, 1500)); // Mock API call
+            const submissionData = {
+                user_id: user.id,
+                task_type: taskType,
+                reward: task.reward,
+                status: 'Pending',
+                submission_data: formState
+            };
+
+            const { error } = await supabase.from('usertasks').insert(submissionData);
+
+            if (error) throw error;
+            
             toast({ title: 'Task Submitted', description: `Your submission for ${task.title} is pending.` });
             router.push('/tasks');
         } catch (error: any) {
