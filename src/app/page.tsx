@@ -174,7 +174,7 @@ export default function HomePage() {
           </div>
           <div className="flex items-center">
              <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-white/20 relative h-9 w-9 rounded-full" asChild>
-              <Link href="#">
+              <Link href="/notifications">
                 <Bell className="h-5 w-5" />
                 <span className="absolute top-1 right-1 flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
