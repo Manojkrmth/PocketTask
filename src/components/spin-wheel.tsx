@@ -25,7 +25,6 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
       // Determine the winning segment
       const winningSegmentIndex = Math.floor(Math.random() * numSegments);
       // Spin to a random point *within* the segment, not on the edge.
-      // -0.4 to 0.4 ensures it's away from the lines.
       const randomOffset = (Math.random() - 0.5) * anglePerSegment * 0.8;
       
       // Calculate rotation: 5 full spins + rotation to the winning segment's middle
@@ -62,12 +61,12 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
           return (
             <div
               key={index}
-              className="absolute w-1/2 h-1/2 top-0 left-1/2 origin-bottom-left flex items-center justify-center"
+              className="absolute w-full h-full"
               style={{ transform: `rotate(${rotateAngle}deg)` }}
             >
               <span 
-                className="transform -rotate-90 text-sm font-bold text-white pl-8"
-                style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.5)'}}
+                className="absolute left-[55%] top-[15%] -translate-x-1/2 text-sm font-bold text-white"
+                style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.7)'}}
               >
                   {segment.text}
               </span>
@@ -85,3 +84,5 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
     </div>
   );
 }
+
+    

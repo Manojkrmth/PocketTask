@@ -13,21 +13,21 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Image from 'next/image';
 
 const segments: WheelSegment[] = [
-  { text: '₹10', color: '#FFD700' },
-  { text: 'Try Again', color: '#E0E0E0' },
-  { text: '₹5', color: '#C0C0C0' },
-  { text: 'Bonus Spin', color: '#CD7F32' },
-  { text: '₹20', color: '#FFD700' },
-  { text: 'Try Again', color: '#E0E0E0' },
-  { text: '₹2', color: '#C0C0C0' },
-  { text: '₹50', color: '#FFD700' },
-  { text: '₹1', color: '#C0C0C0' },
-  { text: 'Try Again', color: '#E0E0E0' },
-  { text: '₹100', color: '#FFD700' },
-  { text: 'Bonus Spin', color: '#CD7F32' },
+  { text: '₹10', color: '#6A1B9A' },   // Purple
+  { text: 'Try Again', color: '#455A64' }, // Blue Grey
+  { text: '₹5', color: '#1E88E5' },    // Blue
+  { text: 'Bonus', color: '#FDD835' },    // Yellow
+  { text: '₹20', color: '#D81B60' },   // Pink
+  { text: 'Try Again', color: '#455A64' }, // Blue Grey
+  { text: '₹2', color: '#43A047' },    // Green
+  { text: '₹50', color: '#FB8C00' },   // Orange
+  { text: '₹1', color: '#e53935' },    // Red
+  { text 'Try Again', color: '#455A64' }, // Blue Grey
+  { text: '₹100', color: '#00ACC1' },  // Cyan
+  { text: 'Bonus', color: '#FDD835' },    // Yellow
 ];
 
-const DAILY_SPIN_CHANCES = 3;
+const DAILY_SPIN_CHANCES = 50;
 const SPIN_STORAGE_KEY = 'spinRewardData';
 
 interface SpinData {
@@ -200,3 +200,5 @@ export default function SpinRewardPage() {
     </div>
   );
 }
+
+    
