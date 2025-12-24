@@ -58,7 +58,7 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
       setRotation(totalRotation);
       setFinalRotation(totalRotation); 
       
-      const spinDuration = 4000;
+      const spinDuration = 6000;
       setTimeout(() => {
         onSpinComplete(segments[winningSegmentIndex]);
       }, spinDuration);
@@ -79,7 +79,7 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
       >
         <div
           className={cn(
-            "w-full h-full rounded-full transition-transform duration-[4000ms] ease-out",
+            "w-full h-full rounded-full transition-transform duration-[6000ms] ease-out",
             "select-none" 
           )}
           style={{ transform: `rotate(${rotation}deg)` }}
