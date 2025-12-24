@@ -77,7 +77,15 @@ export default function WalletHistoryPage() {
             console.error("Error fetching wallet history:", error);
             setHistory([]);
         } else {
-            setHistory(data || []);
+            // Apply the new logic: only show completed credits, but all withdrawal statuses.
+            const filteredData = (data || []).filter(item => {
+                if (item.type === 'withdrawal') {
+                    return true; // Show all withdrawal statuses
+                }
+                // For all other types, only show if completed
+                return item.status === 'Completed';
+            });
+            setHistory(filteredData);
         }
         setIsHistoryLoading(false);
     };
