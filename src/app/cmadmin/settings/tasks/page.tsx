@@ -5,7 +5,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Save, ListTodo } from 'lucide-react';
+import { Loader2, Save, ListTodo, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -21,6 +21,8 @@ interface TaskSetting {
     reward: number;
     rules: string; // Semicolon-separated rules
     receiverId?: string;
+    taskDurationMinutes?: number;
+    submitCooldownMinutes?: number;
 }
 
 export default function TaskSettingsPage() {
@@ -137,6 +139,30 @@ export default function TaskSettingsPage() {
                                      <div className="space-y-2">
                                         <Label>Receiver ID</Label>
                                         <Input value={task.receiverId || ''} onChange={(e) => handleFieldChange(task.id, 'receiverId', e.target.value)} disabled={isSaving} placeholder="Enter Receiver ID" />
+                                    </div>
+                                )}
+                                { task.id === 'gmail' && (
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label className="flex items-center gap-2"><Clock className="h-4 w-4"/> Task Duration (minutes)</Label>
+                                            <Input 
+                                                type="number" 
+                                                value={task.taskDurationMinutes ?? 10} 
+                                                onChange={(e) => handleFieldChange(task.id, 'taskDurationMinutes', parseInt(e.target.value) || 10)} 
+                                                disabled={isSaving} 
+                                                placeholder="e.g., 10"
+                                            />
+                                        </div>
+                                         <div className="space-y-2">
+                                            <Label className="flex items-center gap-2"><Clock className="h-4 w-4"/> Submit Cooldown (minutes)</Label>
+                                            <Input 
+                                                type="number" 
+                                                value={task.submitCooldownMinutes ?? 1} 
+                                                onChange={(e) => handleFieldChange(task.id, 'submitCooldownMinutes', parseInt(e.target.value) || 1)} 
+                                                disabled={isSaving} 
+                                                placeholder="e.g., 1"
+                                            />
+                                        </div>
                                     </div>
                                 )}
                                 <div className="space-y-2">

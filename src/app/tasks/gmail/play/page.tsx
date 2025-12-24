@@ -79,9 +79,12 @@ export default function GmailTaskPage() {
                   recoveryMail: newTask.recovery_mail,
               },
             };
+            
+            const taskDurationMillis = (gmailTaskConfig.taskDurationMinutes || 10) * 60 * 1000;
+            const submitCooldownMillis = (gmailTaskConfig.submitCooldownMinutes || 1) * 60 * 1000;
 
-            const newExpiryTimestamp = Date.now() + 10 * 60 * 1000; // 10 minutes
-            const newSubmitCooldownTimestamp = Date.now() + 1 * 60 * 1000; // 1 minute
+            const newExpiryTimestamp = Date.now() + taskDurationMillis;
+            const newSubmitCooldownTimestamp = Date.now() + submitCooldownMillis;
 
             const taskData = {
                 task: formattedTask,
