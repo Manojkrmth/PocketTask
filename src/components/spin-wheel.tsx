@@ -53,12 +53,9 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
       const totalRotation = rotation + (360 * 6) + offsetToCenter; // 6 full spins + adjustment
 
       setRotation(totalRotation);
-
-      setTimeout(() => {
-        onSpinComplete(segments[winningSegmentIndex]);
-      }, 2000); // 2 second spin
+      onSpinComplete(segments[winningSegmentIndex]);
     }
-  }, [isSpinning, numSegments, segments, anglePerSegment, onSpinComplete, rotation]);
+  }, [isSpinning]);
 
   return (
     <div className="relative w-[340px] h-[360px] flex items-center justify-center flex-col">
