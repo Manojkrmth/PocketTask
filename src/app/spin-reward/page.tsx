@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -94,9 +95,11 @@ export default function SpinRewardPage() {
     let timer: NodeJS.Timeout;
     if (countdown > 0) {
       timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+    } else if (countdown === 0 && showAd && !adClicked) {
+      // Logic when countdown finishes, handled by button state
     }
     return () => clearTimeout(timer);
-  }, [countdown]);
+  }, [countdown, showAd, adClicked]);
 
   const handleSpinClick = () => {
     if (isSpinning || spinChances <= 0 || countdown > 0 || (showAd && !adClicked)) return;
@@ -106,7 +109,7 @@ export default function SpinRewardPage() {
     setShowConfetti(false);
     
     const today = new Date().toISOString().split('T')[0];
-    const storedData = localStorage.getItem(SPin_DATA_KEY);
+    const storedData = localStorage.getItem(SPIN_DATA_KEY);
     let currentSpins = 0;
     if(storedData) {
         try {
@@ -294,5 +297,3 @@ export default function SpinRewardPage() {
     </div>
   );
 }
-
-    
