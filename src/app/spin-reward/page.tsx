@@ -95,11 +95,15 @@ export default function SpinRewardPage() {
     let timer: NodeJS.Timeout;
     if (countdown > 0) {
       timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-    } else if (countdown === 0 && showAd && !adClicked) {
-      // Logic when countdown finishes, handled by button state
+    } else if (countdown === 0 && result) {
+      // Countdown finished, and we have a result from the last spin
+      const chancesLeft = spinChances; // check current chances
+      if (chancesLeft > 0) {
+        setShowAd(true);
+      }
     }
     return () => clearTimeout(timer);
-  }, [countdown, showAd, adClicked]);
+  }, [countdown, result, spinChances]);
 
   const handleSpinClick = () => {
     if (isSpinning || spinChances <= 0 || countdown > 0 || (showAd && !adClicked)) return;
@@ -107,6 +111,8 @@ export default function SpinRewardPage() {
     setIsSpinning(true);
     setResult(null);
     setShowConfetti(false);
+    setShowAd(false);
+    setAdClicked(false);
     
     const today = new Date().toISOString().split('T')[0];
     const storedData = localStorage.getItem(SPIN_DATA_KEY);
@@ -136,18 +142,14 @@ export default function SpinRewardPage() {
     
     const chancesLeft = spinChances - 1;
     if (chancesLeft > 0) {
-      setTimeout(() => {
-        setShowAd(true);
-        setAdClicked(false);
-        setCountdown(COUNTDOWN_SECONDS);
-      }, 2000);
+        setCountdown(COUNTDOWN_SECONDS); // Start countdown immediately
     }
   }, [spinChances, spinPoints]);
 
   const handleAdClick = () => {
       setShowAd(false);
-      setResult(null);
-      setAdClicked(true);
+      setResult(null); // Clear previous prize
+      setAdClicked(true); // Mark ad as clicked
   }
 
   const handleTransfer = async () => {
@@ -197,7 +199,7 @@ export default function SpinRewardPage() {
   
   const getButtonState = () => {
       if (isSpinning) return { text: 'Spinning...', disabled: true };
-      if (allSpinsUsedToday) return { text: 'Come back tomorrow', disabled: true};
+      if (allSpinsUsedToday && !isSpinning) return { text: 'Come back tomorrow', disabled: true};
       if (countdown > 0) return { text: `Next Spin in ${countdown}s`, disabled: true };
       if (showAd && !adClicked) return { text: 'Click Ad to Spin Again', disabled: true };
       return { text: 'SPIN NOW', disabled: false };
