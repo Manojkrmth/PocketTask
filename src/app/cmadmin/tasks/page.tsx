@@ -64,7 +64,7 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 type TaskStatus = 'Pending' | 'Approved' | 'Rejected';
 
 interface AppTask {
-  id: string;
+  id: string; // Should be UUID string
   submission_time: string;
   task_type: string;
   reward: number;
@@ -701,7 +701,7 @@ export default function TasksPage() {
                       {bulkCsvColumns.map(col => <SelectItem key={col} value={col}>{col}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                   <Alert>
+                   <Alert variant="default">
                     <FileCheck2 className="h-4 w-4" />
                     <AlertTitle>File Processed!</AlertTitle>
                     <AlertDescription>{bulkCsvData.length} rows found. Select the column that uniquely identifies the tasks (e.g., 'gmail').</AlertDescription>
@@ -758,4 +758,3 @@ export default function TasksPage() {
     </>
   );
 }
-
