@@ -154,7 +154,7 @@ export default function SpinRewardPage() {
     const pointsWon = parseInt(selectedSegment.text, 10);
     
     if (!isNaN(pointsWon)) {
-      const { data, error } = await supabase.rpc('update_spin_reward', {
+      const { data: rpcData, error } = await supabase.rpc('update_spin_reward', {
           p_user_id: user.id,
           p_points_to_add: pointsWon
       });
@@ -166,12 +166,8 @@ export default function SpinRewardPage() {
          setSpinData(prev => prev ? { ...prev, spins_used_today: prev.spins_used_today -1 } : null);
       } else {
          // Re-sync state with database response
-         const { data: updatedData } = await supabase
-          .from('spin_rewards')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-         if(updatedData) setSpinData(updatedData);
+         const updatedData = rpcData && rpcData.length > 0 ? rpcData[0] : null;
+         if (updatedData) setSpinData(updatedData);
 
          setCountdown(COUNTDOWN_SECONDS);
       }
@@ -188,7 +184,7 @@ export default function SpinRewardPage() {
     if (!user || !spinData || spinData.spin_points < MIN_TRANSFER_POINTS) return;
 
     setIsTransferring(true);
-    const amountInr = (spinData.spin_points / 1000) * 10;
+    const amountInr = (spinData.spin_points / 100) * 1; // 100 points = 1 INR
 
     try {
         const { error } = await supabase.rpc('transfer_spin_points_to_main_balance', {
@@ -241,6 +237,7 @@ export default function SpinRewardPage() {
   const buttonState = getButtonState();
   const canTransfer = spinData ? spinData.spin_points >= MIN_TRANSFER_POINTS : false;
   const currentPoints = spinData?.spin_points || 0;
+  const transferAmountInr = (currentPoints / 100) * 1;
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -272,8 +269,8 @@ export default function SpinRewardPage() {
         </div>
         
         <Alert>
-          <AlertTitle className="font-bold">Note: 1000 Points = 10 INR</AlertTitle>
-          <AlertDescription>Minimum transfer is 1000 points.</AlertDescription>
+          <AlertTitle className="font-bold">Note: 100 Points = 1 INR</AlertTitle>
+          <AlertDescription>Minimum transfer is {MIN_TRANSFER_POINTS} points (₹{ (MIN_TRANSFER_POINTS/100) * 1 }).</AlertDescription>
         </Alert>
 
         <div className="flex-1 flex flex-col items-center justify-center space-y-4">
