@@ -91,7 +91,6 @@ export default function CoinManagerPage() {
                 email
             )
         `)
-        .in('coin_type', ['niva-coin', 'top-coin'])
         .order('created_at', { ascending: false });
 
       if (error) {
