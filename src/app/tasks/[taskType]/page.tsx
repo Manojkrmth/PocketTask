@@ -31,12 +31,10 @@ const getTaskTypeDetails = (taskType: string) => {
         'watch-earn': { name: 'Watch & Earn Task', available: true },
         'kyc-task': { name: 'KYC Task', available: true },
         'app-install': { name: 'App Install Task', available: true },
-        'niva-coin': { name: 'Niva Coin Task', available: false },
-        'top-coin': { name: 'Top Coin Task', available: false },
+        'niva-coin': { name: 'Niva Coin Task', available: true },
+        'top-coin': { name: 'Top Coin Task', available: true },
         'google-map-review': { name: 'Google Map Review Task', available: true },
         'playstore-app-review': { name: 'Playstore App Review Task', available: true },
-        'amazon-product-review': { name: 'Amazon Product Review Task', available: false },
-        'survey': { name: 'Survey Task', available: false },
     };
     return details[taskType] || { name: 'Unknown Task', available: false };
 };
@@ -102,6 +100,8 @@ export default function StartTaskPage() {
         router.push(`/tasks/review/play?type=${taskType}`);
       } else if (['hot-mail', 'outlook-mail', 'facebook', 'instagram'].includes(taskType)) {
         router.push(`/tasks/social/play?type=${taskType}`);
+      } else if (['niva-coin', 'top-coin'].includes(taskType)) {
+        router.push(`/tasks/coin/play?type=${taskType}`);
       }
       else {
         alert(`Task assignment for ${taskName} is not implemented yet.`);

@@ -9,7 +9,6 @@ import {
   Facebook,
   Coins,
   Download,
-  ShoppingBag,
   MapPin,
   ChevronRight,
   MousePointerClick,
@@ -18,7 +17,6 @@ import {
   AppWindow,
   MailOpen,
   Flame,
-  ClipboardList
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -117,18 +115,6 @@ const taskTypes = [
     name: 'Playstore App Review',
     icon: <Download className="h-8 w-8 text-sky-500" />,
     description: 'Review apps on Playstore.',
-  },
-  {
-    id: 'amazon-product-review',
-    name: 'Amazon Product Review',
-    icon: <ShoppingBag className="h-8 w-8 text-orange-500" />,
-    description: 'Review products on Amazon.',
-  },
-  {
-    id: 'survey',
-    name: 'Survey',
-    icon: <ClipboardList className="h-8 w-8 text-purple-500" />,
-    description: 'Share your opinion & earn.',
   },
 ];
 
