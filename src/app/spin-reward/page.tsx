@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Gift, Loader2, Award, Clock, Banknote, IndianRupee } from 'lucide-react';
+import { Gift, Loader2, Award, Clock, Banknote } from 'lucide-react';
 import { SpinWheel, type WheelSegment } from '@/components/spin-wheel';
 import Confetti from 'react-confetti';
 import { useWindowSize } from '@/hooks/use-mobile';
@@ -14,6 +14,8 @@ import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import type { User } from '@supabase/supabase-js';
+import { LoadingScreen } from '@/components/loading-screen';
+import { useRouter } from 'next/navigation';
 
 const segments: WheelSegment[] = [
   { id: 'seg1', text: '5', color: '#D81B60' },
@@ -29,84 +31,107 @@ const segments: WheelSegment[] = [
 ];
 
 const DAILY_SPIN_CHANCES = 50;
-const SPIN_DATA_KEY = 'spinRewardData';
-const SPIN_POINTS_KEY = 'spinPointsBalance';
 const COUNTDOWN_SECONDS = 10;
 const MIN_TRANSFER_POINTS = 1000; // 1000 points = 10 INR
 
-interface SpinData {
-  lastSpinDate: string;
-  spinsUsed: number;
+interface SpinRewardData {
+  spin_points: number;
+  last_spin_date: string;
+  spins_used_today: number;
 }
 
 export default function SpinRewardPage() {
-  const [user, setUser] = useState<User | null>(null);
+  const router = useRouter();
   const { toast } = useToast();
+  const { width, height } = useWindowSize();
+  
+  const [user, setUser] = useState<User | null>(null);
+  const [spinData, setSpinData] = useState<SpinRewardData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSpinning, setIsSpinning] = useState(false);
+  const [isTransferring, setIsTransferring] = useState(false);
   const [result, setResult] = useState<WheelSegment | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
-  const { width, height } = useWindowSize();
-  const [spinChances, setSpinChances] = useState(DAILY_SPIN_CHANCES);
+  
   const [showAd, setShowAd] = useState(false);
   const [adClicked, setAdClicked] = useState(false);
   const [countdown, setCountdown] = useState(0);
 
-  const [spinPoints, setSpinPoints] = useState(0);
-  const [isLoadingPoints, setIsLoadingPoints] = useState(true);
-  const [isTransferring, setIsTransferring] = useState(false);
-
-  // Load user and persistent data from localStorage
+  // Load user and spin data from Supabase
   useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
-    
-    // Load spin chances
-    const storedSpinData = localStorage.getItem(SPIN_DATA_KEY);
-    if (storedSpinData) {
-      try {
-        const data: SpinData = JSON.parse(storedSpinData);
-        if (data.lastSpinDate === today) {
-          setSpinChances(DAILY_SPIN_CHANCES - data.spinsUsed);
-        } else {
-          localStorage.removeItem(SPIN_DATA_KEY);
-        }
-      } catch (e) {
-        localStorage.removeItem(SPIN_DATA_KEY);
+    const initialize = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push('/login');
+        return;
       }
-    }
-    
-    // Load spin points
-    const storedPoints = localStorage.getItem(SPIN_POINTS_KEY);
-    if (storedPoints) {
-      setSpinPoints(parseInt(storedPoints, 10));
-    }
-    setIsLoadingPoints(false);
+      setUser(session.user);
 
-    // Get Supabase user
-    const getUser = async () => {
-        const {data: {user}} = await supabase.auth.getUser();
-        setUser(user);
-    }
-    getUser();
+      const { data, error } = await supabase
+        .from('spin_rewards')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .single();
+      
+      const today = new Date().toISOString().split('T')[0];
 
-  }, []);
+      if (error && error.code === 'PGRST116') { // No row found, create one
+        const { data: newData, error: insertError } = await supabase
+          .from('spin_rewards')
+          .insert({ 
+            user_id: session.user.id, 
+            last_spin_date: today,
+            spin_points: 0,
+            spins_used_today: 0
+          })
+          .select()
+          .single();
+        if (insertError) {
+            toast({ variant: "destructive", title: "Error", description: "Could not initialize spin data." });
+            console.error(insertError);
+        } else {
+            setSpinData(newData);
+        }
+      } else if (data) {
+        if (data.last_spin_date !== today) { // Reset daily spins
+          const { data: updatedData, error: updateError } = await supabase
+            .from('spin_rewards')
+            .update({ spins_used_today: 0, last_spin_date: today })
+            .eq('user_id', session.user.id)
+            .select()
+            .single();
+          if (updateError) {
+             toast({ variant: "destructive", title: "Error", description: "Could not reset daily spins." });
+          } else {
+            setSpinData(updatedData);
+          }
+        } else {
+          setSpinData(data);
+        }
+      } else if (error) {
+        toast({ variant: "destructive", title: "Error", description: "Could not fetch your spin data." });
+        console.error(error);
+      }
+      setIsLoading(false);
+    };
+
+    initialize();
+  }, [router, toast]);
 
   // Countdown timer effect
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (countdown > 0) {
       timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-    } else if (countdown === 0 && result) {
-      // Countdown finished, and we have a result from the last spin
-      const chancesLeft = spinChances; // check current chances
-      if (chancesLeft > 0) {
-        setShowAd(true);
-      }
+    } else if (countdown === 0 && result && spinData && spinData.spins_used_today < DAILY_SPIN_CHANCES) {
+      // Countdown finished, show ad for next spin
+      setShowAd(true);
     }
     return () => clearTimeout(timer);
-  }, [countdown, result, spinChances]);
+  }, [countdown, result, spinData]);
 
-  const handleSpinClick = () => {
-    if (isSpinning || spinChances <= 0 || countdown > 0 || (showAd && !adClicked)) return;
+  const handleSpinClick = async () => {
+    if (!user || !spinData || isSpinning || spinData.spins_used_today >= DAILY_SPIN_CHANCES || countdown > 0 || (showAd && !adClicked)) return;
 
     setIsSpinning(true);
     setResult(null);
@@ -114,34 +139,44 @@ export default function SpinRewardPage() {
     setShowAd(false);
     setAdClicked(false);
     
-    const today = new Date().toISOString().split('T')[0];
-    const storedData = localStorage.getItem(SPIN_DATA_KEY);
-    let currentSpins = 0;
-    if(storedData) {
-        try {
-            const data: SpinData = JSON.parse(storedData);
-            if(data.lastSpinDate === today) currentSpins = data.spinsUsed;
-        } catch (e) { currentSpins = 0; }
-    }
-    const newSpinsUsed = currentSpins + 1;
-    localStorage.setItem(SPIN_DATA_KEY, JSON.stringify({ lastSpinDate: today, spinsUsed: newSpinsUsed }));
-    setSpinChances(DAILY_SPIN_CHANCES - newSpinsUsed);
+    // Optimistically update spins used
+    const newSpinsUsed = spinData.spins_used_today + 1;
+    setSpinData(prev => prev ? { ...prev, spins_used_today: newSpinsUsed } : null);
   };
   
-  const onSpinComplete = useCallback((selectedSegment: WheelSegment) => {
+  const onSpinComplete = useCallback(async (selectedSegment: WheelSegment) => {
+    if (!user) return;
+    
     setIsSpinning(false);
     setResult(selectedSegment);
     setShowConfetti(true);
 
     const pointsWon = parseInt(selectedSegment.text, 10);
-    if (!isNaN(pointsWon)) {
-      const newTotalPoints = spinPoints + pointsWon;
-      setSpinPoints(newTotalPoints);
-      localStorage.setItem(SPIN_POINTS_KEY, newTotalPoints.toString());
-    }
     
-    setCountdown(COUNTDOWN_SECONDS); // Start countdown immediately
-  }, [spinPoints]);
+    if (!isNaN(pointsWon)) {
+      const { data, error } = await supabase.rpc('update_spin_reward', {
+          p_user_id: user.id,
+          p_points_to_add: pointsWon
+      });
+      
+      if (error) {
+         toast({ variant: "destructive", title: "Error", description: "Failed to update points." });
+         console.error(error);
+         // Revert optimistic update if DB fails
+         setSpinData(prev => prev ? { ...prev, spins_used_today: prev.spins_used_today -1 } : null);
+      } else {
+         // Re-sync state with database response
+         const { data: updatedData } = await supabase
+          .from('spin_rewards')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+         if(updatedData) setSpinData(updatedData);
+
+         setCountdown(COUNTDOWN_SECONDS);
+      }
+    }
+  }, [user, toast]);
 
   const handleAdClick = () => {
       setShowAd(false);
@@ -150,31 +185,27 @@ export default function SpinRewardPage() {
   }
 
   const handleTransfer = async () => {
-    if (!user || spinPoints < MIN_TRANSFER_POINTS) return;
+    if (!user || !spinData || spinData.spin_points < MIN_TRANSFER_POINTS) return;
 
     setIsTransferring(true);
-    const amountInr = (spinPoints / 1000) * 10;
+    const amountInr = (spinData.spin_points / 1000) * 10;
 
     try {
-        const { data: profile, error: fetchError } = await supabase
-            .from('users')
-            .select('balance_available')
-            .eq('id', user.id)
-            .single();
-
-        if (fetchError || !profile) throw fetchError || new Error("Profile not found");
-
-        const newBalance = profile.balance_available + amountInr;
-
-        const { error: updateError } = await supabase
-            .from('users')
-            .update({ balance_available: newBalance })
-            .eq('id', user.id);
-
-        if (updateError) throw updateError;
+        const { error } = await supabase.rpc('transfer_spin_points_to_main_balance', {
+            p_user_id: user.id,
+            p_points_to_transfer: spinData.spin_points,
+            p_amount_inr: amountInr
+        });
         
-        setSpinPoints(0);
-        localStorage.setItem(SPIN_POINTS_KEY, '0');
+        if (error) throw error;
+        
+        // Refresh spin data from DB
+        const { data: updatedSpinData } = await supabase
+            .from('spin_rewards')
+            .select('*')
+            .eq('user_id', user.id)
+            .single();
+        if(updatedSpinData) setSpinData(updatedSpinData);
 
         toast({
             title: "Transfer Successful!",
@@ -192,18 +223,24 @@ export default function SpinRewardPage() {
     }
   };
 
-  const allSpinsUsedToday = spinChances <= 0;
+  const spinsLeft = spinData ? DAILY_SPIN_CHANCES - spinData.spins_used_today : 0;
+  const allSpinsUsedToday = spinsLeft <= 0;
   
   const getButtonState = () => {
       if (isSpinning) return { text: 'Spinning...', disabled: true };
-      if (allSpinsUsedToday && !isSpinning) return { text: 'Come back tomorrow', disabled: true};
+      if (allSpinsUsedToday && !isSpinning) return { text: 'Come back tomorrow', disabled: true };
       if (countdown > 0) return { text: `Next Spin in ${countdown}s`, disabled: true };
       if (showAd && !adClicked) return { text: 'Click Ad to Spin Again', disabled: true };
       return { text: 'SPIN NOW', disabled: false };
   }
 
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
+
   const buttonState = getButtonState();
-  const canTransfer = spinPoints >= MIN_TRANSFER_POINTS;
+  const canTransfer = spinData ? spinData.spin_points >= MIN_TRANSFER_POINTS : false;
+  const currentPoints = spinData?.spin_points || 0;
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -217,7 +254,7 @@ export default function SpinRewardPage() {
                 <Gift className="h-6 w-6 text-primary" />
                 <p className="font-semibold">Spins Left Today</p>
               </div>
-              <p className="text-2xl font-bold">{spinChances}</p>
+              <p className="text-2xl font-bold">{spinsLeft}</p>
             </CardContent>
           </Card>
           <Card className="bg-green-100 border-green-200">
@@ -225,7 +262,7 @@ export default function SpinRewardPage() {
                 <CardTitle className="text-sm font-medium text-green-800 flex items-center gap-2"><Award className="h-4 w-4"/> Spin Points</CardTitle>
             </CardHeader>
             <CardContent className="p-2 pt-1 flex items-center justify-between">
-                 <p className="text-2xl font-bold text-green-900">{isLoadingPoints ? <Loader2 className="h-6 w-6 animate-spin"/> : spinPoints}</p>
+                 <p className="text-2xl font-bold text-green-900">{currentPoints}</p>
                  <Button size="sm" onClick={handleTransfer} disabled={!canTransfer || isTransferring} className="h-8">
                     {isTransferring ? <Loader2 className="h-4 w-4 animate-spin"/> : <Banknote className="h-4 w-4"/>}
                     <span className="ml-2">Transfer</span>
@@ -296,3 +333,5 @@ export default function SpinRewardPage() {
     </div>
   );
 }
+
+    
