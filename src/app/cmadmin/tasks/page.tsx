@@ -237,7 +237,7 @@ export default function TasksPage() {
   
   const toggleFilter = (status: TaskStatus) => {
     setStatusFilters(prev => 
-      prev.includes(status) ? prev.filter(s => s !== status) : [...prev, s]
+      prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
     );
   };
   
@@ -721,7 +721,7 @@ export default function TasksPage() {
                             type="button" 
                             onClick={handleBulkUpdate} 
                             disabled={isUpdating || !identifierColumn || !bulkReason.trim()}
-                            className={cn('w-full',
+                            className={cn('w-full mt-2',
                                 'bg-destructive hover:bg-destructive/90'
                             )}
                         >
@@ -758,3 +758,4 @@ export default function TasksPage() {
     </>
   );
 }
+
