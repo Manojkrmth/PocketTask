@@ -11,7 +11,14 @@ import {
   Download,
   ShoppingBag,
   MapPin,
-  ChevronRight
+  ChevronRight,
+  MousePointerClick,
+  PlayCircle,
+  UserCheck,
+  AppWindow,
+  MailOpen,
+  Flame,
+  ClipboardList
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -22,6 +29,27 @@ const taskTypes = [
     href: '#',
     description: 'Read emails & earn rewards.',
     badge: 'HOT',
+  },
+  {
+    name: 'Used Mails',
+    icon: <MailOpen className="h-8 w-8 text-gray-500" />,
+    href: '#',
+    description: 'Tasks for used mail accounts.',
+    badge: 'NEW',
+  },
+  {
+    name: 'Hot Mail',
+    icon: <Flame className="h-8 w-8 text-orange-500" />,
+    href: '#',
+    description: 'High priority mail tasks.',
+    badge: 'HOT',
+  },
+  {
+    name: 'Outlook Mail',
+    icon: <Mail className="h-8 w-8 text-blue-500" />,
+    href: '#',
+    description: 'Tasks for Outlook accounts.',
+    badge: 'NEW',
   },
   {
     name: 'Instagram',
@@ -35,7 +63,35 @@ const taskTypes = [
     icon: <Facebook className="h-8 w-8 text-blue-600" />,
     href: '#',
     description: 'Engage with posts & pages.',
+    badge: 'POPULAR',
+  },
+   {
+    name: 'Visit & Earn',
+    icon: <MousePointerClick className="h-8 w-8 text-indigo-500" />,
+    href: '#',
+    description: 'Visit websites to earn.',
     badge: 'NEW',
+  },
+  {
+    name: 'Watch & Earn',
+    icon: <PlayCircle className="h-8 w-8 text-red-600" />,
+    href: '#',
+    description: 'Watch videos for rewards.',
+    badge: 'HOT',
+  },
+  {
+    name: 'KYC Task',
+    icon: <UserCheck className="h-8 w-8 text-teal-500" />,
+    href: '#',
+    description: 'Complete KYC verification.',
+    badge: 'HIGH PAY',
+  },
+   {
+    name: 'App Install Task',
+    icon: <AppWindow className="h-8 w-8 text-cyan-500" />,
+    href: '#',
+    description: 'Install apps and get paid.',
+    badge: 'POPULAR',
   },
   {
     name: 'Niva Coin',
@@ -49,32 +105,35 @@ const taskTypes = [
     icon: <Coins className="h-8 w-8 text-amber-600" />,
     href: '#',
     description: 'High value coin offers.',
-    badge: 'POPULAR',
   },
   {
     name: 'Google Map Review',
     icon: <MapPin className="h-8 w-8 text-green-600" />,
     href: '#',
-    description: 'Write reviews for places you have visited recently.',
-    badge: 'HOT',
+    description: 'Review places you have visited.',
   },
   {
     name: 'Playstore App Review',
     icon: <Download className="h-8 w-8 text-sky-500" />,
     href: '#',
     description: 'Review apps on Playstore.',
-    badge: 'NEW',
   },
   {
     name: 'Amazon Product Review',
     icon: <ShoppingBag className="h-8 w-8 text-orange-500" />,
     href: '#',
     description: 'Review products on Amazon.',
-    badge: 'HOT',
+  },
+  {
+    name: 'Survey',
+    icon: <ClipboardList className="h-8 w-8 text-purple-500" />,
+    href: '#',
+    description: 'Share your opinion & earn.',
   },
 ];
 
-const getBadgeVariant = (badgeText: string) => {
+const getBadgeVariant = (badgeText?: string) => {
+  if (!badgeText) return 'outline';
   switch (badgeText.toUpperCase()) {
     case 'HOT':
       return 'destructive';
@@ -82,10 +141,20 @@ const getBadgeVariant = (badgeText: string) => {
       return 'default';
     case 'POPULAR':
       return 'secondary';
+    case 'HIGH PAY':
+       return 'default';
     default:
       return 'outline';
   }
 };
+
+const getBadgeClass = (badgeText?: string) => {
+  if (!badgeText) return '';
+  if (badgeText.toUpperCase() === 'HIGH PAY') {
+    return 'bg-green-600 text-white';
+  }
+  return '';
+}
 
 export default function ChooseTaskTypePage() {
   return (
@@ -100,7 +169,7 @@ export default function ChooseTaskTypePage() {
                 {task.badge && (
                    <Badge 
                     variant={getBadgeVariant(task.badge)}
-                    className="absolute top-2 right-2"
+                    className={`absolute top-2 right-2 ${getBadgeClass(task.badge)}`}
                   >
                     {task.badge}
                   </Badge>
