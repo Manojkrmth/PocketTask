@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,20 @@ import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 
 interface AppUser {
   id: string;
@@ -37,6 +51,7 @@ interface FinancialStats {
 export default function UserDetailsPage() {
   const params = useParams();
   const router = useRouter();
+  const { toast } = useToast();
   const { formatCurrency } = useCurrency();
   const userId = params.userId as string;
 
@@ -45,13 +60,15 @@ export default function UserDetailsPage() {
   const [referralCount, setReferralCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!userId) return;
+  const [isBalanceDialogOpen, setIsBalanceDialogOpen] = useState(false);
+  const [balanceAction, setBalanceAction] = useState<'credit' | 'debit'>('credit');
+  const [balanceAmount, setBalanceAmount] = useState('');
+  const [balanceDescription, setBalanceDescription] = useState('');
+  const [isUpdatingBalance, startBalanceUpdate] = useTransition();
 
-    const fetchAllData = async () => {
+  const fetchAllData = async () => {
       setLoading(true);
       
-      // Fetch user details
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('*')
@@ -65,7 +82,6 @@ export default function UserDetailsPage() {
       }
       setUser(userData);
 
-      // Fetch financial stats
       const { data: finData, error: finError } = await supabase.rpc('get_user_financials', { p_user_id: userId });
        if (finError) {
         console.error('Error fetching financials:', finError);
@@ -73,8 +89,6 @@ export default function UserDetailsPage() {
         setFinancials(finData[0]);
       }
       
-      // Fetch referral count
-      // This is a simplified count. A recursive CTE would be needed for multi-level counts.
       const { count, error: refError } = await supabase.from('users').select('*', { count: 'exact', head: true }).eq('referred_by', userData.referral_code);
       if (refError) {
         console.error('Error fetching referral count:', refError);
@@ -83,10 +97,43 @@ export default function UserDetailsPage() {
       }
       
       setLoading(false);
-    };
+  };
 
+  useEffect(() => {
+    if (!userId) return;
     fetchAllData();
   }, [userId, router]);
+
+  const handleBalanceUpdate = () => {
+    if (!balanceAmount || !balanceDescription) {
+        toast({ variant: 'destructive', title: 'Missing fields', description: 'Please provide an amount and description.' });
+        return;
+    }
+    
+    startBalanceUpdate(async () => {
+        const amount = parseFloat(balanceAmount) * (balanceAction === 'debit' ? -1 : 1);
+        try {
+            const { error } = await supabase.from('wallet_history').insert({
+                user_id: userId,
+                amount: amount,
+                type: balanceAction === 'credit' ? 'manual_credit' : 'manual_debit',
+                status: 'Completed',
+                description: `Admin: ${balanceDescription}`
+            });
+
+            if (error) throw error;
+
+            toast({ title: 'Balance Updated', description: 'The user wallet has been updated successfully.' });
+            setIsBalanceDialogOpen(false);
+            setBalanceAmount('');
+            setBalanceDescription('');
+            await fetchAllData(); // Refresh data
+
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Update Failed', description: error.message });
+        }
+    });
+  }
 
   if (loading) {
     return (
@@ -117,6 +164,7 @@ export default function UserDetailsPage() {
   ];
 
   return (
+    <>
     <div className="space-y-6">
       <div className="flex justify-between items-start">
         <div>
@@ -124,9 +172,11 @@ export default function UserDetailsPage() {
             <p className="text-muted-foreground">User ID: {user.id}</p>
         </div>
         <div className="flex gap-2">
-            <Button variant="outline" onClick={() => router.push(`/cmadmin/users/${userId}/edit`)}>
-              <Edit className="mr-2 h-4 w-4"/>
-              Edit User
+            <Button variant="outline" asChild>
+              <Link href={`/cmadmin/users/${userId}/edit`}>
+                <Edit className="mr-2 h-4 w-4"/>
+                Edit User
+              </Link>
             </Button>
             <Button onClick={() => router.push('/cmadmin/users')}>Back to List</Button>
         </div>
@@ -194,12 +244,63 @@ export default function UserDetailsPage() {
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><ArrowLeftRight className="h-5 w-5 text-primary"/> Quick Actions</CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                 <Button variant="outline"><Edit className="mr-2 h-4 w-4" /> Edit Balance</Button>
-                 <Button variant="outline"><ListTodo className="mr-2 h-4 w-4" /> View Task History</Button>
-                 <Button variant="outline"><History className="mr-2 h-4 w-4" /> View Wallet History</Button>
+            <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                 <Button variant="outline" onClick={() => setIsBalanceDialogOpen(true)}>
+                    <Edit className="mr-2 h-4 w-4" /> Edit Balance
+                 </Button>
+                 <Button variant="outline" asChild>
+                    <Link href={`/cmadmin/tasks?userId=${userId}`}>
+                        <ListTodo className="mr-2 h-4 w-4" /> View Task History
+                    </Link>
+                 </Button>
+                 <Button variant="outline" asChild>
+                    <Link href={`/withdraw/history?userId=${userId}`}>
+                        <History className="mr-2 h-4 w-4" /> View Wallet History
+                    </Link>
+                 </Button>
             </CardContent>
         </Card>
     </div>
+
+    <Dialog open={isBalanceDialogOpen} onOpenChange={setIsBalanceDialogOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Edit User Balance</DialogTitle>
+                <DialogDescription>Manually credit or debit the user's wallet. This will be recorded in the wallet history.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                    <Label>Action</Label>
+                    <Select value={balanceAction} onValueChange={(value: 'credit' | 'debit') => setBalanceAction(value)}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select an action" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="credit">Credit (Add Balance)</SelectItem>
+                            <SelectItem value="debit">Debit (Remove Balance)</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="balance-amount">Amount (in INR)</Label>
+                    <Input id="balance-amount" type="number" placeholder="e.g., 100" value={balanceAmount} onChange={e => setBalanceAmount(e.target.value)} disabled={isUpdatingBalance} />
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="balance-description">Reason / Description</Label>
+                    <Input id="balance-description" type="text" placeholder="e.g., Bonus for contest" value={balanceDescription} onChange={e => setBalanceDescription(e.target.value)} disabled={isUpdatingBalance} />
+                </div>
+            </div>
+            <DialogFooter>
+                <DialogClose asChild>
+                    <Button variant="outline" disabled={isUpdatingBalance}>Cancel</Button>
+                </DialogClose>
+                <Button onClick={handleBalanceUpdate} disabled={isUpdatingBalance || !balanceAmount || !balanceDescription}>
+                    {isUpdatingBalance && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                    Confirm Update
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+    </>
   );
 }

@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo, useTransition } from 'react';
 import { supabase } from '@/lib/supabase';
-import type { User } from '@supabase/supabase-js';
+import { useSearchParams } from 'next/navigation';
 import {
   Table,
   TableBody,
@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, Loader2, ListFilter, CheckCircle, XCircle, Hourglass } from 'lucide-react';
+import { MoreHorizontal, Loader2, ListFilter, CheckCircle, XCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { useCurrency } from '@/context/currency-context';
@@ -57,9 +57,12 @@ interface AppTask {
 }
 
 export default function TasksPage() {
+  const searchParams = useSearchParams();
+  const preselectedUserId = searchParams.get('userId');
+
   const [tasks, setTasks] = useState<AppTask[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('');
+  const [filter, setFilter] = useState(preselectedUserId || '');
   const [statusFilters, setStatusFilters] = useState<TaskStatus[]>([]);
   const [isUpdating, startUpdateTransition] = useTransition();
 
@@ -104,7 +107,6 @@ export default function TasksPage() {
   const handleUpdateTaskStatus = (task: AppTask, status: TaskStatus) => {
     startUpdateTransition(async () => {
         try {
-            // Step 1: Update the task status in the usertasks table
             const { error: updateError } = await supabase
                 .from('usertasks')
                 .update({ status: status })
@@ -112,7 +114,6 @@ export default function TasksPage() {
 
             if (updateError) throw updateError;
             
-            // Step 2: If approved, credit the user's wallet
             if (status === 'Approved' && task.reward > 0) {
                  const { error: walletError } = await supabase
                     .from('wallet_history')
@@ -132,7 +133,6 @@ export default function TasksPage() {
                 description: `Task has been ${status.toLowerCase()}.`,
             });
             
-            // Refresh the tasks list to show the updated status
             await fetchTasks();
 
         } catch (error: any) {
@@ -168,7 +168,8 @@ export default function TasksPage() {
             (task.users?.full_name?.toLowerCase().includes(filter.toLowerCase())) ||
             (task.users?.email?.toLowerCase().includes(filter.toLowerCase())) ||
             (task.task_type?.toLowerCase().includes(filter.toLowerCase())) ||
-            (task.id.toLowerCase().includes(filter.toLowerCase()));
+            (task.id.toLowerCase().includes(filter.toLowerCase())) ||
+            (task.user_id.toLowerCase().includes(filter.toLowerCase()));
             
         return matchesStatus && matchesSearch;
     });

@@ -1,6 +1,8 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -52,10 +54,15 @@ const transactionIcons: { [key: string]: React.ReactElement } = {
     'spin_win': <RotateCw className="h-5 w-5 text-purple-500" />,
     'withdrawal': <Wallet className="h-5 w-5 text-red-500" />,
     'referral_bonus': <Gift className="h-5 w-5 text-green-500" />,
+    'manual_credit': <Gift className="h-5 w-5 text-green-500" />,
+    'manual_debit': <Wallet className="h-5 w-5 text-red-500" />,
     'default': <HelpCircle className="h-5 w-5 text-gray-500" />,
 };
 
 export default function WalletHistoryPage() {
+  const searchParams = useSearchParams();
+  const preselectedUserId = searchParams.get('userId');
+
   const [statusFilters, setStatusFilters] = useState<Status[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [history, setHistory] = useState<any[]>([]);
@@ -67,40 +74,42 @@ export default function WalletHistoryPage() {
   useEffect(() => {
     const fetchHistory = async (userId: string) => {
         setIsHistoryLoading(true);
-        const { data, error } = await supabase
+        
+        let query = supabase
             .from('wallet_history')
             .select('*')
-            .eq('user_id', userId)
             .order('created_at', { ascending: false });
+
+        if (userId) {
+            query = query.eq('user_id', userId);
+        }
+        
+        const { data, error } = await query;
         
         if (error) {
             console.error("Error fetching wallet history:", error);
             setHistory([]);
         } else {
-            // Apply the new logic: only show completed credits, but all withdrawal statuses.
-            const filteredData = (data || []).filter(item => {
-                if (item.type === 'withdrawal') {
-                    return true; // Show all withdrawal statuses
-                }
-                // For all other types, only show if completed
-                return item.status === 'Completed';
-            });
-            setHistory(filteredData);
+            setHistory(data || []);
         }
         setIsHistoryLoading(false);
     };
 
     const getUser = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-            setUser(session.user);
-            fetchHistory(session.user.id);
+        if (preselectedUserId) {
+            fetchHistory(preselectedUserId);
         } else {
-            setIsHistoryLoading(false);
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                setUser(session.user);
+                fetchHistory(session.user.id);
+            } else {
+                setIsHistoryLoading(false);
+            }
         }
     };
     getUser();
-  }, []);
+  }, [preselectedUserId]);
 
   const { totalCredit, totalDebit } = useMemo(() => {
     if (!history) return { totalCredit: 0, totalDebit: 0 };
