@@ -55,6 +55,7 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
       setRotation(totalRotation);
       onSpinComplete(segments[winningSegmentIndex]);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSpinning]);
 
   return (
