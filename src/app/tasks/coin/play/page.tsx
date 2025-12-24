@@ -96,7 +96,7 @@ function CoinTaskComponent() {
                 status: 'Pending',
             };
 
-            const { error } = await supabase.from('coinSubmissions').insert(submissionData);
+            const { error } = await supabase.from('coinsubmissions').insert(submissionData);
             if (error) throw error;
 
             toast({ title: 'Task Submitted', description: `Your submission of ${coinAmount} coins is pending.` });
@@ -259,4 +259,3 @@ export default function CoinTaskPage() {
         </Suspense>
     );
 }
-
