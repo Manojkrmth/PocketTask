@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Gift, Loader2, Award } from 'lucide-react';
 import { ScratchCard, type ScratchCardPrize } from '@/components/scratch-card';
 import Confetti from 'react-confetti';
-import { useWindowSize } from '@/hooks/use-window-size';
+import { useWindowSize } from '@/hooks/use-mobile';
 
 
 const initialPrizes: ScratchCardPrize[] = [
