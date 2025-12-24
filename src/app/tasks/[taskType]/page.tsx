@@ -30,7 +30,7 @@ const getTaskTypeDetails = (taskType: string) => {
         'visit-earn': { name: 'Visit & Earn Task', available: true },
         'watch-earn': { name: 'Watch & Earn Task', available: true },
         'kyc-task': { name: 'KYC Task', available: false },
-        'app-install': { name: 'App Install Task', available: false },
+        'app-install': { name: 'App Install Task', available: true },
         'niva-coin': { name: 'Niva Coin Task', available: false },
         'top-coin': { name: 'Top Coin Task', available: false },
         'google-map-review': { name: 'Google Map Review Task', available: true },
@@ -94,6 +94,8 @@ export default function StartTaskPage() {
         router.push('/tasks/visit-earn/play');
       } else if (taskType === 'used-mails') {
         router.push('/tasks/used-mails/play');
+      } else if (taskType === 'app-install') {
+        router.push('/tasks/app-install/play');
       } else if (['google-map-review', 'playstore-app-review'].includes(taskType)) {
         router.push(`/tasks/review/play?type=${taskType}`);
       } else if (['hot-mail', 'outlook-mail', 'facebook', 'instagram'].includes(taskType)) {
