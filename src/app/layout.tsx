@@ -10,9 +10,8 @@ import { SplashScreen } from '@/components/splash-screen';
 function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAuthPage = ['/login', '/signup', '/forgot-password', '/update-password'].includes(pathname);
-  const isAdminPage = pathname.startsWith('/cmadmin');
   
-  if (isAuthPage || isAdminPage) {
+  if (isAuthPage) {
     return <>{children}</>;
   }
 
@@ -37,7 +36,7 @@ export default function RootLayout({
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowSplash(false);
-    }, 3000);
+    }, 2000);
 
     return () => clearTimeout(timer);
   }, []);
