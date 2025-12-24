@@ -53,14 +53,12 @@ export function SpinWheel({ segments, isSpinning, onSpinComplete }: SpinWheelPro
       const pointerAngle = 270; // Pointer is at the top (270 degrees)
       const offsetToCenter = pointerAngle - centerOfSegmentAngle;
       
-      // Ensure we spin at least 6 full circles for a good animation
-      const totalRotation = finalRotation + (360 * 6) + offsetToCenter;
+      const totalRotation = (finalRotation - (finalRotation % 360)) + (360 * 6) + offsetToCenter;
 
       setRotation(totalRotation);
-      setFinalRotation(totalRotation); // Store the final rotation
+      setFinalRotation(totalRotation); 
       
-      // Use a timeout to call onSpinComplete after the animation finishes
-      const spinDuration = 4000; // Match this with the CSS duration
+      const spinDuration = 4000;
       setTimeout(() => {
         onSpinComplete(segments[winningSegmentIndex]);
       }, spinDuration);
