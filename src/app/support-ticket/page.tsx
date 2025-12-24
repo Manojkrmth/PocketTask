@@ -12,65 +12,67 @@ import { Loader2, Send, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
+import { useRouter } from 'next/navigation';
 
 export default function SupportTicketPage() {
-    const [name, setName] = useState('');
-    const [mobile, setMobile] = useState('');
-    const [email, setEmail] = useState('');
+    const [user, setUser] = useState<User | null>(null);
     const [subject, setSubject] = useState('');
     const [message, setMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isUserLoading, setIsUserLoading] = useState(true);
     const { toast } = useToast();
+    const router = useRouter();
 
     useEffect(() => {
-        const fetchUserData = async (user: User) => {
-            setEmail(user.email || '');
-            
-            const { data: profileData, error } = await supabase
-                .from('users')
-                .select('full_name, mobile')
-                .eq('id', user.id)
-                .single();
-
-            if (profileData) {
-                setName(profileData.full_name || '');
-                setMobile(profileData.mobile || '');
-            }
-            setIsUserLoading(false);
-        };
-        
         const getUser = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if(user) {
-                fetchUserData(user);
+                setUser(user);
             } else {
-                setIsUserLoading(false);
                 toast({ variant: 'destructive', title: 'Not logged in', description: 'Please log in to create a ticket.' });
+                router.push('/login');
             }
+            setIsUserLoading(false);
         };
 
         getUser();
-    }, [toast]);
+    }, [toast, router]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!user) {
+            toast({ variant: 'destructive', title: 'Error', description: 'You are not logged in.' });
+            return;
+        }
 
         setIsLoading(true);
 
-        // Simulate API call to create a ticket
-        console.log("Submitting ticket:", { name, mobile, email, subject, message });
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        const { error } = await supabase
+            .from('support_tickets')
+            .insert({
+                user_id: user.id,
+                subject: subject,
+                message: message,
+                status: 'Open',
+            });
 
         setIsLoading(false);
-        toast({
-            title: "Ticket Created!",
-            description: "Your support ticket has been submitted. Our team will get back to you soon.",
-        });
 
-        // Clear form fields that user can edit
-        setSubject('');
-        setMessage('');
+        if (error) {
+            toast({
+                variant: "destructive",
+                title: "Submission Failed",
+                description: error.message,
+            });
+        } else {
+            toast({
+                title: "Ticket Created!",
+                description: "Your support ticket has been submitted. Our team will get back to you soon.",
+            });
+            setSubject('');
+            setMessage('');
+            router.push('/support-ticket/history');
+        }
     };
 
     const isSubmitDisabled = isLoading || isUserLoading || !subject || !message;

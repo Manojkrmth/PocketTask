@@ -17,6 +17,7 @@ import {
   History,
   Wallet,
   Mail,
+  MessageSquare
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,7 +39,7 @@ const menuItems = [
   { href: '/profile/edit', icon: Edit, label: 'Edit Profile' },
   { href: '/profile/currency', icon: Globe, label: 'Currency' },
   { href: '/update-password', icon: Lock, label: 'Change Password' },
-  { href: '/support-ticket', icon: Contact, label: 'Support Ticket', badge: 'NEW' },
+  { href: '/support-ticket', icon: Contact, label: 'Create Support Ticket', badge: 'NEW' },
 ];
 
 const legalItems = [
@@ -190,16 +191,21 @@ export default function ProfilePage() {
             <CardTitle>Account</CardTitle>
           </CardHeader>
           <CardContent className="divide-y">
-            {menuItems.map(item => (
+             {menuItems.map(item => (
               <Link href={item.href} key={item.label} className="flex items-center py-4 text-md font-medium">
                 <item.icon className="h-5 w-5 mr-4 text-primary" />
                 <span className="flex-1">{item.label}</span>
-                {'badge' in item && item.badge && (
+                {item.badge && (
                   <Badge variant="destructive">{item.badge}</Badge>
                 )}
                 <ChevronRight className="h-5 w-5 ml-2 text-muted-foreground" />
               </Link>
             ))}
+             <Link href="/support-ticket/history" className="flex items-center py-4 text-md font-medium">
+                <MessageSquare className="h-5 w-5 mr-4 text-primary" />
+                <span className="flex-1">View Ticket History</span>
+                <ChevronRight className="h-5 w-5 ml-2 text-muted-foreground" />
+              </Link>
           </CardContent>
         </Card>
 
