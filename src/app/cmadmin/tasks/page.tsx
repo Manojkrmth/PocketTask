@@ -31,9 +31,24 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, Loader2, ListFilter, CheckCircle, XCircle, Download, Check, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Loader2, ListFilter, CheckCircle, XCircle, Download } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { useCurrency } from '@/context/currency-context';
@@ -41,7 +56,6 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
 import Papa from 'papaparse';
 
 
@@ -76,11 +90,8 @@ export default function TasksPage() {
   const [newStatus, setNewStatus] = useState<TaskStatus | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   
-  const [selectedRows, setSelectedRows] = useState<string[]>([]);
-  const [bulkAction, setBulkAction] = useState<'approve' | 'reject' | null>(null);
-  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
-  const [bulkReason, setBulkReason] = useState('');
-
+  const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('');
 
   const { formatCurrency } = useCurrency();
   const { toast } = useToast();
@@ -216,86 +227,48 @@ export default function TasksPage() {
     );
   };
   
-  const handleBulkAction = () => {
-    if (!bulkAction) return;
-
-    if (bulkAction === 'reject' && !bulkReason.trim()) {
-        toast({ variant: 'destructive', title: 'Reason Required', description: 'Please provide a reason for rejection.' });
-        return;
-    }
-    
-    startUpdateTransition(async () => {
-        const tasksToUpdate = tasks.filter(task => selectedRows.includes(task.id) && task.status === 'Pending');
-        const actionText = bulkAction === 'approve' ? 'approved' : 'rejected';
-        
-        try {
-            const updates = tasksToUpdate.map(task => updateTaskStatus(task, bulkAction === 'approve' ? 'Approved' : 'Rejected', bulkReason));
-            await Promise.all(updates);
-
-            toast({ title: 'Success', description: `${tasksToUpdate.length} tasks have been ${actionText}.`});
-
-            await fetchTasks();
-            setSelectedRows([]);
-
-        } catch (error: any) {
-            console.error(`Error during bulk ${actionText}:`, error);
-            toast({ variant: 'destructive', title: `Bulk ${actionText.charAt(0).toUpperCase() + actionText.slice(1)} Failed`, description: error.message });
-        } finally {
-            setBulkDialogOpen(false);
-            setBulkReason('');
-            setBulkAction(null);
-        }
-    })
-  }
+  const availableCategories = useMemo(() => {
+    return [...new Set(tasks.map(t => t.task_type))];
+  }, [tasks]);
   
-  const openBulkDialog = (action: 'approve' | 'reject') => {
-      setBulkAction(action);
-      setBulkDialogOpen(true);
-      setBulkReason('');
-  }
 
   const handleDownloadCSV = () => {
-      const selectedTasks = tasks.filter(task => selectedRows.includes(task.id));
-      
-      const groupedTasks = selectedTasks.reduce((acc, task) => {
-          const type = task.task_type || 'unknown';
-          if (!acc[type]) {
-              acc[type] = [];
-          }
-          acc[type].push(task);
-          return acc;
-      }, {} as {[key: string]: AppTask[]});
-
-      if (Object.keys(groupedTasks).length === 0) {
-          toast({ variant: 'destructive', title: 'No tasks selected', description: 'Please select tasks to download.'});
+      if (!selectedCategory) {
+          toast({ variant: 'destructive', title: 'No category selected', description: 'Please select a task category to download.' });
           return;
       }
       
-      for (const taskType in groupedTasks) {
-          const tasksOfType = groupedTasks[taskType];
-          
-          const csvData = tasksOfType.map(task => ({
-              ...task.submission_data,
-              task_id: task.id,
-              user_id: task.user_id,
-              user_email: task.users?.email,
-              status: task.status,
-              reward: task.reward,
-              submission_time: task.submission_time,
-          }));
-
-          const csv = Papa.unparse(csvData);
-          const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-          const link = document.createElement("a");
-          const url = URL.createObjectURL(blob);
-          link.setAttribute("href", url);
-          link.setAttribute("download", `${taskType}_tasks_${new Date().toISOString().split('T')[0]}.csv`);
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
+      const tasksToDownload = tasks.filter(task => task.task_type === selectedCategory);
+      
+      if (tasksToDownload.length === 0) {
+          toast({ variant: 'destructive', title: 'No tasks found', description: `No tasks found for the category: ${selectedCategory}`});
+          return;
       }
+      
+      const csvData = tasksToDownload.map(task => ({
+          ...task.submission_data,
+          task_id: task.id,
+          user_id: task.user_id,
+          user_email: task.users?.email,
+          user_name: task.users?.full_name,
+          status: task.status,
+          reward: task.reward,
+          submission_time: task.submission_time,
+      }));
 
-      toast({ title: 'Download Started', description: 'Your CSV files are being downloaded.'});
+      const csv = Papa.unparse(csvData);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `${selectedCategory}_tasks_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({ title: 'Download Started', description: `Your CSV file for ${selectedCategory} is being downloaded.`});
+      setDownloadDialogOpen(false);
+      setSelectedCategory('');
   }
 
   return (
@@ -333,36 +306,19 @@ export default function TasksPage() {
           </div>
         </div>
         
-        {selectedRows.length > 0 && (
-            <div className="flex items-center gap-2 border p-2 rounded-lg bg-muted/50">
-                <p className="text-sm font-semibold">{selectedRows.length} task(s) selected.</p>
-                <div className="ml-auto flex gap-2">
-                     <Button size="sm" variant="outline" onClick={() => openBulkDialog('approve')} disabled={isUpdating}>
-                        <Check className="mr-2 h-4 w-4"/> Approve Selected
-                    </Button>
-                     <Button size="sm" variant="destructive" onClick={() => openBulkDialog('reject')} disabled={isUpdating}>
-                        <Trash2 className="mr-2 h-4 w-4"/> Reject Selected
-                    </Button>
-                     <Button size="sm" variant="secondary" onClick={handleDownloadCSV} disabled={isUpdating}>
-                        <Download className="mr-2 h-4 w-4"/> Download Selected
-                    </Button>
-                </div>
+        <div className="flex items-center gap-2 border p-2 rounded-lg bg-muted/50">
+            <p className="text-sm font-semibold">Bulk Actions</p>
+            <div className="ml-auto flex gap-2">
+                 <Button size="sm" variant="secondary" onClick={() => setDownloadDialogOpen(true)}>
+                    <Download className="mr-2 h-4 w-4"/> Download as CSV
+                </Button>
             </div>
-        )}
+        </div>
 
         <div className="border rounded-lg">
           <Table>
             <TableHeader>
               <TableRow>
-                 <TableHead className="w-[50px]">
-                    <Checkbox
-                        checked={selectedRows.length === filteredTasks.length && filteredTasks.length > 0}
-                        onCheckedChange={(checked) => {
-                            setSelectedRows(checked ? filteredTasks.map(t => t.id) : []);
-                        }}
-                        aria-label="Select all"
-                    />
-                </TableHead>
                 <TableHead>Task Details</TableHead>
                 <TableHead>User</TableHead>
                 <TableHead>Reward</TableHead>
@@ -374,22 +330,13 @@ export default function TasksPage() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center">
+                  <TableCell colSpan={6} className="h-24 text-center">
                     <Loader2 className="mx-auto h-6 w-6 animate-spin" />
                   </TableCell>
                 </TableRow>
               ) : filteredTasks.length > 0 ? (
                 filteredTasks.map((task) => (
-                  <TableRow key={task.id} data-state={selectedRows.includes(task.id) && "selected"}>
-                     <TableCell>
-                        <Checkbox
-                            checked={selectedRows.includes(task.id)}
-                            onCheckedChange={(checked) => {
-                                setSelectedRows(prev => checked ? [...prev, task.id] : prev.filter(id => id !== task.id))
-                            }}
-                            aria-label={`Select task ${task.id}`}
-                        />
-                    </TableCell>
+                  <TableRow key={task.id}>
                     <TableCell>
                       <div className="font-medium capitalize">{task.task_type.replace(/_/g, ' ')}</div>
                       <div className="text-xs text-muted-foreground">ID: {task.id}</div>
@@ -446,7 +393,7 @@ export default function TasksPage() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center">
+                  <TableCell colSpan={6} className="h-24 text-center">
                     No tasks found.
                   </TableCell>
                 </TableRow>
@@ -486,48 +433,42 @@ export default function TasksPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={bulkDialogOpen} onOpenChange={setBulkDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Bulk {bulkAction === 'approve' ? 'Approval' : 'Rejection'}</AlertDialogTitle>
-              <AlertDialogDescription>
-                You are about to {bulkAction} {selectedRows.length} tasks. This will only affect tasks that are currently 'Pending'. This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
+      <Dialog open={downloadDialogOpen} onOpenChange={setDownloadDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Download Tasks as CSV</DialogTitle>
+              <DialogDescription>
+                Select a task category to download all its entries as a single CSV file.
+              </DialogDescription>
+            </DialogHeader>
             
-            {bulkAction === 'reject' && (
-                <div className="space-y-2 pt-2">
-                    <Label htmlFor="bulk-rejection-reason" className="font-semibold">Reason for Rejection (applies to all)</Label>
-                    <Textarea 
-                        id="bulk-rejection-reason"
-                        placeholder="Provide a clear reason for rejecting these tasks..."
-                        value={bulkReason}
-                        onChange={(e) => setBulkReason(e.target.value)}
-                    />
-                </div>
-            )}
-            
-            {bulkAction === 'approve' && (
-                <div className="space-y-2 pt-2">
-                    <Label htmlFor="bulk-approval-note" className="font-semibold">Reason/Note for Approval (Optional)</Label>
-                    <Textarea 
-                        id="bulk-approval-note"
-                        placeholder="Add an optional note for this bulk approval..."
-                        value={bulkReason}
-                        onChange={(e) => setBulkReason(e.target.value)}
-                    />
-                </div>
-            )}
+            <div className="py-4 space-y-2">
+              <Label htmlFor="category-select">Task Category</Label>
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger id="category-select">
+                  <SelectValue placeholder="Select a category..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableCategories.map(category => (
+                    <SelectItem key={category} value={category} className="capitalize">
+                      {category.replace(/_/g, ' ')}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-             <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setBulkAction(null)}>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleBulkAction} disabled={isUpdating || (bulkAction === 'reject' && !bulkReason.trim())}>
-                   {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                   Confirm
-                </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-      </AlertDialog>
+             <DialogFooter>
+                <Button variant="outline" onClick={() => setDownloadDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleDownloadCSV} disabled={!selectedCategory}>
+                   <Download className="mr-2 h-4 w-4"/>
+                   Download CSV
+                </Button>
+            </DialogFooter>
+          </DialogContent>
+      </Dialog>
     </>
   );
 }
+
+    
