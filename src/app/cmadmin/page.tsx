@@ -65,22 +65,30 @@ export default function AdminDashboardPage() {
     const fetchData = async () => {
       setIsLoading(true);
 
-      const { data: statsData, error: statsError } = await supabase.rpc('get_dashboard_stats');
-      
-      if (statsError) {
-        console.error('Error fetching dashboard stats:', statsError);
-        // Handle error appropriately
-      } else if (statsData && statsData.length > 0) {
-        const fetchedStats = statsData[0];
-         setStats({
-            totalUsers: fetchedStats.total_users,
-            pendingTasks: fetchedStats.pending_tasks,
-            pendingWithdrawals: fetchedStats.pending_withdrawals,
-            totalPaid: fetchedStats.total_paid,
-            completedTasks: fetchedStats.completed_tasks,
-            pendingCoins: fetchedStats.pending_coins
+      // Fetch stats individually instead of using RPC
+      try {
+        const { count: totalUsersCount } = await supabase.from('users').select('*', { count: 'exact', head: true });
+        const { count: pendingTasksCount } = await supabase.from('usertasks').select('*', { count: 'exact', head: true }).eq('status', 'Pending');
+        const { count: pendingWithdrawalsCount } = await supabase.from('payments').select('*', { count: 'exact', head: true }).eq('status', 'Pending');
+        const { data: totalPaidData } = await supabase.from('payments').select('amount').eq('status', 'Completed');
+        const { count: completedTasksCount } = await supabase.from('usertasks').select('*', { count: 'exact', head: true }).eq('status', 'Approved');
+        const { count: pendingCoinsCount } = await supabase.from('coinsubmissions').select('*', { count: 'exact', head: true }).eq('status', 'Pending');
+
+        const totalPaid = totalPaidData ? totalPaidData.reduce((sum, item) => sum + item.amount, 0) : 0;
+
+        setStats({
+          totalUsers: totalUsersCount || 0,
+          pendingTasks: pendingTasksCount || 0,
+          pendingWithdrawals: pendingWithdrawalsCount || 0,
+          totalPaid: totalPaid || 0,
+          completedTasks: completedTasksCount || 0,
+          pendingCoins: pendingCoinsCount || 0,
         });
+
+      } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
       }
+      
 
       const { data: recentUsersData } = await supabase
         .from('users')
