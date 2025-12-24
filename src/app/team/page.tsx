@@ -52,27 +52,26 @@ export default function TeamPage() {
     referralLevel4Percentage: 2,
     referralLevel5Percentage: 1,
   };
+  
+  const commissionRates = [
+      systemSettings?.referralLevel1Percentage || 0,
+      systemSettings?.referralLevel2Percentage || 0,
+      systemSettings?.referralLevel3Percentage || 0,
+      systemSettings?.referralLevel4Percentage || 0,
+      systemSettings?.referralLevel5Percentage || 0,
+  ];
 
-  const fetchTeamData = useCallback(async (baseReferralCode: string, settings: any) => {
+  const fetchTeamData = useCallback(async (baseReferralCode: string, settings: any, currentReferralEarnings: number) => {
     setIsLoading(true);
     let totalTeamSize = 0;
-    // Active members calculation is complex with Supabase RPC, so we mock it for now.
     let totalActiveMembers = 0; 
     let codesToSearch = [baseReferralCode];
-    
-    const commissionRates = [
-      settings?.referralLevel1Percentage || 0,
-      settings?.referralLevel2Percentage || 0,
-      settings?.referralLevel3Percentage || 0,
-      settings?.referralLevel4Percentage || 0,
-      settings?.referralLevel5Percentage || 0,
-    ];
     
     const newTeamData: LevelData[] = commissionRates.map((commission, index) => ({
       level: index + 1,
       commission,
       members: 0,
-      earnings: 0, // Mocked for now
+      earnings: 0,
     }));
 
     try {
@@ -81,7 +80,7 @@ export default function TeamPage() {
 
         const { data: newReferrals, error } = await supabase
           .from('users')
-          .select('referral_code, created_at') // only select what's needed
+          .select('referral_code, created_at')
           .in('referred_by', codesToSearch);
 
         if (error) {
@@ -93,7 +92,6 @@ export default function TeamPage() {
         totalTeamSize += memberCount;
         newTeamData[level].members = memberCount;
         
-        // Mock active members as 10% of the level size for demonstration
         totalActiveMembers += Math.floor(memberCount * 0.1);
 
         codesToSearch = newReferrals.map(doc => doc.referral_code).filter(Boolean) as string[];
@@ -103,7 +101,7 @@ export default function TeamPage() {
       setTeamStats({
           totalTeamSize,
           activeMembers: totalActiveMembers,
-          myEarning: userProfile?.referral_earnings || 0,
+          myEarning: currentReferralEarnings || 0,
       });
 
     } catch (error) {
@@ -111,10 +109,11 @@ export default function TeamPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [userProfile?.referral_earnings]);
+  }, [commissionRates]);
     
   useEffect(() => {
     const checkSession = async () => {
+      setIsLoading(true);
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         router.push('/login');
@@ -137,7 +136,7 @@ export default function TeamPage() {
       if (profile) {
         setUserProfile(profile);
         if(profile.referral_code) {
-           fetchTeamData(profile.referral_code, systemSettings);
+           await fetchTeamData(profile.referral_code, systemSettings, profile.referral_earnings);
         } else {
            setIsLoading(false);
         }
@@ -200,46 +199,51 @@ export default function TeamPage() {
 
         <div className="space-y-4">
           <h2 className="text-xl font-bold px-2">Team Levels Overview</h2>
-          {isLoading ? (
-             <div className="flex justify-center p-10"><Loader2 className="h-8 w-8 animate-spin" /></div>
-          ) : (
             <div className="space-y-3">
-              {teamData.map((level) => (
-                <Card key={level.level}>
-                  <CardContent className="p-4 flex items-center gap-4">
-                    <div className="flex items-center gap-4 flex-1 shrink-0">
-                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mr-0 shrink-0">
-                        <span className="text-primary font-bold">L{level.level}</span>
-                      </div>
-                      <div>
-                        <p className="font-bold">Level {level.level}</p>
-                        <div className="text-xs text-muted-foreground inline-flex items-center gap-1 bg-muted px-2 py-0.5 rounded-full mt-1">
-                          <BadgePercent className="w-3 h-3" />
-                          <span>{level.commission}% Commission</span>
+              {commissionRates.map((commission, index) => {
+                const levelNumber = index + 1;
+                const levelData = teamData.find(l => l.level === levelNumber);
+                
+                return (
+                  <Card key={levelNumber}>
+                    <CardContent className="p-4 flex items-center gap-4">
+                      <div className="flex items-center gap-4 flex-1 shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mr-0 shrink-0">
+                          <span className="text-primary font-bold">L{levelNumber}</span>
+                        </div>
+                        <div>
+                          <p className="font-bold">Level {levelNumber}</p>
+                          <div className="text-xs text-muted-foreground inline-flex items-center gap-1 bg-muted px-2 py-0.5 rounded-full mt-1">
+                            <BadgePercent className="w-3 h-3" />
+                            <span>{commission}% Commission</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <div className="flex items-center gap-2 justify-end">
-                          <UserRound className="w-4 h-4 text-muted-foreground" />
-                          <p className="font-bold">{level.members}</p>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <div className="flex items-center gap-2 justify-end">
+                            <UserRound className="w-4 h-4 text-muted-foreground" />
+                            <p className="font-bold">
+                               {isLoading ? <Loader2 className="animate-spin h-4 w-4"/> : (levelData ? levelData.members : '--')}
+                            </p>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Members</p>
                         </div>
-                        <p className="text-xs text-muted-foreground">Members</p>
-                      </div>
-                      <div className="text-right">
-                        <div className="flex items-center gap-2 justify-end">
-                          <IndianRupee className="w-4 h-4 text-muted-foreground" />
-                          <p className="font-bold">{formatCurrency(level.earnings)}</p>
+                        <div className="text-right">
+                          <div className="flex items-center gap-2 justify-end">
+                            <IndianRupee className="w-4 h-4 text-muted-foreground" />
+                            <p className="font-bold">
+                               {isLoading ? <Loader2 className="animate-spin h-4 w-4"/> : (levelData ? formatCurrency(levelData.earnings) : '--')}
+                            </p>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Earning</p>
                         </div>
-                        <p className="text-xs text-muted-foreground">Earning</p>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
-          )}
         </div>
 
         <Card>
