@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useTransition } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import {
@@ -28,6 +28,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { useCurrency } from '@/context/currency-context';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 
 type TaskStatus = 'Pending' | 'Approved' | 'Rejected';
@@ -50,11 +51,12 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
   const [statusFilters, setStatusFilters] = useState<TaskStatus[]>([]);
+  const [isUpdating, startUpdateTransition] = useTransition();
 
   const { formatCurrency } = useCurrency();
+  const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchTasks = async () => {
+  const fetchTasks = async () => {
       setLoading(true);
       const { data, error } = await supabase
         .from('usertasks')
@@ -74,14 +76,61 @@ export default function TasksPage() {
 
       if (error) {
         console.error("Error fetching tasks:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch tasks.' });
       } else {
         setTasks(data as AppTask[]);
       }
       setLoading(false);
     };
 
+  useEffect(() => {
     fetchTasks();
   }, []);
+
+  const handleUpdateTaskStatus = (task: AppTask, newStatus: TaskStatus) => {
+    startUpdateTransition(async () => {
+        try {
+            // Step 1: Update the task status in the usertasks table
+            const { error: updateError } = await supabase
+                .from('usertasks')
+                .update({ status: newStatus })
+                .eq('id', task.id);
+
+            if (updateError) throw updateError;
+            
+            // Step 2: If approved, credit the user's wallet
+            if (newStatus === 'Approved' && task.reward > 0) {
+                 const { error: walletError } = await supabase
+                    .from('wallet_history')
+                    .insert({
+                        user_id: task.user_id,
+                        amount: task.reward,
+                        type: 'task_reward',
+                        status: 'Completed',
+                        description: `Reward for task: ${task.task_type}`
+                    });
+                
+                if (walletError) throw walletError;
+            }
+
+            toast({
+                title: 'Success',
+                description: `Task has been ${newStatus.toLowerCase()}.`,
+            });
+            
+            // Refresh the tasks list to show the updated status
+            await fetchTasks();
+
+        } catch (error: any) {
+            console.error('Error updating task status:', error);
+            toast({
+                variant: 'destructive',
+                title: 'Update Failed',
+                description: error.message,
+            });
+        }
+    });
+  };
 
   const filteredTasks = useMemo(() => {
     return tasks.filter(task => {
@@ -184,21 +233,19 @@ export default function TasksPage() {
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
+                        <Button variant="ghost" className="h-8 w-8 p-0" disabled={isUpdating}>
                           <span className="sr-only">Open menu</span>
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>View Details</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-green-600 focus:text-green-600 focus:bg-green-50">
-                          <CheckCircle className="mr-2 h-4 w-4"/>
+                        <DropdownMenuItem disabled={task.status !== 'Pending' || isUpdating} onClick={() => handleUpdateTaskStatus(task, 'Approved')}>
+                          <CheckCircle className="mr-2 h-4 w-4 text-green-600"/>
                           Approve
                         </DropdownMenuItem>
-                         <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-red-50">
-                          <XCircle className="mr-2 h-4 w-4"/>
+                         <DropdownMenuItem disabled={task.status !== 'Pending' || isUpdating} onClick={() => handleUpdateTaskStatus(task, 'Rejected')}>
+                          <XCircle className="mr-2 h-4 w-4 text-red-600"/>
                           Reject
                         </DropdownMenuItem>
                       </DropdownMenuContent>
