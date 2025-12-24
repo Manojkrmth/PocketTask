@@ -23,7 +23,7 @@ interface UsedMailData {
     recoveryMail?: string;
 }
 
-const RATE_PER_EMAIL = 2; // Example rate in INR
+const RATE_PER_EMAIL = 2; // INR में उदाहरण दर
 
 export default function UsedMailsPage() {
     const { toast } = useToast();
@@ -33,13 +33,13 @@ export default function UsedMailsPage() {
     const [user, setUser] = useState<SupabaseUser | null>(null);
     const [isLoadingUser, setIsLoadingUser] = useState(true);
 
-    // State for single submission
+    // एकल सबमिशन के लिए स्थिति
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [recoveryMail, setRecoveryMail] = useState('');
     const [isSubmittingSingle, setIsSubmittingSingle] = useState(false);
 
-    // State for bulk submission
+    // बल्क सबमिशन के लिए स्थिति
     const [csvFile, setCsvFile] = useState<File | null>(null);
     const [fileName, setFileName] = useState('');
     const [parsedData, setParsedData] = useState<UsedMailData[]>([]);
@@ -76,8 +76,13 @@ export default function UsedMailsPage() {
             user_id: user.id,
             reward: RATE_PER_EMAIL,
             status: 'Pending',
-            task_type: 'used-mail',
-            submission_data: { email, password, recovery_mail: recoveryMail }
+            task_type: 'used-mail-single', // एकल के लिए अलग प्रकार
+            submission_data: { 
+                email, 
+                password, 
+                recovery_mail: recoveryMail,
+                entry_count: 1
+            }
         };
 
         const { error } = await supabase.from('usertasks').insert(submission);
@@ -102,7 +107,7 @@ export default function UsedMailsPage() {
             }
             setCsvFile(file);
             setFileName(file.name);
-            setParsedData([]); // Reset previous data
+            setParsedData([]); // पिछला डेटा रीसेट करें
 
             setIsParsing(true);
             Papa.parse(file, {
@@ -125,7 +130,7 @@ export default function UsedMailsPage() {
     };
 
     const handleBulkSubmit = async () => {
-        if (parsedData.length === 0) {
+        if (parsedData.length === 0 || !csvFile) {
             toast({ variant: 'destructive', title: 'No data to submit' });
             return;
         }
@@ -136,30 +141,37 @@ export default function UsedMailsPage() {
 
         setIsSubmittingBulk(true);
         
-        const submissions = parsedData.map(item => ({
-            user_id: user.id,
-            reward: RATE_PER_EMAIL,
-            status: 'Pending',
-            task_type: 'used-mail',
-            submission_data: { 
-                email: item.email, 
-                password: item.password || null, 
-                recovery_mail: item.recoveryMail || null 
-            }
-        }));
+        const totalReward = parsedData.length * RATE_PER_EMAIL;
 
-        const { error } = await supabase.from('usertasks').insert(submissions);
+        try {
+            // चरण 1: usertasks टेबल में एक सिंगल बैच एंट्री बनाएँ
+            const { data: taskData, error: taskError } = await supabase
+                .from('usertasks')
+                .insert({
+                    user_id: user.id,
+                    reward: totalReward,
+                    status: 'Pending',
+                    task_type: 'used-mail-bulk',
+                    submission_data: {
+                        file_name: csvFile.name,
+                        entry_count: parsedData.length
+                    }
+                })
+                .select()
+                .single();
 
-        if (error) {
-            toast({ variant: 'destructive', title: 'Bulk Submission Failed', description: error.message });
-        } else {
-            toast({ title: 'Success', description: `${parsedData.length} emails have been submitted.` });
-             // Reset state
+            if (taskError) throw taskError;
+
+            toast({ title: 'Success', description: `${parsedData.length} emails have been submitted for verification.` });
+            // स्थिति रीसेट करें
             setCsvFile(null);
             setFileName('');
             setParsedData([]);
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Bulk Submission Failed', description: error.message });
+        } finally {
+            setIsSubmittingBulk(false);
         }
-        setIsSubmittingBulk(false);
     };
     
     const handleDownloadSample = () => {
@@ -213,7 +225,7 @@ export default function UsedMailsPage() {
                                 <CardFooter>
                                     <Button type="submit" className="w-full" disabled={isLoading || !email}>
                                         {isSubmittingSingle && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                        Submit Single Email
+                                        Submit Single Email ({formatCurrency(RATE_PER_EMAIL)})
                                     </Button>
                                 </CardFooter>
                             </form>

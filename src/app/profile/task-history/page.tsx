@@ -1,5 +1,6 @@
 
 
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -27,7 +28,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { ListFilter, Loader2, CheckCircle2, XCircle, Hourglass, Mail, Type, User } from "lucide-react";
+import { ListFilter, Loader2, CheckCircle2, XCircle, Hourglass, Mail, Type, User, Users } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/page-header';
 import { useCurrency } from '@/context/currency-context';
@@ -110,8 +111,11 @@ function TaskSubmissions() {
   }
   
   const getTaskDisplayType = (task: any) => {
-    if (task.task_type === 'used-mail') {
-      return 'Used Mail Submission';
+    if (task.task_type === 'used-mail-single') {
+      return 'Used Mail (Single)';
+    }
+    if (task.task_type === 'used-mail-bulk') {
+        return `Used Mail (Bulk - ${task.submission_data?.entry_count || 0} entries)`;
     }
     if (task.task_type === 'gmail') {
       return 'Gmail Creation Task';
@@ -126,9 +130,13 @@ function TaskSubmissions() {
     const data = task.submission_data;
     if (!data) return null;
     
-    // For 'used-mail' and 'gmail' tasks
+    // For 'used-mail-single' and 'gmail' tasks
     if (data.email || data.gmail) {
       return <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1"><Mail className="h-3 w-3"/> {data.email || data.gmail}</div>;
+    }
+    // For 'used-mail-bulk' tasks
+    if (data.file_name) {
+         return <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1"><Users className="h-3 w-3"/> {data.file_name}</div>;
     }
     if (data.name) {
       return <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1"><User className="h-3 w-3"/> {data.name}</div>;
