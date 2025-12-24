@@ -97,7 +97,7 @@ export default function WalletHistoryPage() {
   const { totalCredit, totalDebit } = useMemo(() => {
     if (!history) return { totalCredit: 0, totalDebit: 0 };
     return history.reduce((acc, item) => {
-        if(item.status !== 'Rejected') {
+        if(item.status === 'Completed') {
             if (item.amount > 0) acc.totalCredit += item.amount;
             else acc.totalDebit += Math.abs(item.amount);
         }
