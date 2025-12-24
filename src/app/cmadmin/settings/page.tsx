@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Save, Link as LinkIcon, Settings, Image as ImageIcon, Text, Info, ToggleLeft } from 'lucide-react';
+import { Loader2, Save, Link as LinkIcon, Settings, Image as ImageIcon, Text, Info, ToggleLeft, IndianRupee } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { InstagramIcon, TelegramIcon, WhatsAppIcon } from '@/components/icons';
 import { Switch } from '@/components/ui/switch';
@@ -49,6 +49,13 @@ export default function SettingsPage() {
         }));
     };
     
+    const handleTopLevelChange = (key: string, value: any) => {
+         setSettings((prev: any) => ({
+            ...prev,
+            [key]: value,
+        }));
+    };
+
     const handlePopupStyleChange = (key: string, value: string) => {
          setSettings((prev: any) => ({
             ...prev,
@@ -91,6 +98,26 @@ export default function SettingsPage() {
                 <h1 className="text-3xl font-bold">App Settings</h1>
                 <p className="text-muted-foreground">Manage global settings for your application.</p>
             </div>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><IndianRupee className="h-5 w-5 text-primary" /> Financial Settings</CardTitle>
+                    <CardDescription>Manage currency rates and withdrawal settings.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="usdRate" className="flex items-center gap-2">USD to INR Exchange Rate</Label>
+                        <Input 
+                            id="usdRate" 
+                            type="number"
+                            value={settings.usdToInrRate || ''} 
+                            onChange={(e) => handleTopLevelChange('usdToInrRate', parseFloat(e.target.value) || 0)} 
+                            disabled={isSaving}
+                            placeholder="e.g., 85"
+                        />
+                    </div>
+                </CardContent>
+            </Card>
 
             <Card>
                 <CardHeader>

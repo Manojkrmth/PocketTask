@@ -1,6 +1,8 @@
+
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 
 export type Currency = 'INR' | 'USD';
 
@@ -15,9 +17,25 @@ const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined
 
 export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
   const [currency, setCurrency] = useState<Currency>('INR');
-  
-  // In a real app, this would be fetched from a backend
-  const usdToInrRate = 85; 
+  const [usdToInrRate, setUsdToInrRate] = useState(85); // Default fallback rate
+
+  useEffect(() => {
+    const fetchRate = async () => {
+      const { data, error } = await supabase
+        .from('settings')
+        .select('settings_data->>usdToInrRate')
+        .eq('id', 1)
+        .single();
+        
+      if (!error && data && data.usdToInrRate) {
+        const rate = parseFloat(data.usdToInrRate as string);
+        if (!isNaN(rate)) {
+          setUsdToInrRate(rate);
+        }
+      }
+    };
+    fetchRate();
+  }, []);
 
   const formatCurrency = useCallback((value: number) => {
     let displayValue = value;
