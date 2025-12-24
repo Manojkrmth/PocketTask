@@ -96,6 +96,16 @@ function TaskSubmissions() {
     setVisibleItems(prev => prev + ITEMS_PER_PAGE);
   };
   
+  const getTaskDisplayType = (task: any) => {
+    if (task.task_type) {
+      return task.task_type;
+    }
+    if (task.submission_data?.gmail) {
+      return 'Gmail Task';
+    }
+    return 'Unknown Task';
+  };
+
   return (
       <Card>
           <CardHeader className="flex flex-row items-center justify-between">
@@ -132,7 +142,7 @@ function TaskSubmissions() {
                   <TableRow key={task.id}>
                     <TableCell>
                       <div className="font-medium flex items-center gap-2">
-                        <Type className="h-4 w-4 text-muted-foreground"/> {task.task_type || 'Unknown Task'}
+                        <Type className="h-4 w-4 text-muted-foreground"/> {getTaskDisplayType(task)}
                       </div>
                       {task.submission_data?.gmail && (
                          <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1">
@@ -284,6 +294,10 @@ export default function TaskHistoryPage() {
     }, []);
 
     const isLoading = isProfileLoading;
+    const tasks_approved = userProfile?.tasks_approved || 0;
+    const tasks_pending = userProfile?.tasks_pending || 0;
+    const tasks_rejected = userProfile?.tasks_rejected || 0;
+    
 
     return (
     <div className="min-h-screen">
@@ -298,7 +312,7 @@ export default function TaskHistoryPage() {
                     <CheckCircle2 className="h-4 w-4 text-green-600" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold text-green-900">{isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : userProfile?.tasks_approved || 0}</div>
+                    <div className="text-2xl font-bold text-green-900">{isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : tasks_approved}</div>
                 </CardContent>
             </Card>
             <Card className="bg-yellow-50 border-yellow-200">
@@ -307,7 +321,7 @@ export default function TaskHistoryPage() {
                     <Hourglass className="h-4 w-4 text-yellow-600" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold text-yellow-900">{isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : userProfile?.tasks_pending || 0}</div>
+                    <div className="text-2xl font-bold text-yellow-900">{isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : tasks_pending}</div>
                 </CardContent>
             </Card>
             <Card className="bg-red-50 border-red-200">
@@ -316,7 +330,7 @@ export default function TaskHistoryPage() {
                     <XCircle className="h-4 w-4 text-red-600" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold text-red-900">{isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : userProfile?.tasks_rejected || 0}</div>
+                    <div className="text-2xl font-bold text-red-900">{isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : tasks_rejected}</div>
                 </CardContent>
             </Card>
         </div>
@@ -337,3 +351,4 @@ export default function TaskHistoryPage() {
     </div>
   );
 }
+
