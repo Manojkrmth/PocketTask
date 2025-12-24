@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useEffect, useState } from 'react';
-import { Award, Gift } from 'lucide-react';
+import { Award, Gift, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface ScratchCardPrize {
@@ -13,17 +13,17 @@ interface ScratchCardProps {
   prize: ScratchCardPrize;
   onScratched: () => void;
   isRevealed: boolean;
+  revealPercent?: number;
+  isWaiting?: boolean;
 }
 
-export function ScratchCard({ prize, onScratched, isRevealed }: ScratchCardProps) {
+export function ScratchCard({ prize, onScratched, isRevealed, revealPercent = 60, isWaiting = false }: ScratchCardProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
-  // Local state to control the fade-out, driven by the prop
   const [isCanvasHidden, setIsCanvasHidden] = useState(isRevealed);
 
   useEffect(() => {
     if (isRevealed) {
-      // Start the fade-out animation, then hide the canvas
       const timer = setTimeout(() => setIsCanvasHidden(true), 500);
       return () => clearTimeout(timer);
     }
@@ -39,15 +39,13 @@ export function ScratchCard({ prize, onScratched, isRevealed }: ScratchCardProps
     canvas.width = cardWidth;
     canvas.height = cardHeight;
 
-    // Draw the scratchable overlay
     const gradient = ctx.createLinearGradient(0, 0, cardWidth, cardHeight);
-    gradient.addColorStop(0, '#fef08a'); // yellow-200
-    gradient.addColorStop(0.5, '#facc15'); // yellow-400
-    gradient.addColorStop(1, '#eab308'); // yellow-500
+    gradient.addColorStop(0, '#fcd34d');
+    gradient.addColorStop(0.5, '#fbbf24');
+    gradient.addColorStop(1, '#f59e0b');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, cardWidth, cardHeight);
     
-    // Add text on top
     ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
     ctx.font = 'bold 24px Inter, sans-serif';
     ctx.textAlign = 'center';
@@ -69,23 +67,23 @@ export function ScratchCard({ prize, onScratched, isRevealed }: ScratchCardProps
     };
     
     const checkScratchedPercentage = () => {
+        if (isRevealed) return; // Prevent multiple triggers
         const imageData = ctx.getImageData(0, 0, cardWidth, cardHeight);
         let transparentPixels = 0;
         const totalPixels = cardWidth * cardHeight;
-        // Iterate only over the alpha channel
         for (let i = 3; i < imageData.data.length; i += 4) {
             if (imageData.data[i] === 0) {
                 transparentPixels++;
             }
         }
         const scratchedPercent = (transparentPixels / totalPixels) * 100;
-        if (scratchedPercent > 60) {
+        if (scratchedPercent > revealPercent) {
             onScratched();
         }
     }
 
     const scratch = (e: MouseEvent | TouchEvent) => {
-      if (!isDrawing) return;
+      if (!isDrawing || isRevealed || isWaiting) return;
       e.preventDefault();
       
       const pos = getEventPosition(e);
@@ -97,6 +95,7 @@ export function ScratchCard({ prize, onScratched, isRevealed }: ScratchCardProps
     };
     
     const startDrawing = (e: MouseEvent | TouchEvent) => {
+        if (isRevealed || isWaiting) return;
         isDrawing = true;
         scratch(e);
     };
@@ -104,7 +103,6 @@ export function ScratchCard({ prize, onScratched, isRevealed }: ScratchCardProps
     const stopDrawing = () => {
         if (!isDrawing) return;
         isDrawing = false;
-        // Check percentage only when user stops scratching
         checkScratchedPercentage();
     };
     
@@ -125,11 +123,10 @@ export function ScratchCard({ prize, onScratched, isRevealed }: ScratchCardProps
       canvas.removeEventListener('touchend', stopDrawing);
       canvas.removeEventListener('mouseleave', stopDrawing);
     };
-  }, [isRevealed, onScratched]);
+  }, [isRevealed, onScratched, revealPercent, isWaiting]);
 
   return (
     <div className="relative w-full max-w-sm aspect-[5/3] rounded-2xl shadow-lg overflow-hidden border-4 border-white/50">
-      {/* Prize Layer */}
       <div className={cn(
           "absolute inset-0 flex flex-col items-center justify-center p-4 text-center text-white transition-all duration-500",
           prize.isWon 
@@ -144,14 +141,22 @@ export function ScratchCard({ prize, onScratched, isRevealed }: ScratchCardProps
         <h3 className="text-3xl font-bold tracking-wider drop-shadow-md">{prize.prize}</h3>
       </div>
 
-      {/* Scratch Layer */}
       <canvas
         ref={canvasRef}
         className={cn(
           "absolute inset-0 w-full h-full cursor-pointer transition-opacity duration-500",
-          isCanvasHidden ? "opacity-0 pointer-events-none" : "opacity-100"
+          isCanvasHidden ? "opacity-0 pointer-events-none" : "opacity-100",
+          isWaiting && !isCanvasHidden && "cursor-not-allowed"
         )}
       />
+      
+      {isWaiting && !isCanvasHidden && (
+        <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white z-10">
+          <Lock className="h-12 w-12 mb-2"/>
+          <p className="font-semibold">Card Locked</p>
+          <p className="text-sm">Wait for the timer to finish.</p>
+        </div>
+      )}
     </div>
   );
 }
