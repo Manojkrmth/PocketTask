@@ -5,13 +5,12 @@ import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Gift, Loader2, Award, Clock, MousePointerClick } from 'lucide-react';
+import { Gift, Loader2, Award, Clock } from 'lucide-react';
 import { SpinWheel, type WheelSegment } from '@/components/spin-wheel';
 import Confetti from 'react-confetti';
 import { useWindowSize } from '@/hooks/use-mobile';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Image from 'next/image';
-import Link from 'next/link';
 
 const segments: WheelSegment[] = [
   { text: '₹10', color: '#FFD700' },
@@ -42,7 +41,7 @@ export default function SpinRewardPage() {
   const [showConfetti, setShowConfetti] = useState(false);
   const { width, height } = useWindowSize();
   const [spinChances, setSpinChances] = useState(DAILY_SPIN_CHANCES);
-  const [isFinished, setIsFinished]_useState(false);
+  const [isFinished, setIsFinished] = useState(false);
   const [showAd, setShowAd] = useState(false);
   const [adClicked, setAdClicked] = useState(false);
 
@@ -133,7 +132,7 @@ export default function SpinRewardPage() {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
       {showConfetti && <Confetti width={width || 0} height={height || 0} recycle={false} numberOfPieces={200} onConfettiComplete={() => setShowConfetti(false)} />}
-      <PageHeader title="Spin &amp; Win" description="Spin the wheel to win exciting prizes!" />
+      <PageHeader title="Spin & Win" description="Spin the wheel to win exciting prizes!" />
       <main className="p-4 space-y-6 flex-1 flex flex-col">
         <Card className="bg-primary/10 border-primary/20">
           <CardContent className="p-4 flex items-center justify-between">
