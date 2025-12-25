@@ -162,9 +162,9 @@ ALTER TABLE public.visit_earn_tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.watch_earn_tasks ENABLE ROW LEVEL SECURITY;
 
 -- 2. Remove any old policies to avoid conflicts
-DROP POLICY IF EXISTS "Allow read access to all users" ON public.visit_earn_tasks;
+DROP POLICY IF EXISTS "Allow read access to authenticated users" ON public.visit_earn_tasks;
 DROP POLICY IF EXISTS "Allow admin full access" ON public.visit_earn_tasks;
-DROP POLICY IF EXISTS "Allow read access to all users" ON public.watch_earn_tasks;
+DROP POLICY IF EXISTS "Allow read access to authenticated users" ON public.watch_earn_tasks;
 DROP POLICY IF EXISTS "Allow admin full access" ON public.watch_earn_tasks;
 
 -- 3. Create policies for admin management
@@ -181,11 +181,11 @@ WITH CHECK ( (SELECT count(*) FROM public.admins WHERE public.admins.user_id = a
 
 -- 4. Create policies for authenticated users to read data
 -- This allows any logged-in user to view the tasks.
-CREATE POLICY "Allow read access to all users" ON public.visit_earn_tasks
+CREATE POLICY "Allow read access to authenticated users" ON public.visit_earn_tasks
 FOR SELECT
 USING ( auth.role() = 'authenticated' );
 
-CREATE POLICY "Allow read access to all users" ON public.watch_earn_tasks
+CREATE POLICY "Allow read access to authenticated users" ON public.watch_earn_tasks
 FOR SELECT
 USING ( auth.role() = 'authenticated' );
 `;
