@@ -164,14 +164,13 @@ ALTER TABLE public.watch_earn_tasks ENABLE ROW LEVEL SECURITY;
 -- 2. Remove any conflicting old policies to start fresh
 DROP POLICY IF EXISTS "Allow admin full access" ON public.visit_earn_tasks;
 DROP POLICY IF EXISTS "Allow read access to authenticated users" ON public.visit_earn_tasks;
-DROP POLICY IF EXISTS "Allow admins to manage all visit_earn_tasks" ON public.visit_earn_tasks;
 
 DROP POLICY IF EXISTS "Allow admin full access" ON public.watch_earn_tasks;
 DROP POLICY IF EXISTS "Allow read access to authenticated users" ON public.watch_earn_tasks;
-DROP POLICY IF EXISTS "Allow admins to manage all watch_earn_tasks" ON public.watch_earn_tasks;
 
 -- 3. Create a reliable policy for admins on visit_earn_tasks
-CREATE POLICY "Allow admin full access" ON public.visit_earn_tasks
+CREATE POLICY "Allow admin full access"
+ON public.visit_earn_tasks
 FOR ALL
 USING (
   (auth.role() = 'service_role') OR
@@ -183,12 +182,14 @@ WITH CHECK (
 );
 
 -- 4. Create a read-only policy for regular logged-in users on visit_earn_tasks
-CREATE POLICY "Allow read access to authenticated users" ON public.visit_earn_tasks
+CREATE POLICY "Allow read access to authenticated users"
+ON public.visit_earn_tasks
 FOR SELECT
 USING (auth.role() = 'authenticated');
 
 -- 5. Create a reliable policy for admins on watch_earn_tasks
-CREATE POLICY "Allow admin full access" ON public.watch_earn_tasks
+CREATE POLICY "Allow admin full access"
+ON public.watch_earn_tasks
 FOR ALL
 USING (
   (auth.role() = 'service_role') OR
@@ -200,7 +201,8 @@ WITH CHECK (
 );
 
 -- 6. Create a read-only policy for regular logged-in users on watch_earn_tasks
-CREATE POLICY "Allow read access to authenticated users" ON public.watch_earn_tasks
+CREATE POLICY "Allow read access to authenticated users"
+ON public.watch_earn_tasks
 FOR SELECT
 USING (auth.role() = 'authenticated');
 `;
