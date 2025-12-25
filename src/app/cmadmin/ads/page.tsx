@@ -48,7 +48,7 @@ const defaultAdScript = {
 };
 
 const defaultAdLocations: AdConfig[] = [
-    { id: 'home', name: 'Home Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: 'https://placehold.co/320x50/334155/ffffff?text=My+Custom+Ad', text: 'Special Offer!', externalLink: 'https://google.com' } },
+    { id: 'home', name: 'Home Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhDUVY6cE92FlqnkRm_X5EP55svi1fHG4KAsDJC92ivsR47SqAAZ0UL1P-NTjMBn2OYEJfPnmH-No5qiUM04PZ6wyzyGD3FYB5JoUKOt3jMF9_wG2zfIjd22J3K2HhHq7Aq_c9JiKv0wlg0YQrvhbqOyIORisDRg4w6ZFzPWaD6N7SFu46dCj9MSNC_YsY/s320/vwdC8pCsnzM-HD.jpg', text: '', externalLink: '' } },
     { id: 'notifications', name: 'Notifications Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
     { id: 'team', name: 'Team Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
     { id: 'tasks', name: 'Tasks Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
@@ -301,5 +301,7 @@ export default function AdsManagerPage() {
         </div>
     );
 }
+
+    
 
     
