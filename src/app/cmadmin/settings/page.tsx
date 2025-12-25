@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
@@ -7,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Save, Link as LinkIcon, Settings, Image as ImageIcon, Text, Info, ToggleLeft, IndianRupee, Megaphone, ListTodo, Wallet, Gift, AlertTriangle } from 'lucide-react';
+import { Loader2, Save, Link as LinkIcon, Settings, Image as ImageIcon, Text, Info, ToggleLeft, IndianRupee, Megaphone, ListTodo, Wallet, Gift, AlertTriangle, Users, HardHat } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { InstagramIcon, TelegramIcon, WhatsAppIcon } from '@/components/icons';
 import { Switch } from '@/components/ui/switch';
@@ -101,6 +100,36 @@ export default function SettingsPage() {
                 <p className="text-muted-foreground">Manage global settings for your application.</p>
             </div>
             
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><HardHat className="h-5 w-5 text-primary" /> Construction Mode</CardTitle>
+                    <CardDescription>If enabled, the entire app will show a "Under Construction" page to users.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                        <Label htmlFor="construction-mode" className="font-semibold">Enable Construction Mode</Label>
+                        <Switch
+                            id="construction-mode"
+                            checked={settings.isUnderConstruction || false}
+                            onCheckedChange={(checked) => handleTopLevelChange('isUnderConstruction', checked)}
+                            disabled={isSaving}
+                        />
+                    </div>
+                </CardContent>
+            </Card>
+            
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5 text-primary" /> Referral Settings</CardTitle>
+                    <CardDescription>Manage multi-level referral commission percentages.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button onClick={() => router.push('/cmadmin/settings/referrals')}>
+                        Manage Referral Commissions
+                    </Button>
+                </CardContent>
+            </Card>
+
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><Gift className="h-5 w-5 text-primary" /> Featured Offers</CardTitle>

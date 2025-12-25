@@ -8,11 +8,57 @@ import { usePathname } from 'next/navigation';
 import { Suspense, useState, useEffect } from 'react';
 import { SplashScreen } from '@/components/splash-screen';
 import { AnnouncementPopup } from '@/components/announcement-popup';
+import { supabase } from '@/lib/supabase';
+import { LoadingScreen } from '@/components/loading-screen';
+
+function MaintenancePage() {
+    return (
+        <div className="fixed inset-0 z-[300] flex flex-col items-center justify-center gap-4 bg-background text-foreground p-4 text-center">
+            <h1 className="text-3xl font-bold text-primary">Under Construction</h1>
+            <p className="text-muted-foreground max-w-sm">
+                Our app is currently undergoing scheduled maintenance. We are working hard to improve your experience and will be back online shortly. Thank you for your patience!
+            </p>
+        </div>
+    );
+}
 
 function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isAuthPage = ['/login', '/signup', '/forgot-password', '/update-password', '/blocked'].includes(pathname);
+  const [isUnderConstruction, setIsUnderConstruction] = useState(false);
+  const [loading, setLoading] = useState(true);
+
   const isAdminPage = pathname.startsWith('/cmadmin');
+  const isAuthPage = ['/login', '/signup', '/forgot-password', '/update-password', '/blocked'].includes(pathname);
+  
+  useEffect(() => {
+    const fetchSettings = async () => {
+        const { data, error } = await supabase
+            .from('settings')
+            .select('settings_data->isUnderConstruction')
+            .eq('id', 1)
+            .single();
+        
+        if (!error && data) {
+            setIsUnderConstruction((data as any).isUnderConstruction || false);
+        }
+        setLoading(false);
+    };
+    
+    // Only check settings if it's not an admin or auth page
+    if (!isAdminPage && !isAuthPage) {
+        fetchSettings();
+    } else {
+        setLoading(false);
+    }
+  }, [isAdminPage, isAuthPage]);
+  
+  if (loading) {
+    return <LoadingScreen />;
+  }
+
+  if (isUnderConstruction && !isAdminPage) {
+    return <MaintenancePage />;
+  }
   
   if (isAuthPage || isAdminPage) {
     return <>{children}</>;
