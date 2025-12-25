@@ -84,36 +84,15 @@ export default function CoinManagerPage() {
       setLoading(true);
       
       const { data, error } = await supabase
-        .from('coinsubmissions')
-        .select(`*`)
-        .order('created_at', { ascending: false });
+        .rpc('admin_get_all_coin_submissions');
 
       if (error) {
         console.error("Error fetching coin submissions:", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch coin submissions. Ensure you have admin privileges.' });
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch coin submissions. Ensure you have admin privileges and the required database function exists.' });
+        setSubmissions([]);
       } else {
-        const userIds = [...new Set(data.map(item => item.user_id))];
-        
-        if (userIds.length > 0) {
-            const { data: usersData, error: usersError } = await supabase
-                .from('users')
-                .select('id, full_name, email')
-                .in('id', userIds);
-
-            if(usersError){
-                toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch user details for submissions.' });
-                setSubmissions(data.map(s => ({...s, users: null})) as CoinSubmission[]);
-            } else {
-                const usersMap = new Map(usersData.map(u => [u.id, u]));
-                const submissionsWithUsers = data.map(s => ({
-                    ...s,
-                    users: usersMap.get(s.user_id) || null
-                }));
-                setSubmissions(submissionsWithUsers as CoinSubmission[]);
-            }
-        } else {
-            setSubmissions([]);
-        }
+        // The RPC function now returns the user details joined, so we can cast directly.
+        setSubmissions(data as CoinSubmission[]);
       }
       setLoading(false);
     };
@@ -385,3 +364,5 @@ export default function CoinManagerPage() {
     </>
   );
 }
+
+    

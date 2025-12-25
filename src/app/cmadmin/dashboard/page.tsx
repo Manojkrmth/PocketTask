@@ -81,8 +81,10 @@ export default function AdminDashboardPage() {
         supabase.rpc('get_top_referral_users', { limit_count: 10 }),
       ]);
       
+      const { data: totalBalanceData, error: totalBalanceError } = await supabase.rpc('get_total_users_balance');
+      
       setTotalUsers(usersRes.count);
-      setTotalUsersBalance(usersRes.data?.reduce((sum, { balance_available }) => sum + (balance_available || 0), 0) || 0);
+      setTotalUsersBalance(totalBalanceData || 0);
       setPendingTasks(tasksCountRes.count);
       setPendingTickets(ticketsCountRes.count);
       setTotalWithdrawals(withdrawalsRes.data?.reduce((sum, { amount }) => sum + amount, 0) || 0);
@@ -273,7 +275,5 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
-
-    
 
     
