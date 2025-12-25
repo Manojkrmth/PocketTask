@@ -12,7 +12,6 @@ import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import type { User } from "@supabase/supabase-js";
 import BannerAd from "@/components/ads/banner-ad";
 
 export default function UpdatePasswordPage() {
@@ -57,9 +56,9 @@ export default function UpdatePasswordPage() {
     }
 
     return (
-        <div>
+        <div className="flex flex-col min-h-screen bg-muted/40">
             <PageHeader title="Update Password" />
-            <main className="p-4 space-y-6">
+            <main className="p-4 space-y-6 flex-1">
                 <Card>
                     <CardHeader>
                         <CardTitle>Create a New Password</CardTitle>
@@ -92,3 +91,5 @@ export default function UpdatePasswordPage() {
         </div>
     )
 }
+
+    

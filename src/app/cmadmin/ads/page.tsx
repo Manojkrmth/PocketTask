@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Save, Megaphone, Image as ImageIcon, Link as LinkIcon, Text } from 'lucide-react';
+import { Loader2, Save, Image as ImageIcon, Link as LinkIcon, Text, Megaphone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -76,6 +76,7 @@ export default function AdsManagerPage() {
     const { toast } = useToast();
     const [settings, setSettings] = useState<any>(null);
     const [adConfigs, setAdConfigs] = useState<AdConfig[]>(defaultAdLocations);
+    const [areAdsGloballyEnabled, setAreAdsGloballyEnabled] = useState(true);
     const [loading, setLoading] = useState(true);
     const [isSaving, startSaving] = useTransition();
 
@@ -99,6 +100,7 @@ export default function AdsManagerPage() {
                     return savedAd ? { ...defaultAd, ...savedAd } : defaultAd;
                 });
                 setAdConfigs(mergedAds);
+                setAreAdsGloballyEnabled(data.settings_data.areAdsGloballyEnabled ?? true);
             }
             setLoading(false);
         };
@@ -133,7 +135,8 @@ export default function AdsManagerPage() {
         startSaving(async () => {
             const updatedSettings = {
                 ...settings,
-                ads: adConfigs
+                ads: adConfigs,
+                areAdsGloballyEnabled: areAdsGloballyEnabled,
             };
 
             const { error } = await supabase
@@ -160,6 +163,27 @@ export default function AdsManagerPage() {
                 <p className="text-muted-foreground">Control ads displayed across the application.</p>
             </div>
             
+            <Card>
+                <CardHeader>
+                    <CardTitle>Global Ad Control</CardTitle>
+                    <CardDescription>Use this master switch to enable or disable all ads throughout the app at once.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                     <div className="flex items-center justify-between rounded-lg border p-4 shadow-sm">
+                        <Label htmlFor="global-ads-enabled" className="font-semibold text-lg flex items-center gap-2">
+                           <Megaphone />
+                           Enable All Ads Globally
+                        </Label>
+                        <Switch
+                            id="global-ads-enabled"
+                            checked={areAdsGloballyEnabled}
+                            onCheckedChange={setAreAdsGloballyEnabled}
+                            disabled={isSaving}
+                        />
+                    </div>
+                </CardContent>
+            </Card>
+
             <Accordion type="single" collapsible className="w-full space-y-4">
                 {adConfigs.map(ad => (
                 <Card key={ad.id} className="overflow-hidden">
@@ -245,3 +269,5 @@ export default function AdsManagerPage() {
         </div>
     );
 }
+
+    

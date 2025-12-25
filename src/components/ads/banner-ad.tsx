@@ -115,20 +115,26 @@ const ScriptAd: React.FC<{ config: AdConfig['script']}> = ({ config }) => {
 
 const BannerAd: React.FC<BannerAdProps> = ({ adId }) => {
     const [adConfig, setAdConfig] = useState<AdConfig | null>(null);
+    const [areAdsGloballyEnabled, setAreAdsGloballyEnabled] = useState(true);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         const fetchAdConfig = async () => {
             const { data, error } = await supabase
                 .from('settings')
-                .select('settings_data->ads')
+                .select('settings_data')
                 .eq('id', 1)
                 .single();
 
-            if (!error && data && data.ads) {
-                const config = (data.ads as AdConfig[]).find(ad => ad.id === adId);
-                if (config) {
-                    setAdConfig(config);
+            if (!error && data && data.settings_data) {
+                const settings = data.settings_data;
+                setAreAdsGloballyEnabled(settings.areAdsGloballyEnabled ?? true);
+                
+                if (settings.ads) {
+                    const config = (settings.ads as AdConfig[]).find(ad => ad.id === adId);
+                    if (config) {
+                        setAdConfig(config);
+                    }
                 }
             }
             setIsLoading(false);
@@ -140,7 +146,7 @@ const BannerAd: React.FC<BannerAdProps> = ({ adId }) => {
         return <AdPlaceholder />;
     }
 
-    if (!adConfig || !adConfig.isEnabled) {
+    if (!areAdsGloballyEnabled || !adConfig || !adConfig.isEnabled) {
         return null;
     }
     
@@ -157,3 +163,5 @@ const BannerAd: React.FC<BannerAdProps> = ({ adId }) => {
 };
 
 export default BannerAd;
+
+    
