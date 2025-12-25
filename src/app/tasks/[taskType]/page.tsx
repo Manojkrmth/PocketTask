@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -6,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import Link from 'next/link';
+import BannerAd from '@/components/ads/banner-ad';
 
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
@@ -113,7 +113,7 @@ export default function StartTaskPage() {
       <PageHeader 
         title={taskName || "Start Task"}
        />
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-100px)] text-center p-4">
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-100px)] text-center p-4">
         {noTasksAvailable || tasksPaused || isUserBlocked ? (
             <div className="flex flex-col items-center text-center">
                 <XCircle className="h-16 w-16 text-muted-foreground mb-4" />
@@ -167,6 +167,7 @@ export default function StartTaskPage() {
                 {!settingsLoading && howToButtons.length === 0 && <p className="text-sm text-muted-foreground text-center">Admin has not added any help links yet.</p>}
             </CardContent>
         </Card>
+        <BannerAd adId="tasks-start" />
       </div>
     </div>
   );

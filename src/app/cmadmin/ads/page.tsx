@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
@@ -39,22 +38,37 @@ interface AdConfig {
     }
 }
 
+const defaultAdScript = {
+    key: '424fa6466dbb5ba0acc3357b75ce0e6e',
+    format: 'iframe' as const,
+    height: 50,
+    width: 320,
+    invokeJs: 'https://www.highperformanceformat.com/424fa6466dbb5ba0acc3357b75ce0e6e/invoke.js'
+};
+
 const defaultAdLocations: AdConfig[] = [
-    { id: 'home', name: 'Home Page', isEnabled: false, script: { key: '', format: 'iframe', height: 50, width: 320, invokeJs: '' }, customAd: { imageUrl: '', text: '', externalLink: '' } },
-    { id: 'notifications', name: 'Notifications Page', isEnabled: false, script: { key: '', format: 'iframe', height: 50, width: 320, invokeJs: '' }, customAd: { imageUrl: '', text: '', externalLink: '' } },
-    { id: 'team', name: 'Team Page', isEnabled: false, script: { key: '', format: 'iframe', height: 50, width: 320, invokeJs: '' }, customAd: { imageUrl: '', text: '', externalLink: '' } },
-    { id: 'tasks', name: 'Tasks Page', isEnabled: false, script: { key: '', format: 'iframe', height: 50, width: 320, invokeJs: '' }, customAd: { imageUrl: '', text: '', externalLink: '' } },
-    { id: 'task-history', name: 'Task History Page', isEnabled: false, script: { key: '', format: 'iframe', height: 50, width: 320, invokeJs: '' }, customAd: { imageUrl: '', text: '', externalLink: '' } },
-    { id: 'withdraw', name: 'Withdraw Page', isEnabled: false, script: { key: '', format: 'iframe', height: 50, width: 320, invokeJs: '' }, customAd: { imageUrl: '', text: '', externalLink: '' } },
-    { id: 'wallet-history', name: 'Wallet History Page', isEnabled: false, script: { key: '', format: 'iframe', height: 50, width: 320, invokeJs: '' }, customAd: { imageUrl: '', text: '', externalLink: '' } },
-    { id: 'profile', name: 'Profile Page', isEnabled: false, script: { key: '', format: 'iframe', height: 50, width: 320, invokeJs: '' }, customAd: { imageUrl: '', text: '', externalLink: '' } },
-    { id: 'support-ticket', name: 'Support Ticket Page', isEnabled: false, script: { key: '', format: 'iframe', height: 50, width: 320, invokeJs: '' }, customAd: { imageUrl: '', text: '', externalLink: '' } },
-    { id: 'support-history', name: 'Support History Page', isEnabled: false, script: { key: '', format: 'iframe', height: 50, width: 320, invokeJs: '' }, customAd: { imageUrl: '', text: '', externalLink: '' } },
-    { id: 'change-password', name: 'Change Password Page', isEnabled: false, script: { key: '', format: 'iframe', height: 50, width: 320, invokeJs: '' }, customAd: { imageUrl: '', text: '', externalLink: '' } },
-    { id: 'currency', name: 'Currency Page', isEnabled: false, script: { key: '', format: 'iframe', height: 50, width: 320, invokeJs: '' }, customAd: { imageUrl: '', text: '', externalLink: '' } },
-    { id: 'edit-profile', name: 'Edit Profile Page', isEnabled: false, script: { key: '', format: 'iframe', height: 50, width: 320, invokeJs: '' }, customAd: { imageUrl: '', text: '', externalLink: '' } },
-    { id: 'contact', name: 'Contact Page', isEnabled: false, script: { key: '', format: 'iframe', height: 50, width: 320, invokeJs: '' }, customAd: { imageUrl: '', text: '', externalLink: '' } },
-    { id: 'spin-reward', name: 'Spin & Win Page', isEnabled: false, script: { key: '', format: 'iframe', height: 50, width: 320, invokeJs: '' }, customAd: { imageUrl: '', text: '', externalLink: '' } },
+    { id: 'home', name: 'Home Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
+    { id: 'notifications', name: 'Notifications Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
+    { id: 'team', name: 'Team Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
+    { id: 'tasks', name: 'Tasks Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
+    { id: 'task-history', name: 'Task History Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
+    { id: 'withdraw', name: 'Withdraw Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
+    { id: 'wallet-history', name: 'Wallet History Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
+    { id: 'profile', name: 'Profile Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
+    { id: 'support-ticket', name: 'Support Ticket Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
+    { id: 'support-history', name: 'Support History Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
+    { id: 'change-password', name: 'Change Password Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
+    { id: 'currency', name: 'Currency Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
+    { id: 'edit-profile', name: 'Edit Profile Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
+    { id: 'contact', name: 'Contact Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
+    { id: 'spin-reward', name: 'Spin & Win Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
+    { id: 'tasks-start', name: 'Start Task Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
+    { id: 'tasks-gmail', name: 'Gmail Task Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
+    { id: 'tasks-social', name: 'Social Task Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
+    { id: 'tasks-coin', name: 'Coin Task Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
+    { id: 'tasks-used-mails', name: 'Used Mails Task Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
+    { id: 'tasks-visit-earn', name: 'Visit & Earn Task Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
+    { id: 'tasks-watch-earn', name: 'Watch & Earn Task Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
 ];
 
 export default function AdsManagerPage() {
@@ -230,4 +244,3 @@ export default function AdsManagerPage() {
         </div>
     );
 }
-

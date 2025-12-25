@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -147,7 +146,10 @@ const BannerAd: React.FC<BannerAdProps> = ({ adId }) => {
     const hasScriptAd = adConfig.script?.key && adConfig.script?.invokeJs;
 
     return (
-        <div className="flex justify-center my-4">
+        <div className="flex justify-center my-4 relative border p-1 rounded-md bg-muted/30 w-max mx-auto">
+           <div className="absolute top-0 right-0 -translate-y-1/2 bg-muted text-muted-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full border">
+                Ad
+           </div>
            {hasScriptAd ? <ScriptAd config={adConfig.script} /> : <CustomAd config={adConfig.customAd} />}
         </div>
     );

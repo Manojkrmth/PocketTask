@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -11,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import BannerAd from '@/components/ads/banner-ad';
 
 const TASK_STORAGE_KEY = 'gmailTaskData';
 
@@ -180,6 +180,7 @@ export default function GmailTaskPage() {
                     sessionStorage.setItem(TASK_STORAGE_KEY, JSON.stringify(stored));
                 }}
             />
+            <BannerAd adId="tasks-gmail" />
         </div>
     );
 }

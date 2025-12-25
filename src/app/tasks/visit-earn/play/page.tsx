@@ -1,10 +1,10 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
+import BannerAd from '@/components/ads/banner-ad';
 
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
@@ -280,6 +280,7 @@ export default function VisitAndEarnPage() {
                         Exit
                     </Button>
                 </div>
+                <BannerAd adId="tasks-visit-earn" />
             </main>
         </div>
     );

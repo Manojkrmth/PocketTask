@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -16,6 +15,7 @@ import { useCurrency } from '@/context/currency-context';
 import { supabase } from '@/lib/supabase';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
+import BannerAd from '@/components/ads/banner-ad';
 
 export default function UsedMailsPage() {
     const { toast } = useToast();
@@ -298,6 +298,7 @@ export default function UsedMailsPage() {
                         </Card>
                     </TabsContent>
                 </Tabs>
+                <BannerAd adId="tasks-used-mails" />
             </main>
         </div>
     );
