@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -33,6 +32,7 @@ import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import { PageHeader } from '@/components/page-header';
 import { useRouter } from 'next/navigation';
+import BannerAd from '@/components/ads/banner-ad';
 
 export default function WithdrawPage() {
   const router = useRouter();
@@ -389,6 +389,7 @@ export default function WithdrawPage() {
 
           </CardContent>
         </Card>
+        <BannerAd adId="withdraw" />
       </main>
     </div>
   );

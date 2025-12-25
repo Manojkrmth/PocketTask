@@ -34,6 +34,7 @@ import { useRouter } from 'next/navigation';
 import { LoadingScreen } from '@/components/loading-screen';
 import { useCurrency } from '@/context/currency-context';
 import { useToast } from '@/hooks/use-toast';
+import BannerAd from '@/components/ads/banner-ad';
 
 
 export default function HomePage() {
@@ -440,6 +441,8 @@ export default function HomePage() {
           </a>
         </div>
         
+        <BannerAd adId="home" />
+
       </main>
     </div>
   );

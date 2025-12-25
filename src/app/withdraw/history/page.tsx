@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -44,6 +43,7 @@ import { PageHeader } from '@/components/page-header';
 import { useCurrency } from '@/context/currency-context';
 import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
+import BannerAd from '@/components/ads/banner-ad';
 
 const ITEMS_PER_PAGE = 10;
 type Status = 'Completed' | 'Pending' | 'Rejected';
@@ -290,6 +290,7 @@ export default function WalletHistoryPage() {
             </div>
           </CardContent>
         </Card>
+        <BannerAd adId="wallet-history" />
       </main>
     </div>
   );

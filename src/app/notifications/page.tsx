@@ -6,6 +6,7 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Loader2, BellRing, Bell } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import BannerAd from '@/components/ads/banner-ad';
 
 interface Notification {
   id: number;
@@ -74,6 +75,7 @@ export default function NotificationsPage() {
           </div>
         )}
       </main>
+      <BannerAd adId="notifications" />
     </div>
   );
 }

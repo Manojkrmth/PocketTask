@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
+import BannerAd from "@/components/ads/banner-ad";
 
 export default function UpdatePasswordPage() {
     const { toast } = useToast();
@@ -85,6 +86,7 @@ export default function UpdatePasswordPage() {
                         </Button>
                     </CardContent>
                 </Card>
+                <BannerAd adId="change-password" />
             </main>
         </div>
     )

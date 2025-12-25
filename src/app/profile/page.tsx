@@ -32,6 +32,7 @@ import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import BannerAd from '@/components/ads/banner-ad';
 
 const menuItems = [
   { href: '/profile/task-history', icon: History, label: 'Task History' },
@@ -246,6 +247,7 @@ export default function ProfilePage() {
             <p className="animate-color-cycle">Made with ❤️ In Bharat</p>
             <p>&copy; 2026 CookieMail. All Rights Reserved.</p>
         </div>
+        <BannerAd adId="profile" />
       </main>
     </div>
   );

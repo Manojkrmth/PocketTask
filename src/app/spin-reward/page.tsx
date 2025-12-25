@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -16,6 +15,7 @@ import type { User } from '@supabase/supabase-js';
 import { LoadingScreen } from '@/components/loading-screen';
 import { useRouter } from 'next/navigation';
 import AdComponent from '@/components/ad-component';
+import BannerAd from '@/components/ads/banner-ad';
 
 const segments: WheelSegment[] = [
   { id: 'seg1', text: '5', color: '#D81B60' },
@@ -365,6 +365,7 @@ export default function SpinRewardPage() {
                 </Alert>
             )}
             <SpinButtonBannerAd />
+            <BannerAd adId="spin-reward" />
         </div>
       </main>
     </div>

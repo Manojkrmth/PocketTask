@@ -25,6 +25,7 @@ import { useState, useEffect, useCallback } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { useCurrency } from '@/context/currency-context';
 import { PageHeader } from '@/components/page-header';
+import BannerAd from '@/components/ads/banner-ad';
 
 
 interface LevelData {
@@ -258,6 +259,7 @@ export default function TeamPage() {
 
             </CardContent>
         </Card>
+        <BannerAd adId="team" />
       </main>
     </div>
   );

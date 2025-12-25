@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -21,6 +20,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import BannerAd from '@/components/ads/banner-ad';
 
 
 const iconMap: { [key: string]: React.ReactElement } = {
@@ -136,6 +136,7 @@ export default function ChooseTaskTypePage() {
             ))}
           </div>
         )}
+        <BannerAd adId="tasks" />
       </main>
     </div>
   );

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -33,6 +32,7 @@ import { useCurrency } from '@/context/currency-context';
 import { supabase } from '@/lib/supabase';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import BannerAd from '@/components/ads/banner-ad';
 
 const ITEMS_PER_PAGE = 10;
 type Status = 'Approved' | 'Pending' | 'Rejected';
@@ -447,6 +447,7 @@ export default function TaskHistoryPage() {
                 <CoinSubmissions />
             </TabsContent>
         </Tabs>
+        <BannerAd adId="task-history" />
       </main>
     </div>
   );

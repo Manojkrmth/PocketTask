@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -14,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
+import BannerAd from '@/components/ads/banner-ad';
 
 export default function SupportTicketPage() {
     const [user, setUser] = useState<User | null>(null);
@@ -150,6 +150,7 @@ export default function SupportTicketPage() {
                         )}
                     </CardContent>
                 </Card>
+                <BannerAd adId="support-ticket" />
             </main>
         </div>
     );

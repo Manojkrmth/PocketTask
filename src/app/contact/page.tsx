@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -13,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
+import BannerAd from '@/components/ads/banner-ad';
 
 export default function ContactUsPage() {
     const [user, setUser] = useState<SupabaseUser | null>(null);
@@ -139,6 +139,7 @@ export default function ContactUsPage() {
                         )}
                     </CardContent>
                 </Card>
+                <BannerAd adId="contact" />
             </main>
         </div>
     );

@@ -16,6 +16,7 @@ import { useRouter } from 'next/navigation';
 import { useCurrency } from '@/context/currency-context';
 import type { Currency } from '@/context/currency-context';
 import { PageHeader } from '@/components/page-header';
+import BannerAd from '@/components/ads/banner-ad';
 
 export default function CurrencyPage() {
   const { currency, setCurrency, usdToInrRate } = useCurrency();
@@ -89,6 +90,7 @@ export default function CurrencyPage() {
             </Button>
           </CardContent>
         </Card>
+        <BannerAd adId="currency" />
       </main>
     </div>
   );

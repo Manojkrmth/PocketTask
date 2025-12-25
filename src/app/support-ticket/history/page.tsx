@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
@@ -20,6 +19,7 @@ import {
 } from "@/components/ui/accordion";
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import BannerAd from '@/components/ads/banner-ad';
 
 interface SupportTicket {
   id: number;
@@ -205,6 +205,7 @@ export default function TicketHistoryPage() {
             </Button>
           </div>
         )}
+        <BannerAd adId="support-history" />
       </main>
     </div>
   );

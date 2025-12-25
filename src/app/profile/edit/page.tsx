@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
+import BannerAd from "@/components/ads/banner-ad";
 
 export default function EditProfilePage() {
     const { toast } = useToast();
@@ -118,6 +119,7 @@ export default function EditProfilePage() {
                         )}
                     </CardContent>
                 </Card>
+                <BannerAd adId="edit-profile" />
             </main>
         </div>
     )
