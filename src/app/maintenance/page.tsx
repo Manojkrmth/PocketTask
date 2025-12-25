@@ -39,7 +39,7 @@ function DeveloperWorkingIcon({ className }: { className?: string }) {
 
 export default function MaintenancePage() {
   return (
-    <div className="fixed inset-0 z-[300] flex flex-col items-center justify-center gap-4 bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white p-6 text-center overflow-hidden">
+    <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white p-6 text-center overflow-hidden">
       
       <div className="relative mb-6">
         <div className="absolute -inset-8 bg-primary/10 rounded-full animate-pulse-slow"></div>
