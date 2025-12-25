@@ -235,8 +235,8 @@ USING (auth.role() = 'authenticated');
                       onCheckedChange={(checked) => handleToggleActive(task, type, checked)}
                       disabled={isSubmitting}
                     />
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditClick(task, type)} disabled={isSubmitting}><Edit className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteClick(task, type)} disabled={isSubmitting}><Trash2 className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditClick(task, type)}><Edit className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteClick(task, type)}><Trash2 className="h-4 w-4" /></Button>
                 </div>
               </div>
             </CardHeader>
@@ -263,7 +263,7 @@ USING (auth.role() = 'authenticated');
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Permission Error Detected</AlertTitle>
           <div className="space-y-2">
-            <p>If you are unable to add or see tasks, you need to update your database security rules. Please run the following SQL code in your Supabase SQL Editor.</p>
+            <p>If you are unable to add, edit, or delete tasks, you need to update your database security rules. Please run the following SQL code in your Supabase SQL Editor.</p>
             <Textarea className="font-mono bg-destructive/10 text-destructive-foreground h-48" readOnly value={sqlPolicyFix} />
             <Button variant="secondary" size="sm" onClick={() => navigator.clipboard.writeText(sqlPolicyFix)}>Copy SQL</Button>
           </div>
