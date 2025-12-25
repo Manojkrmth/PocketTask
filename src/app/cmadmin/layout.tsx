@@ -13,7 +13,10 @@ import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
 
-const ADMIN_USER_ID = '7fa62eb6-4e08-4064-ace3-3f6116efa29f';
+const ADMIN_USER_IDS = [
+    '7fa62eb6-4e08-4064-ace3-3f6116efa29f', // Original Super Admin
+    '98cda2fc-f09d-4840-9f47-ec0c749a6bbd'  // New Super Admin (manojmukhiyamth@gmail.com)
+];
 
 const navItems = [
   { href: '/cmadmin/dashboard', label: 'Dashboard', icon: BarChart },
@@ -54,7 +57,7 @@ export default function AdminLayout({
         return;
       }
 
-      if (session.user.id !== ADMIN_USER_ID) {
+      if (!ADMIN_USER_IDS.includes(session.user.id)) {
         router.push('/');
         return;
       }
