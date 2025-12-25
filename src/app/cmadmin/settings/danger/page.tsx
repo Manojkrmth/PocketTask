@@ -66,6 +66,7 @@ CREATE OR REPLACE FUNCTION truncate_history(table_name text, before_date date)
 RETURNS void AS $$
 DECLARE
     is_admin boolean;
+    time_column text;
 BEGIN
     -- Check if the user is a super-admin
     SELECT u.id = '7fa62eb6-4e08-4064-ace3-3f6116efa29f'
@@ -74,12 +75,19 @@ BEGIN
     WHERE u.id = auth.uid();
 
     IF is_admin THEN
+        -- Determine the correct time column based on the table name
+        IF table_name = 'usertasks' THEN
+            time_column := 'submission_time';
+        ELSE
+            time_column := 'created_at';
+        END IF;
+
         IF before_date IS NULL THEN
             -- If no date is provided, delete all records from the table
             EXECUTE 'DELETE FROM ' || quote_ident(table_name);
         ELSE
             -- If a date is provided, delete records created before that date
-            EXECUTE 'DELETE FROM ' || quote_ident(table_name) || ' WHERE created_at < $1'
+            EXECUTE 'DELETE FROM ' || quote_ident(table_name) || ' WHERE ' || quote_ident(time_column) || ' < $1'
             USING before_date;
         END IF;
     ELSE
