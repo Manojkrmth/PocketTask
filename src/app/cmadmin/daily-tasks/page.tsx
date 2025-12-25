@@ -160,41 +160,44 @@ DROP POLICY IF EXISTS "Allow all access for admins" ON public.visit_earn_tasks;
 DROP POLICY IF EXISTS "Allow read access for authenticated users" ON public.visit_earn_tasks;
 DROP POLICY IF EXISTS "Allow admins to do everything" ON public.visit_earn_tasks;
 DROP POLICY IF EXISTS "Allow service_role to perform all actions" ON public.visit_earn_tasks;
+DROP POLICY IF EXISTS "Enable read access for all users" ON public.visit_earn_tasks;
+DROP POLICY IF EXISTS "Enable insert for authenticated users only" ON public.visit_earn_tasks;
+DROP POLICY IF EXISTS "Enable update for users based on user_id" ON public.visit_earn_tasks;
+
 
 DROP POLICY IF EXISTS "Allow all access for admins" ON public.watch_earn_tasks;
 DROP POLICY IF EXISTS "Allow read access for authenticated users" ON public.watch_earn_tasks;
 DROP POLICY IF EXISTS "Allow admins to do everything" ON public.watch_earn_tasks;
 DROP POLICY IF EXISTS "Allow service_role to perform all actions" ON public.watch_earn_tasks;
+DROP POLICY IF EXISTS "Enable read access for all users" ON public.watch_earn_tasks;
+DROP POLICY IF EXISTS "Enable insert for authenticated users only" ON public.watch_earn_tasks;
+DROP POLICY IF EXISTS "Enable update for users based on user_id" ON public.watch_earn_tasks;
 
--- 2. Create a simple, powerful policy for Admins (for visit_earn_tasks)
--- This allows any user whose ID is in the 'admins' table to do anything.
-CREATE POLICY "Allow admins to do everything"
-ON public.visit_earn_tasks
-FOR ALL
-USING (
-  (SELECT auth.uid()) IN (SELECT user_id FROM public.admins)
+
+-- 2. Create new, simple policies for visit_earn_tasks
+CREATE POLICY "Allow admin full access" ON public.visit_earn_tasks
+FOR ALL USING (
+  EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid())
+)
+WITH CHECK (
+  EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid())
 );
 
--- 3. Create a read-only policy for regular logged-in users (for visit_earn_tasks)
-CREATE POLICY "Allow read access for authenticated users"
-ON public.visit_earn_tasks
-FOR SELECT
-USING (auth.role() = 'authenticated');
+CREATE POLICY "Allow read for authenticated users" ON public.visit_earn_tasks
+FOR SELECT USING (auth.role() = 'authenticated');
 
 
--- 4. Create a simple, powerful policy for Admins (for watch_earn_tasks)
-CREATE POLICY "Allow admins to do everything"
-ON public.watch_earn_tasks
-FOR ALL
-USING (
-  (SELECT auth.uid()) IN (SELECT user_id FROM public.admins)
+-- 3. Create new, simple policies for watch_earn_tasks
+CREATE POLICY "Allow admin full access" ON public.watch_earn_tasks
+FOR ALL USING (
+  EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid())
+)
+WITH CHECK (
+  EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid())
 );
 
--- 5. Create a read-only policy for regular logged-in users (for watch_earn_tasks)
-CREATE POLICY "Allow read access for authenticated users"
-ON public.watch_earn_tasks
-FOR SELECT
-USING (auth.role() = 'authenticated');
+CREATE POLICY "Allow read for authenticated users" ON public.watch_earn_tasks
+FOR SELECT USING (auth.role() = 'authenticated');
 `;
 
 
@@ -386,3 +389,5 @@ function TaskFormDialog({ isOpen, onOpenChange, task, onSave, onUpdate, isSubmit
         </Dialog>
     )
 }
+
+    
