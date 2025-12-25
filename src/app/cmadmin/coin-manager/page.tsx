@@ -111,14 +111,15 @@ export default function CoinManagerPage() {
             console.error("Error fetching users for submissions:", usersError);
             toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch user details for submissions.' });
              // Still show submissions, but without user details
-            setSubmissions(submissionsData.map(s => ({ ...s, users: null })));
+            const dataWithNullUsers = submissionsData.map(s => ({ ...s, users: null }));
+            setSubmissions(dataWithNullUsers as CoinSubmission[]);
         } else {
             const usersMap = new Map(usersData.map(u => [u.id, u]));
             const combinedData = submissionsData.map(s => ({
                 ...s,
                 users: usersMap.get(s.user_id) || null
             }));
-            setSubmissions(combinedData);
+            setSubmissions(combinedData as CoinSubmission[]);
         }
       } else {
         setSubmissions([]);
