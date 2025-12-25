@@ -82,20 +82,12 @@ export default function CoinManagerPage() {
 
   const fetchSubmissions = async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('coinsubmissions')
-        .select(`
-            *,
-            users (
-                full_name,
-                email
-            )
-        `)
-        .order('created_at', { ascending: false });
+      // Use supabase.rpc to call a function that can bypass RLS for admins
+      const { data, error } = await supabase.rpc('admin_get_all_coin_submissions');
 
       if (error) {
         console.error("Error fetching coin submissions:", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch coin submissions.' });
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch coin submissions. Ensure you have admin privileges and the required database function exists.' });
       } else {
         setSubmissions(data as CoinSubmission[]);
       }
@@ -290,7 +282,7 @@ export default function CoinManagerPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
+                      {item.created_at ? formatDistanceToNow(new Date(item.created_at), { addSuffix: true }) : 'N/A'}
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>

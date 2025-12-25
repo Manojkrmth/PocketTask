@@ -76,20 +76,11 @@ export default function WithdrawalsPage() {
 
   const fetchRequests = async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('payments')
-        .select(`
-            *,
-            users (
-                full_name,
-                email
-            )
-        `)
-        .order('created_at', { ascending: false });
+      const { data, error } = await supabase.rpc('admin_get_all_payments');
 
       if (error) {
         console.error("Error fetching payment requests:", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch requests.' });
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch requests. Make sure you have admin rights.' });
       } else {
         setRequests(data as PaymentRequest[]);
       }
@@ -128,7 +119,7 @@ export default function WithdrawalsPage() {
                     .select('id, amount')
                     .eq('user_id', selectedRequest.user_id)
                     .eq('type', 'withdrawal_pending')
-                    .eq('metadata->>payment_id', selectedRequest.id)
+                    .eq('metadata->>payment_id', String(selectedRequest.id))
                     .single();
 
                 if (findError && findError.code !== 'PGRST116') throw findError;
@@ -163,7 +154,7 @@ export default function WithdrawalsPage() {
                     })
                     .eq('user_id', selectedRequest.user_id)
                     .eq('type', 'withdrawal_pending')
-                    .eq('metadata->>payment_id', selectedRequest.id);
+                    .eq('metadata->>payment_id', String(selectedRequest.id));
 
                 if (walletError) throw walletError;
             }
@@ -232,7 +223,7 @@ export default function WithdrawalsPage() {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground">
-                  {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
+                  {item.created_at ? formatDistanceToNow(new Date(item.created_at), { addSuffix: true }) : 'N/A'}
                 </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
