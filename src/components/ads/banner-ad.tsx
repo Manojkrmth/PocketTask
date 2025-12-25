@@ -1,11 +1,12 @@
 
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, memo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Loader2, Megaphone } from 'lucide-react';
 import Image from 'next/image';
 import { Card } from '../ui/card';
+import { useInView } from 'react-intersection-observer';
 
 interface AdConfig {
     id: string;
@@ -73,15 +74,20 @@ const CustomAd: React.FC<{ config: AdConfig['customAd']}> = ({ config }) => {
     return adContent;
 }
 
-const ScriptAd: React.FC<{ config: AdConfig['script']}> = ({ config }) => {
-    const adContainerRef = useRef<HTMLDivElement>(null);
+const ScriptAd: React.FC<{ config: AdConfig['script']}> = memo(function ScriptAd({ config }) {
+    const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 });
+    const adLoadedRef = useRef(false);
 
     useEffect(() => {
-        if (!config.key || !config.invokeJs) return;
+        if (!inView || !config.key || !config.invokeJs || adLoadedRef.current) return;
 
-        if (adContainerRef.current && adContainerRef.current.children.length === 0) {
-            
+        adLoadedRef.current = true;
+        const adContainer = ref.current;
+        if (!adContainer) return;
+
+        try {
             const atOptionsScript = document.createElement('script');
+            atOptionsScript.type = 'text/javascript';
             atOptionsScript.innerHTML = `
               var atOptions = {
                 'key' : '${config.key}',
@@ -93,24 +99,27 @@ const ScriptAd: React.FC<{ config: AdConfig['script']}> = ({ config }) => {
             `;
             
             const invokeScript = document.createElement('script');
+            invokeScript.type = 'text/javascript';
             invokeScript.src = config.invokeJs;
             invokeScript.async = true;
 
-            adContainerRef.current.appendChild(atOptionsScript);
-            adContainerRef.current.appendChild(invokeScript);
+            adContainer.appendChild(atOptionsScript);
+            adContainer.appendChild(invokeScript);
+        } catch (e) {
+            console.error('Ad script injection failed:', e);
         }
 
         return () => {
-            if (adContainerRef.current) {
-                adContainerRef.current.innerHTML = '';
+            if (adContainer) {
+                adContainer.innerHTML = '';
             }
         };
-    }, [config]);
+    }, [config, inView, ref]);
     
     if (!config.key || !config.invokeJs) return null;
 
-    return <div ref={adContainerRef} style={{ width: `${config.width}px`, height: `${config.height}px` }}></div>;
-};
+    return <div ref={ref} style={{ width: `${config.width}px`, height: `${config.height}px` }}></div>;
+});
 
 
 const BannerAd: React.FC<BannerAdProps> = ({ adId }) => {
@@ -120,24 +129,31 @@ const BannerAd: React.FC<BannerAdProps> = ({ adId }) => {
 
     useEffect(() => {
         const fetchAdConfig = async () => {
-            const { data, error } = await supabase
-                .from('settings')
-                .select('settings_data')
-                .eq('id', 1)
-                .single();
+            try {
+                const { data, error } = await supabase
+                    .from('settings')
+                    .select('settings_data')
+                    .eq('id', 1)
+                    .single();
 
-            if (!error && data && data.settings_data) {
-                const settings = data.settings_data;
-                setAreAdsGloballyEnabled(settings.areAdsGloballyEnabled ?? true);
-                
-                if (settings.ads) {
-                    const config = (settings.ads as AdConfig[]).find(ad => ad.id === adId);
-                    if (config) {
-                        setAdConfig(config);
+                if (error) throw error;
+
+                if (data && data.settings_data) {
+                    const settings = data.settings_data;
+                    setAreAdsGloballyEnabled(settings.areAdsGloballyEnabled ?? true);
+                    
+                    if (settings.ads) {
+                        const config = (settings.ads as AdConfig[]).find(ad => ad.id === adId);
+                        if (config) {
+                            setAdConfig(config);
+                        }
                     }
                 }
+            } catch (e) {
+                console.error("Failed to fetch ad config:", e);
+            } finally {
+                setIsLoading(false);
             }
-            setIsLoading(false);
         };
         fetchAdConfig();
     }, [adId]);
@@ -163,5 +179,3 @@ const BannerAd: React.FC<BannerAdProps> = ({ adId }) => {
 };
 
 export default BannerAd;
-
-    
