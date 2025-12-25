@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
+import { Separator } from '@/components/ui/separator';
 
 const ADMIN_USER_ID = '7fa62eb6-4e08-4064-ace3-3f6116efa29f';
 
@@ -25,9 +26,12 @@ const navItems = [
   { href: '/cmadmin/tickets', label: 'Tickets', icon: MessageSquare },
   { href: '/cmadmin/notifications', label: 'Notifications', icon: Bell },
   { href: '/cmadmin/ads', label: 'Ads Manager', icon: Megaphone },
+];
+
+const adminNavItems = [
   { href: '/cmadmin/settings', label: 'Settings', icon: Settings },
   { href: '/cmadmin/admins', label: 'Admins', icon: Shield },
-];
+]
 
 export default function AdminLayout({
   children,
@@ -102,6 +106,18 @@ export default function AdminLayout({
               </Button>
             </Link>
           ))}
+            <Separator className="my-4" />
+            {adminNavItems.map(item => (
+                 <Link key={item.href} href={item.href} passHref>
+                   <Button
+                    variant={pathname.startsWith(item.href) ? 'secondary' : 'ghost'}
+                    className="w-full justify-start text-sm h-11"
+                  >
+                    <item.icon className="mr-3 h-5 w-5" />
+                    {item.label}
+                  </Button>
+                </Link>
+            ))}
         </nav>
       </aside>
       
