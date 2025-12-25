@@ -177,7 +177,7 @@ export default function HomePage() {
   const validFeaturedOffers = React.useMemo(() => {
     if (!featuredOffers) return [];
     return featuredOffers.filter(offer => 
-      offer.imageUrl
+      offer.imageUrl && offer.enabled
     );
   }, [featuredOffers]);
 

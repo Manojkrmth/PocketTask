@@ -9,12 +9,16 @@ import { Label } from '@/components/ui/label';
 import { Loader2, Save, Gift, PlusCircle, Trash2, Edit, Link as LinkIcon, Image as ImageIcon, Text as TextIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
+import { Switch } from '@/components/ui/switch';
+import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 interface Offer {
     id: string;
     imageUrl: string;
     description: string;
     redirectLink: string;
+    enabled: boolean;
 }
 
 export default function OffersSettingsPage() {
@@ -41,7 +45,10 @@ export default function OffersSettingsPage() {
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch app settings.' });
             } else {
                 setSettings(data.settings_data);
-                setOffers(data.settings_data.featuredOffers || []);
+                const fetchedOffers = data.settings_data.featuredOffers || [];
+                // Ensure backward compatibility by adding `enabled: true` if it's missing
+                const updatedOffers = fetchedOffers.map((offer: Offer) => ({ ...offer, enabled: offer.enabled ?? true }));
+                setOffers(updatedOffers);
             }
             setLoading(false);
         };
@@ -69,7 +76,11 @@ export default function OffersSettingsPage() {
     };
 
     const handleAddNewClick = () => {
-        setEditOffer({ id: `offer_${Date.now()}`, imageUrl: '', description: '', redirectLink: '' });
+        setEditOffer({ id: `offer_${Date.now()}`, imageUrl: '', description: '', redirectLink: '', enabled: true });
+    };
+    
+    const handleOfferEnabledChange = (offerId: string, checked: boolean) => {
+        setOffers(prev => prev.map(o => o.id === offerId ? { ...o, enabled: checked } : o));
     };
 
     const handleEditClick = (offer: Offer) => {
@@ -127,8 +138,12 @@ export default function OffersSettingsPage() {
                                     <div className="flex-1">
                                         <p className="font-semibold">{offer.description || 'No description'}</p>
                                         <p className="text-xs text-muted-foreground truncate">{offer.redirectLink || 'No link'}</p>
+                                        <Badge variant={offer.enabled ? "default" : "secondary"} className={cn("mt-1", offer.enabled && "bg-green-500")}>
+                                            {offer.enabled ? 'Enabled' : 'Disabled'}
+                                        </Badge>
                                     </div>
-                                    <div className="flex gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <Switch checked={offer.enabled} onCheckedChange={(checked) => handleOfferEnabledChange(offer.id, checked)} />
                                         <Button variant="outline" size="icon" onClick={() => handleEditClick(offer)}><Edit className="h-4 w-4"/></Button>
                                         <Button variant="destructive" size="icon" onClick={() => handleDelete(offer.id)}><Trash2 className="h-4 w-4"/></Button>
                                     </div>
@@ -156,6 +171,10 @@ export default function OffersSettingsPage() {
                          <div className="space-y-2">
                             <Label htmlFor="redirectLink" className="flex items-center gap-2"><LinkIcon/> Redirect Link (Optional)</Label>
                             <Input id="redirectLink" value={editOffer.redirectLink} onChange={e => setEditOffer({...editOffer, redirectLink: e.target.value})} placeholder="https://example.com/offer" />
+                        </div>
+                         <div className="flex items-center space-x-2">
+                            <Switch id="enabled" checked={editOffer.enabled} onCheckedChange={checked => setEditOffer({...editOffer, enabled: checked })} />
+                            <Label htmlFor="enabled">Enabled</Label>
                         </div>
                         <div className="flex justify-end gap-2">
                             <Button variant="ghost" onClick={() => setEditOffer(null)}>Cancel</Button>
