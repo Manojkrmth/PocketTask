@@ -155,52 +155,47 @@ export default function DailyTasksAdminPage() {
      });
   };
 
-  const sqlPolicyFix = `-- Step 1: Create a security function to check for admin privileges.
--- This is a more robust way to check permissions inside policies.
-CREATE OR REPLACE FUNCTION is_admin()
-RETURNS boolean
-LANGUAGE sql
-SECURITY DEFINER
-AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.admins WHERE user_id = auth.uid()
-  );
-$$;
-
--- Step 2: Drop all old policies to avoid conflicts
-DROP POLICY IF EXISTS "Allow admin full access" ON public.visit_earn_tasks;
-DROP POLICY IF EXISTS "Allow read for authenticated users" ON public.visit_earn_tasks;
-DROP POLICY IF EXISTS "Allow admin full access" ON public.watch_earn_tasks;
-DROP POLICY IF EXISTS "Allow read for authenticated users" ON public.watch_earn_tasks;
--- Also drop any other variants that might exist
+  const sqlPolicyFix = `-- 1. पुरानी सभी नीतियों को हटाएं ताकि कोई टकराव न हो
 DROP POLICY IF EXISTS "Allow all for admins" ON public.visit_earn_tasks;
 DROP POLICY IF EXISTS "Allow read for authenticated" ON public.visit_earn_tasks;
 DROP POLICY IF EXISTS "Allow all for admins" ON public.watch_earn_tasks;
 DROP POLICY IF EXISTS "Allow read for authenticated" ON public.watch_earn_tasks;
+-- पुरानी नीतियों के अन्य संभावित नामों को भी हटा दें
+DROP POLICY IF EXISTS "Allow admin full access" ON public.visit_earn_tasks;
+DROP POLICY IF EXISTS "Allow read access to authenticated users" ON public.visit_earn_tasks;
+DROP POLICY IF EXISTS "Allow admins to do everything" ON public.visit_earn_tasks;
+DROP POLICY IF EXISTS "Allow admin full access" ON public.watch_earn_tasks;
+DROP POLICY IF EXISTS "Allow read access to authenticated users" ON public.watch_earn_tasks;
+DROP POLICY IF EXISTS "Allow admins to do everything" ON public.watch_earn_tasks;
 
-
--- Step 3: Create new, simple policies using the security function
--- For visit_earn_tasks
-CREATE POLICY "Allow admin full access"
+-- 2. visit_earn_tasks टेबल के लिए नई, सरल नीतियां बनाएं
+CREATE POLICY "Allow all for admins"
 ON public.visit_earn_tasks
 FOR ALL
-USING (is_admin())
-WITH CHECK (is_admin());
+USING (
+  EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid())
+)
+WITH CHECK (
+  EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid())
+);
 
-CREATE POLICY "Allow read for authenticated users"
+CREATE POLICY "Allow read for authenticated"
 ON public.visit_earn_tasks
 FOR SELECT
 USING (auth.role() = 'authenticated');
 
-
--- For watch_earn_tasks
-CREATE POLICY "Allow admin full access"
+-- 3. watch_earn_tasks टेबल के लिए नई, सरल नीतियां बनाएं
+CREATE POLICY "Allow all for admins"
 ON public.watch_earn_tasks
 FOR ALL
-USING (is_admin())
-WITH CHECK (is_admin());
+USING (
+  EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid())
+)
+WITH CHECK (
+  EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid())
+);
 
-CREATE POLICY "Allow read for authenticated users"
+CREATE POLICY "Allow read for authenticated"
 ON public.watch_earn_tasks
 FOR SELECT
 USING (auth.role() = 'authenticated');
