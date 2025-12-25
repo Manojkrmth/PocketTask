@@ -20,82 +20,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Alert, AlertTitle } from '@/components/ui/alert';
-import { CopyButton } from '@/components/copy-button';
-
-const TABLES_TO_TRUNCATE = [
-    'public.notifications',
-    'public.wallet_history',
-    'public.usertasks',
-    'public.support_tickets',
-    'public.spin_rewards',
-    'public.payments',
-    'public.admins',
-    'public.coinsubmissions',
-    'public.gmail_tasks',
-    'public.gmail_task_batches',
-    'public.visit_earn_tasks',
-    'public.watch_earn_tasks',
-    'public.users'
-];
-
-const SQL_FUNCTIONS_CODE = `
--- Function to reset the entire application (except settings)
-CREATE OR REPLACE FUNCTION truncate_all_tables(tables text[])
-RETURNS void AS $$
-DECLARE
-  is_admin boolean;
-BEGIN
-  -- Check if the user is a super-admin
-  SELECT u.id = '7fa62eb6-4e08-4064-ace3-3f6116efa29f'
-  INTO is_admin
-  FROM auth.users u
-  WHERE u.id = auth.uid();
-
-  IF is_admin THEN
-    EXECUTE 'TRUNCATE ' || array_to_string(tables, ', ') || ' RESTART IDENTITY CASCADE';
-  ELSE
-    RAISE EXCEPTION 'You do not have permission to perform this action.';
-  END IF;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-
--- Function to selectively delete history records
-CREATE OR REPLACE FUNCTION truncate_history(table_name text, before_date date)
-RETURNS void AS $$
-DECLARE
-    is_admin boolean;
-    time_column text;
-BEGIN
-    -- Check if the user is a super-admin
-    SELECT u.id = '7fa62eb6-4e08-4064-ace3-3f6116efa29f'
-    INTO is_admin
-    FROM auth.users u
-    WHERE u.id = auth.uid();
-
-    IF is_admin THEN
-        -- Determine the correct time column based on the table name
-        IF table_name = 'usertasks' THEN
-            time_column := 'submission_time';
-        ELSE
-            time_column := 'created_at';
-        END IF;
-
-        IF before_date IS NULL THEN
-            -- If no date is provided, delete all records from the table
-            EXECUTE 'DELETE FROM ' || quote_ident(table_name);
-        ELSE
-            -- If a date is provided, delete records created before that date
-            EXECUTE 'DELETE FROM ' || quote_ident(table_name) || ' WHERE ' || quote_ident(time_column) || ' < $1'
-            USING before_date;
-        END IF;
-    ELSE
-        RAISE EXCEPTION 'You do not have permission to perform this action.';
-    END IF;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-`;
 
 export default function DangerZonePage() {
     const { toast } = useToast();
@@ -119,7 +43,7 @@ export default function DangerZonePage() {
 
         startResetting(async () => {
             try {
-                const { error } = await supabase.rpc('truncate_all_tables', { tables: TABLES_TO_TRUNCATE });
+                const { error } = await supabase.rpc('truncate_all_tables');
                 if (error) throw error;
                 
                 toast({
@@ -278,29 +202,6 @@ export default function DangerZonePage() {
                     </CardContent>
                 </Card>
             </div>
-
-            <Alert variant="default" className="bg-blue-50 border-blue-200">
-                <Database className="h-4 w-4" />
-                <AlertTitle className="text-blue-900 font-bold">First-Time Setup Required</AlertTitle>
-                <p className="text-blue-800 text-sm">
-                    To use these features, you must first run the SQL code below in your Supabase project's SQL Editor. This only needs to be done once.
-                </p>
-                <div className="mt-4 bg-background p-3 rounded-md border border-blue-200">
-                   <pre className="text-xs text-blue-950 whitespace-pre-wrap font-mono">
-                        {SQL_FUNCTIONS_CODE.trim()}
-                   </pre>
-                </div>
-                <div className="mt-4 flex gap-2">
-                     <CopyButton value={SQL_FUNCTIONS_CODE.trim()} variant="secondary" className="bg-white">
-                        Copy SQL Code
-                    </CopyButton>
-                    <Button asChild variant="outline" className="bg-white">
-                        <a href="https://supabase.com/dashboard/project/_/sql" target="_blank" rel="noopener noreferrer">
-                           <ExternalLink className="mr-2 h-4 w-4"/> Open Supabase SQL Editor
-                        </a>
-                    </Button>
-                </div>
-            </Alert>
         </div>
     );
 }
