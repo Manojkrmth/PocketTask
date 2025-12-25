@@ -82,32 +82,34 @@ export default function CoinManagerPage() {
 
   const fetchSubmissions = async () => {
       setLoading(true);
+      
       const { data, error } = await supabase
         .from('coinsubmissions')
-        .select(`
-            id,
-            created_at,
-            coin_type,
-            coin_amount,
-            reward_inr,
-            status,
-            user_id,
-            insta_id,
-            order_id,
-            metadata,
-            users (
-                full_name,
-                email
-            )
-        `)
+        .select(`*`)
         .order('created_at', { ascending: false });
-
 
       if (error) {
         console.error("Error fetching coin submissions:", error);
         toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch coin submissions. Ensure you have admin privileges.' });
       } else {
-        setSubmissions(data as CoinSubmission[]);
+        const userIds = [...new Set(data.map(item => item.user_id))];
+        
+        const { data: usersData, error: usersError } = await supabase
+            .from('users')
+            .select('id, full_name, email')
+            .in('id', userIds);
+
+        if(usersError){
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch user details for submissions.' });
+            setSubmissions(data.map(s => ({...s, users: null})) as CoinSubmission[]);
+        } else {
+            const usersMap = new Map(usersData.map(u => [u.id, u]));
+            const submissionsWithUsers = data.map(s => ({
+                ...s,
+                users: usersMap.get(s.user_id) || null
+            }));
+            setSubmissions(submissionsWithUsers as CoinSubmission[]);
+        }
       }
       setLoading(false);
     };
