@@ -57,7 +57,7 @@ BEGIN
     RAISE EXCEPTION 'You do not have permission to perform this action.';
   END IF;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 `;
 
 export default function DangerZonePage() {
@@ -90,7 +90,7 @@ export default function DangerZonePage() {
                 toast({
                     variant: 'destructive',
                     title: 'Reset Failed',
-                    description: error.message || 'An error occurred. Please ensure the `truncate_tables` RPC function exists in your database by following the on-page instructions.',
+                    description: error.message || 'An error occurred. Please ensure the `truncate_tables` RPC function exists in your database and has the correct permissions.',
                 });
             } finally {
                 setConfirmationText('');
