@@ -162,30 +162,30 @@ ALTER TABLE public.visit_earn_tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.watch_earn_tasks ENABLE ROW LEVEL SECURITY;
 
 -- 2. Remove any old policies to avoid conflicts
-DROP POLICY IF EXISTS "Allow public read-only access" ON public.visit_earn_tasks;
-DROP POLICY IF EXISTS "Allow admins to manage all" ON public.visit_earn_tasks;
-DROP POLICY IF EXISTS "Allow public read-only access" ON public.watch_earn_tasks;
-DROP POLICY IF EXISTS "Allow admins to manage all" ON public.watch_earn_tasks;
+DROP POLICY IF EXISTS "Allow read access to all users" ON public.visit_earn_tasks;
+DROP POLICY IF EXISTS "Allow admin full access" ON public.visit_earn_tasks;
+DROP POLICY IF EXISTS "Allow read access to all users" ON public.watch_earn_tasks;
+DROP POLICY IF EXISTS "Allow admin full access" ON public.watch_earn_tasks;
 
 -- 3. Create policies for admin management
 -- This policy allows anyone in the 'admins' table to do anything (SELECT, INSERT, UPDATE, DELETE).
-CREATE POLICY "Allow admins to manage all" ON public.visit_earn_tasks
+CREATE POLICY "Allow admin full access" ON public.visit_earn_tasks
 FOR ALL
 USING ( (SELECT count(*) FROM public.admins WHERE public.admins.user_id = auth.uid()) > 0 )
 WITH CHECK ( (SELECT count(*) FROM public.admins WHERE public.admins.user_id = auth.uid()) > 0 );
 
-CREATE POLICY "Allow admins to manage all" ON public.watch_earn_tasks
+CREATE POLICY "Allow admin full access" ON public.watch_earn_tasks
 FOR ALL
 USING ( (SELECT count(*) FROM public.admins WHERE public.admins.user_id = auth.uid()) > 0 )
 WITH CHECK ( (SELECT count(*) FROM public.admins WHERE public.admins.user_id = auth.uid()) > 0 );
 
 -- 4. Create policies for authenticated users to read data
 -- This allows any logged-in user to view the tasks.
-CREATE POLICY "Allow public read-only access" ON public.visit_earn_tasks
+CREATE POLICY "Allow read access to all users" ON public.visit_earn_tasks
 FOR SELECT
 USING ( auth.role() = 'authenticated' );
 
-CREATE POLICY "Allow public read-only access" ON public.watch_earn_tasks
+CREATE POLICY "Allow read access to all users" ON public.watch_earn_tasks
 FOR SELECT
 USING ( auth.role() = 'authenticated' );
 `;
