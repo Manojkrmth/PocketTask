@@ -10,17 +10,8 @@ import { SplashScreen } from '@/components/splash-screen';
 import { AnnouncementPopup } from '@/components/announcement-popup';
 import { supabase } from '@/lib/supabase';
 import { LoadingScreen } from '@/components/loading-screen';
+import MaintenancePage from './maintenance/page';
 
-function MaintenancePage() {
-    return (
-        <div className="fixed inset-0 z-[300] flex flex-col items-center justify-center gap-4 bg-background text-foreground p-4 text-center">
-            <h1 className="text-3xl font-bold text-primary">Under Construction</h1>
-            <p className="text-muted-foreground max-w-sm">
-                Our app is currently undergoing scheduled maintenance. We are working hard to improve your experience and will be back online shortly. Thank you for your patience!
-            </p>
-        </div>
-    );
-}
 
 function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -55,10 +46,6 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
   if (loading) {
     return <LoadingScreen />;
   }
-
-  if (isUnderConstruction && !isAdminPage) {
-    return <MaintenancePage />;
-  }
   
   if (isAuthPage || isAdminPage) {
     return <>{children}</>;
@@ -66,13 +53,17 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
 
   return (
     <main className="max-w-md mx-auto bg-background min-h-screen relative pb-24 shadow-2xl">
-        {children}
-        <Suspense fallback={null}>
-          <BottomNav />
-        </Suspense>
-        <Suspense fallback={null}>
-          <AnnouncementPopup />
-        </Suspense>
+        {isUnderConstruction ? <MaintenancePage /> : children}
+        {!isUnderConstruction && (
+            <>
+                <Suspense fallback={null}>
+                  <BottomNav />
+                </Suspense>
+                <Suspense fallback={null}>
+                  <AnnouncementPopup />
+                </Suspense>
+            </>
+        )}
     </main>
   );
 }

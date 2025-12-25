@@ -39,7 +39,7 @@ function DeveloperWorkingIcon({ className }: { className?: string }) {
 
 export default function MaintenancePage() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white p-6 text-center overflow-hidden">
+    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-6rem)] gap-4 bg-background text-foreground p-6 text-center overflow-hidden">
       
       <div className="relative mb-6">
         <div className="absolute -inset-8 bg-primary/10 rounded-full animate-pulse-slow"></div>
@@ -48,15 +48,15 @@ export default function MaintenancePage() {
         </div>
       </div>
       
-      <h1 className="text-4xl font-bold text-primary animate-highlight bg-gradient-to-r from-primary via-white to-primary">
+      <h1 className="text-4xl font-bold text-primary animate-highlight bg-gradient-to-r from-primary via-foreground to-primary">
         We'll be back soon!
       </h1>
       
-      <p className="text-muted-foreground max-w-sm text-neutral-300">
+      <p className="text-muted-foreground max-w-sm">
         Our app is currently undergoing scheduled maintenance. We are working hard to improve your experience and will be back online shortly. Thank you for your patience!
       </p>
 
-      <div className="mt-6 flex items-center justify-center gap-6 text-neutral-400">
+      <div className="mt-6 flex items-center justify-center gap-6 text-muted-foreground">
           <div className="flex items-center gap-2 animate-in fade-in-0 slide-in-from-bottom-4 delay-300 duration-500">
             <HardHat className="h-5 w-5 text-primary/70" />
             <span className="text-sm">Upgrades</span>
