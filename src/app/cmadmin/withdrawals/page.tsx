@@ -78,7 +78,13 @@ export default function WithdrawalsPage() {
       setLoading(true);
       const { data, error } = await supabase
         .from('payments')
-        .select(`*, users (full_name, email)`)
+        .select(`
+            *,
+            users (
+                full_name,
+                email
+            )
+        `)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -105,6 +111,8 @@ export default function WithdrawalsPage() {
     startUpdateTransition(async () => {
         try {
             const metadata = newStatus === 'Approved' ? { utr: actionDetail } : { reason: actionDetail };
+            
+            // First, update the payment status
             const { error: updateError } = await supabase
                 .from('payments')
                 .update({ status: newStatus, metadata })
@@ -112,30 +120,51 @@ export default function WithdrawalsPage() {
             
             if (updateError) throw updateError;
             
+            // Now, handle wallet history based on the new status
             if (newStatus === 'Rejected') {
-                // If rejected, refund the amount to the user's wallet
-                 const { error: walletError } = await supabase
+                // Find the original "pending" transaction to refund
+                const { data: pendingTransaction, error: findError } = await supabase
                     .from('wallet_history')
-                    .insert({
-                        user_id: selectedRequest.user_id,
-                        amount: selectedRequest.amount, // Refund the positive amount
-                        type: 'withdrawal_refund',
-                        status: 'Completed',
-                        description: `Refund for rejected withdrawal request #${selectedRequest.id}. Reason: ${actionDetail}`
-                    });
-                if (walletError) throw walletError;
+                    .select('id, amount')
+                    .eq('user_id', selectedRequest.user_id)
+                    .eq('type', 'withdrawal_pending')
+                    .eq('metadata->>payment_id', selectedRequest.id)
+                    .single();
+
+                if (findError && findError.code !== 'PGRST116') throw findError;
+
+                if (pendingTransaction) {
+                     // Insert a refund transaction
+                    const { error: walletError } = await supabase
+                        .from('wallet_history')
+                        .insert({
+                            user_id: selectedRequest.user_id,
+                            amount: Math.abs(pendingTransaction.amount), // Refund the positive amount
+                            type: 'withdrawal_refund',
+                            status: 'Completed',
+                            description: `Refund for rejected withdrawal #${selectedRequest.id}. Reason: ${actionDetail}`
+                        });
+                    if (walletError) throw walletError;
+
+                    // Optionally, update the original pending transaction to 'cancelled' or similar
+                    await supabase
+                      .from('wallet_history')
+                      .update({ status: 'Cancelled', description: `Request rejected by admin. Reason: ${actionDetail}` })
+                      .eq('id', pendingTransaction.id);
+                }
             } else if (newStatus === 'Approved') {
-                // Record the completed withdrawal in wallet history (amount is already negative)
+                 // Update the existing 'withdrawal_pending' record to 'Completed'
                  const { error: walletError } = await supabase
                     .from('wallet_history')
-                    .insert({
-                        user_id: selectedRequest.user_id,
-                        amount: -selectedRequest.amount,
-                        type: 'withdrawal',
-                        status: 'Completed',
+                    .update({ 
+                        status: 'Completed', 
                         description: `Withdrawal to ${selectedRequest.payment_method}. UTR: ${actionDetail}`,
                         metadata: { utr: actionDetail }
-                    });
+                    })
+                    .eq('user_id', selectedRequest.user_id)
+                    .eq('type', 'withdrawal_pending')
+                    .eq('metadata->>payment_id', selectedRequest.id);
+
                 if (walletError) throw walletError;
             }
 
