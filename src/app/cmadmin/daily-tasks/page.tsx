@@ -31,7 +31,8 @@ import {
   Trash2,
   ListChecks,
   Eye,
-  Video
+  Video,
+  AlertTriangle
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -44,6 +45,7 @@ import {
 } from '@/components/ui/select';
 import { formatDistanceToNow } from 'date-fns';
 import { Switch } from '@/components/ui/switch';
+import { Alert, AlertTitle } from '@/components/ui/alert';
 
 
 interface DailyTask {
@@ -153,6 +155,41 @@ export default function DailyTasksAdminPage() {
      });
   };
 
+  const sqlPolicyFix = `-- Run this code in your Supabase SQL Editor to fix permission issues.
+
+-- 1. Enable Row Level Security on the tables
+ALTER TABLE public.visit_earn_tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.watch_earn_tasks ENABLE ROW LEVEL SECURITY;
+
+-- 2. Remove any old policies to avoid conflicts
+DROP POLICY IF EXISTS "Allow public read-only access" ON public.visit_earn_tasks;
+DROP POLICY IF EXISTS "Allow admins to manage all" ON public.visit_earn_tasks;
+DROP POLICY IF EXISTS "Allow public read-only access" ON public.watch_earn_tasks;
+DROP POLICY IF EXISTS "Allow admins to manage all" ON public.watch_earn_tasks;
+
+-- 3. Create policies for admin management
+-- This policy allows anyone in the 'admins' table to do anything (SELECT, INSERT, UPDATE, DELETE).
+CREATE POLICY "Allow admins to manage all" ON public.visit_earn_tasks
+FOR ALL
+USING ( (SELECT count(*) FROM public.admins WHERE public.admins.user_id = auth.uid()) > 0 )
+WITH CHECK ( (SELECT count(*) FROM public.admins WHERE public.admins.user_id = auth.uid()) > 0 );
+
+CREATE POLICY "Allow admins to manage all" ON public.watch_earn_tasks
+FOR ALL
+USING ( (SELECT count(*) FROM public.admins WHERE public.admins.user_id = auth.uid()) > 0 )
+WITH CHECK ( (SELECT count(*) FROM public.admins WHERE public.admins.user_id = auth.uid()) > 0 );
+
+-- 4. Create policies for authenticated users to read data
+-- This allows any logged-in user to view the tasks.
+CREATE POLICY "Allow public read-only access" ON public.visit_earn_tasks
+FOR SELECT
+USING ( auth.role() = 'authenticated' );
+
+CREATE POLICY "Allow public read-only access" ON public.watch_earn_tasks
+FOR SELECT
+USING ( auth.role() = 'authenticated' );
+`;
+
 
   const renderTaskList = (type: TaskType) => (
     <div className="space-y-4">
@@ -192,6 +229,16 @@ export default function DailyTasksAdminPage() {
           <h1 className="text-3xl font-bold">Daily Tasks</h1>
           <p className="text-muted-foreground">Manage Visit &amp; Earn and Watch &amp; Earn tasks.</p>
         </div>
+
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Permission Error Detected</AlertTitle>
+          <div className="space-y-2">
+            <p>If you are unable to add or see tasks, you need to update your database security rules. Please run the following SQL code in your Supabase SQL Editor.</p>
+            <Textarea className="font-mono bg-destructive/10 text-destructive-foreground h-48" readOnly value={sqlPolicyFix} />
+            <Button variant="secondary" size="sm" onClick={() => navigator.clipboard.writeText(sqlPolicyFix)}>Copy SQL</Button>
+          </div>
+        </Alert>
 
         <Card>
           <CardHeader>
