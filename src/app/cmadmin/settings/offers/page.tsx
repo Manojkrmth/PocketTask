@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
@@ -7,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Save, Gift, PlusCircle, Trash2, Edit, Link as LinkIcon, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Save, Gift, PlusCircle, Trash2, Edit, Link as LinkIcon, Image as ImageIcon, Text as TextIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 
@@ -151,7 +150,7 @@ export default function OffersSettingsPage() {
                             <Input id="imageUrl" value={editOffer.imageUrl} onChange={e => setEditOffer({...editOffer, imageUrl: e.target.value})} placeholder="https://example.com/image.png" />
                         </div>
                          <div className="space-y-2">
-                            <Label htmlFor="description" className="flex items-center gap-2"><Text/> Description (Optional)</Label>
+                            <Label htmlFor="description" className="flex items-center gap-2"><TextIcon/> Description (Optional)</Label>
                             <Input id="description" value={editOffer.description} onChange={e => setEditOffer({...editOffer, description: e.target.value})} placeholder="e.g., Summer Sale" />
                         </div>
                          <div className="space-y-2">
@@ -175,4 +174,3 @@ export default function OffersSettingsPage() {
         </div>
     );
 }
-
