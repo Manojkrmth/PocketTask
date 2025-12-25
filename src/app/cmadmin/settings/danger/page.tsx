@@ -23,19 +23,19 @@ import { Alert, AlertTitle } from '@/components/ui/alert';
 import { CopyButton } from '@/components/copy-button';
 
 const TABLES_TO_TRUNCATE = [
-    'notifications',
-    'wallet_history',
-    'usertasks',
-    'support_tickets',
-    'spin_rewards',
-    'payments',
-    'admins',
-    'coinsubmissions',
-    'gmail_tasks',
-    'gmail_task_batches',
-    'visit_earn_tasks',
-    'watch_earn_tasks',
-    'users'
+    'public.notifications',
+    'public.wallet_history',
+    'public.usertasks',
+    'public.support_tickets',
+    'public.spin_rewards',
+    'public.payments',
+    'public.admins',
+    'public.coinsubmissions',
+    'public.gmail_tasks',
+    'public.gmail_task_batches',
+    'public.visit_earn_tasks',
+    'public.watch_earn_tasks',
+    'public.users'
 ];
 
 const SQL_FUNCTION_CODE = `
@@ -44,7 +44,8 @@ RETURNS void AS $$
 DECLARE
   is_admin boolean;
 BEGIN
-  -- Check if the user is a super-admin
+  -- Check if the user is a super-admin by checking against a known super-admin ID
+  -- NOTE: Replace '7fa62eb6-4e08-4064-ace3-3f6116efa29f' with the actual super-admin user ID from your auth.users table
   SELECT u.id = '7fa62eb6-4e08-4064-ace3-3f6116efa29f'
   INTO is_admin
   FROM auth.users u
