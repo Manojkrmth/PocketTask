@@ -75,8 +75,8 @@ BEGIN
 
     IF is_admin THEN
         IF before_date IS NULL THEN
-            -- If no date is provided, truncate the entire table
-            EXECUTE 'TRUNCATE TABLE ' || quote_ident(table_name) || ' RESTART IDENTITY CASCADE';
+            -- If no date is provided, delete all records from the table
+            EXECUTE 'DELETE FROM ' || quote_ident(table_name);
         ELSE
             -- If a date is provided, delete records created before that date
             EXECUTE 'DELETE FROM ' || quote_ident(table_name) || ' WHERE created_at < $1'
