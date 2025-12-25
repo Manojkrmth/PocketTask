@@ -15,7 +15,8 @@ import {
     UserPlus,
     Crown,
     Copy,
-    Coins
+    Coins,
+    Banknote
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -33,10 +34,11 @@ interface TopUser {
 export default function AdminDashboardPage() {
   const [user, setUser] = useState<User | null>(null);
   const [totalUsers, setTotalUsers] = useState<number | null>(null);
+  const [totalUsersBalance, setTotalUsersBalance] = useState<number | null>(null);
   const [pendingTasks, setPendingTasks] = useState<number | null>(null);
   const [pendingTickets, setPendingTickets] = useState<number | null>(null);
   const [totalWithdrawals, setTotalWithdrawals] = useState<number | null>(null);
-  const [pendingWithdrawals, setPendingWithdrawals] = useState<number | null>(null);
+  const [pendingWithdrawals, setPendingWithdrawals] = useState<{count: number; amount: number} | null>(null);
   const [pendingCoins, setPendingCoins] = useState<number | null>(null);
   
   const [topBalanceUsers, setTopBalanceUsers] = useState<TopUser[]>([]);
@@ -60,7 +62,7 @@ export default function AdminDashboardPage() {
 
       // Fetch counts in parallel
       const [
-        usersCountRes, 
+        usersRes, 
         tasksCountRes, 
         ticketsCountRes,
         withdrawalsRes,
@@ -69,21 +71,26 @@ export default function AdminDashboardPage() {
         topBalanceRes,
         topReferralRes,
       ] = await Promise.all([
-        supabase.from('users').select('*', { count: 'exact', head: true }),
+        supabase.from('users').select('balance_available', { count: 'exact' }),
         supabase.from('usertasks').select('*', { count: 'exact', head: true }).eq('status', 'Pending'),
         supabase.from('support_tickets').select('*', { count: 'exact', head: true }).in('status', ['Open', 'In Progress']),
         supabase.from('payments').select('amount', { count: 'exact' }).eq('status', 'Approved'),
-        supabase.from('payments').select('*', { count: 'exact', head: true }).eq('status', 'Pending'),
+        supabase.from('payments').select('amount', { count: 'exact' }).eq('status', 'Pending'),
         supabase.from('coinsubmissions').select('*', { count: 'exact', head: true }).eq('status', 'Pending'),
         supabase.rpc('get_top_users_by_balance', { limit_count: 10 }),
         supabase.rpc('get_top_referral_users', { limit_count: 10 }),
       ]);
       
-      setTotalUsers(usersCountRes.count);
+      setTotalUsers(usersRes.count);
+      setTotalUsersBalance(usersRes.data?.reduce((sum, { balance_available }) => sum + (balance_available || 0), 0) || 0);
       setPendingTasks(tasksCountRes.count);
       setPendingTickets(ticketsCountRes.count);
       setTotalWithdrawals(withdrawalsRes.data?.reduce((sum, { amount }) => sum + amount, 0) || 0);
-      setPendingWithdrawals(pendingWithdrawalsRes.count);
+
+      const pendingWithdrawalsCount = pendingWithdrawalsRes.count ?? 0;
+      const pendingWithdrawalsAmount = pendingWithdrawalsRes.data?.reduce((sum, { amount }) => sum + amount, 0) || 0;
+      setPendingWithdrawals({count: pendingWithdrawalsCount, amount: pendingWithdrawalsAmount });
+
       setPendingCoins(pendingCoinsRes.count);
 
       if (topBalanceRes.data) setTopBalanceUsers(topBalanceRes.data);
@@ -124,6 +131,16 @@ export default function AdminDashboardPage() {
             </CardContent>
         </Card>
 
+        <Card className="bg-cyan-50 border-cyan-200">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-cyan-800">Total Users Balance</CardTitle>
+                <Banknote className="h-4 w-4 text-cyan-600" />
+            </CardHeader>
+            <CardContent>
+                {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : <div className="text-2xl font-bold text-cyan-900">{formatCurrency(totalUsersBalance || 0)}</div>}
+            </CardContent>
+        </Card>
+
         <Card className="bg-yellow-50 border-yellow-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-yellow-800">Pending Tasks</CardTitle>
@@ -160,7 +177,12 @@ export default function AdminDashboardPage() {
                 <Wallet className="h-4 w-4 text-red-600" />
             </CardHeader>
             <CardContent>
-                {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : <div className="text-2xl font-bold text-red-900">{pendingWithdrawals}</div>}
+                {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : (
+                    <div className="flex items-baseline gap-2">
+                        <div className="text-2xl font-bold text-red-900">{pendingWithdrawals?.count}</div>
+                        <div className="text-sm font-semibold text-red-800/90">({formatCurrency(pendingWithdrawals?.amount || 0)})</div>
+                    </div>
+                )}
             </CardContent>
         </Card>
 
@@ -251,5 +273,7 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
+    
 
     
