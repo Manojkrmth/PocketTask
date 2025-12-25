@@ -83,17 +83,47 @@ export default function CoinManagerPage() {
   const fetchSubmissions = async () => {
       setLoading(true);
       
-      const { data, error } = await supabase
-        .rpc('admin_get_all_coin_submissions');
+      // Fetch submissions first
+      const { data: submissionsData, error: submissionsError } = await supabase
+        .from('coinsubmissions')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error("Error fetching coin submissions:", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch coin submissions. Ensure you have admin privileges and the required database function exists.' });
+      if (submissionsError) {
+        console.error("Error fetching coin submissions:", submissionsError);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch coin submissions. Ensure you have admin privileges.' });
         setSubmissions([]);
-      } else {
-        // The RPC function now returns the user details joined, so we can cast directly.
-        setSubmissions(data as CoinSubmission[]);
+        setLoading(false);
+        return;
       }
+      
+      // Get unique user IDs from submissions
+      const userIds = [...new Set(submissionsData.map(s => s.user_id))];
+      
+      // Fetch corresponding users
+      if (userIds.length > 0) {
+        const { data: usersData, error: usersError } = await supabase
+            .from('users')
+            .select('id, full_name, email')
+            .in('id', userIds);
+
+        if (usersError) {
+            console.error("Error fetching users for submissions:", usersError);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch user details for submissions.' });
+             // Still show submissions, but without user details
+            setSubmissions(submissionsData.map(s => ({ ...s, users: null })));
+        } else {
+            const usersMap = new Map(usersData.map(u => [u.id, u]));
+            const combinedData = submissionsData.map(s => ({
+                ...s,
+                users: usersMap.get(s.user_id) || null
+            }));
+            setSubmissions(combinedData);
+        }
+      } else {
+        setSubmissions([]);
+      }
+
       setLoading(false);
     };
 
@@ -364,5 +394,3 @@ export default function CoinManagerPage() {
     </>
   );
 }
-
-    
