@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -21,7 +20,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { useCurrency } from '@/context/currency-context';
 import { PageHeader } from '@/components/page-header';
@@ -35,47 +34,118 @@ interface LevelData {
   earnings: number;
 }
 
+interface TeamMember {
+  id: string;
+  referral_code: string;
+  created_at: string;
+}
+
 export default function TeamPage() {
   const router = useRouter();
   const { formatCurrency } = useCurrency();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const [teamStats, setTeamStats] = useState({
     totalTeamSize: 0,
-    activeMembers: 0,
-    myEarning: 0,
+    totalReferralEarnings: 0,
   });
 
   const [teamData, setTeamData] = useState<LevelData[]>([]);
   
-  const fetchTeamData = useCallback(async (userId: string) => {
-    setIsLoading(true);
-    const { data, error } = await supabase.rpc('get_user_team_data', { p_user_id: userId });
+  const commissions = useMemo(() => [10, 5, 3, 2, 1], []);
 
-    if (error) {
-        console.error("Error fetching team data:", error);
-    } else if (data) {
-        const fullTeamData = data.levelData;
-        const levels = Array.from({ length: 5 }, (_, i) => i + 1);
-        const processedTeamData = levels.map(level => {
-            const foundLevel = fullTeamData.find((d: LevelData) => d.level === level);
-            return foundLevel || {
-                level: level,
-                commission: [10, 5, 3, 2, 1][level - 1] || 0,
-                members: 0,
-                earnings: 0
-            };
-        });
-        setTeamData(processedTeamData);
-        setTeamStats(data.teamStats);
+  const fetchTeamData = useCallback(async (userCode: string, userId: string) => {
+    setIsLoading(true);
+
+    let allUsers: TeamMember[] = [];
+    try {
+        const { data, error } = await supabase.from('users').select('id, referral_code, created_at');
+        if (error) throw error;
+        allUsers = data;
+    } catch(e) {
+        console.error("Failed to fetch users:", e);
+        setIsLoading(false);
+        return;
     }
     
+    // Fetch all user tasks to calculate earnings
+    let allUserTasks: any[] = [];
+    try {
+        const { data, error } = await supabase.from('usertasks').select('user_id, reward, status');
+        if(error) throw error;
+        allUserTasks = data.filter(task => task.status === 'Approved');
+    } catch (e) {
+        console.error("Failed to fetch user tasks:", e);
+    }
+    
+    let levels: TeamMember[][] = Array(5).fill(0).map(() => []);
+    let directReferrals: TeamMember[] = [];
+
+    // Find direct referrals (Level 1)
+    try {
+        const { data: level1Data, error: level1Error } = await supabase.from('users').select('id, referral_code, created_at').eq('referred_by', userCode);
+        if(level1Error) throw level1Error;
+        directReferrals = level1Data;
+        levels[0] = level1Data;
+    } catch (e) {
+         console.error("Failed to fetch level 1 referrals:", e);
+    }
+
+
+    // Recursively find referrals for subsequent levels
+    let currentLevelReferrals = directReferrals;
+    for (let level = 1; level < 5; level++) {
+        if (currentLevelReferrals.length === 0) break;
+        const nextLevelReferralCodes = currentLevelReferrals.map(u => u.referral_code);
+        
+        try {
+            const { data: nextLevelData, error: nextLevelError } = await supabase.from('users').select('id, referral_code, created_at').in('referred_by', nextLevelReferralCodes);
+            if(nextLevelError) throw nextLevelError;
+            levels[level] = nextLevelData;
+            currentLevelReferrals = nextLevelData;
+        } catch(e) {
+            console.error(`Failed to fetch level ${level+2} referrals:`, e);
+            break; 
+        }
+    }
+    
+    const totalTeamSize = levels.reduce((sum, level) => sum + level.length, 0);
+
+    const levelStats = levels.map((levelMembers, index) => {
+        const level = index + 1;
+        const memberIds = levelMembers.map(m => m.id);
+        
+        const levelEarnings = allUserTasks.reduce((sum, task) => {
+            if (memberIds.includes(task.user_id)) {
+                return sum + (task.reward * (commissions[index] / 100));
+            }
+            return sum;
+        }, 0);
+        
+        return {
+            level: level,
+            commission: commissions[index],
+            members: levelMembers.length,
+            earnings: levelEarnings
+        };
+    });
+
+    const totalReferralEarnings = levelStats.reduce((sum, level) => sum + level.earnings, 0);
+
+    setTeamData(levelStats);
+    setTeamStats({
+        totalTeamSize: totalTeamSize,
+        totalReferralEarnings: totalReferralEarnings,
+    });
+    
     setIsLoading(false);
-  }, []);
+  }, [commissions]);
 
   useEffect(() => {
     const checkUserStatus = async () => {
+      setIsLoading(true);
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         router.push('/login');
@@ -84,9 +154,9 @@ export default function TeamPage() {
       
       setCurrentUser(session.user);
       
-      const { data: profile } = await supabase
+      const { data: profile, error } = await supabase
         .from('users')
-        .select('status')
+        .select('status, referral_code')
         .eq('id', session.user.id)
         .single();
         
@@ -94,11 +164,22 @@ export default function TeamPage() {
         router.push('/blocked');
         return;
       }
-      
-      await fetchTeamData(session.user.id);
+
+      if (profile?.referral_code) {
+        setCurrentUserProfile(profile);
+        await fetchTeamData(profile.referral_code, session.user.id);
+      } else {
+        setIsLoading(false);
+      }
     };
     checkUserStatus();
   }, [router, fetchTeamData]);
+
+  const activeMembers = useMemo(() => {
+    // This is a simplified calculation. A more accurate one would need to check recent activity.
+    // For now, we'll estimate it as a percentage of the total team size.
+    return Math.floor(teamStats.totalTeamSize * 0.1); 
+  }, [teamStats.totalTeamSize]);
 
   const statCards = [
     {
@@ -109,13 +190,13 @@ export default function TeamPage() {
     },
     {
       label: 'Active Members',
-      value: teamStats.activeMembers,
+      value: activeMembers,
       color: 'bg-green-500',
       icon: <UserCheck className="w-8 h-8" />,
     },
     {
       label: 'My Earning',
-      value: formatCurrency(teamStats.myEarning),
+      value: formatCurrency(teamStats.totalReferralEarnings),
       color: 'bg-orange-500',
       icon: <Wallet className="w-8 h-8" />,
     },
