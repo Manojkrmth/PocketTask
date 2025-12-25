@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
@@ -47,7 +48,7 @@ const defaultAdScript = {
 };
 
 const defaultAdLocations: AdConfig[] = [
-    { id: 'home', name: 'Home Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
+    { id: 'home', name: 'Home Page', isEnabled: true, script: {key: '', format: 'iframe', height: 50, width: 320, invokeJs: ''}, customAd: { imageUrl: 'https://placehold.co/320x50/eee/31343C?text=My+Custom+Ad', text: 'Special Offer!', externalLink: 'https://google.com' } },
     { id: 'notifications', name: 'Notifications Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
     { id: 'team', name: 'Team Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
     { id: 'tasks', name: 'Tasks Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
