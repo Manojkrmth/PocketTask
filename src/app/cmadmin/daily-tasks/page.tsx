@@ -157,37 +157,45 @@ export default function DailyTasksAdminPage() {
 
   const sqlPolicyFix = `-- Run this in your Supabase SQL Editor. This will fix all permission issues.
 
--- 1. Remove any conflicting old policies
-DROP POLICY IF EXISTS "Allow admin full access" ON public.visit_earn_tasks;
-DROP POLICY IF EXISTS "Allow read access to authenticated users" ON public.visit_earn_tasks;
-DROP POLICY IF EXISTS "Allow admin full access" ON public.watch_earn_tasks;
-DROP POLICY IF EXISTS "Allow read access to authenticated users" ON public.watch_earn_tasks;
-
--- 2. Enable Row Level Security (if it's not already)
+-- 1. Enable RLS if not enabled
 ALTER TABLE public.visit_earn_tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.watch_earn_tasks ENABLE ROW LEVEL SECURITY;
 
--- 3. Create a simple, powerful policy for Admins
--- This allows any user whose client is using the 'service_role' key to do anything.
--- The Supabase client library uses this key for admin operations, making this safe and reliable.
-CREATE POLICY "Allow service_role full access"
+-- 2. Drop all old policies for a clean slate
+DROP POLICY IF EXISTS "Enable read access for all users" ON public.visit_earn_tasks;
+DROP POLICY IF EXISTS "Enable insert for authenticated users only" ON public.visit_earn_tasks;
+DROP POLICY IF EXISTS "Allow admins to manage all visit_earn_tasks" ON public.visit_earn_tasks;
+DROP POLICY IF EXISTS "Allow read access to authenticated users" ON public.visit_earn_tasks;
+DROP POLICY IF EXISTS "Allow service_role to perform all actions" ON public.visit_earn_tasks;
+
+DROP POLICY IF EXISTS "Enable read access for all users" ON public.watch_earn_tasks;
+DROP POLICY IF EXISTS "Enable insert for authenticated users only" ON public.watch_earn_tasks;
+DROP POLICY IF EXISTS "Allow admins to manage all watch_earn_tasks" ON public.watch_earn_tasks;
+DROP POLICY IF EXISTS "Allow read access to authenticated users" ON public.watch_earn_tasks;
+DROP POLICY IF EXISTS "Allow service_role to perform all actions" ON public.watch_earn_tasks;
+
+-- 3. Create a simple, powerful policy for Admins/Service Role (for visit_earn_tasks)
+-- This allows any user whose client is using the 'service_role' key (like your admin panel) to do anything.
+CREATE POLICY "Allow service_role to perform all actions"
 ON public.visit_earn_tasks
 FOR ALL
 USING (auth.role() = 'service_role')
 WITH CHECK (auth.role() = 'service_role');
 
-CREATE POLICY "Allow service_role full access"
-ON public.watch_earn_tasks
-FOR ALL
-USING (auth.role() = 'service_role')
-WITH CHECK (auth.role() = 'service_role');
-
--- 4. Create a simple read-only policy for regular logged-in users
+-- 4. Create a read-only policy for regular logged-in users (for visit_earn_tasks)
 CREATE POLICY "Allow read access to authenticated users"
 ON public.visit_earn_tasks
 FOR SELECT
 USING (auth.role() = 'authenticated');
 
+-- 5. Create a simple, powerful policy for Admins/Service Role (for watch_earn_tasks)
+CREATE POLICY "Allow service_role to perform all actions"
+ON public.watch_earn_tasks
+FOR ALL
+USING (auth.role() = 'service_role')
+WITH CHECK (auth.role() = 'service_role');
+
+-- 6. Create a read-only policy for regular logged-in users (for watch_earn_tasks)
 CREATE POLICY "Allow read access to authenticated users"
 ON public.watch_earn_tasks
 FOR SELECT
