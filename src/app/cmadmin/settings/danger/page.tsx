@@ -4,8 +4,8 @@
 import { useState, useTransition } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, AlertTriangle, Trash2 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Loader2, AlertTriangle, Trash2, Database, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -19,6 +19,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Input } from '@/components/ui/input';
+import { Alert, AlertTitle } from '@/components/ui/alert';
+import { CopyButton } from '@/components/copy-button';
 
 const TABLES_TO_TRUNCATE = [
     'notifications',
@@ -35,6 +37,27 @@ const TABLES_TO_TRUNCATE = [
     'watch_earn_tasks',
     'users'
 ];
+
+const SQL_FUNCTION_CODE = `
+CREATE OR REPLACE FUNCTION truncate_tables(tables text[])
+RETURNS void AS $$
+DECLARE
+  is_admin boolean;
+BEGIN
+  -- Check if the user is a super-admin
+  SELECT u.id = '7fa62eb6-4e08-4064-ace3-3f6116efa29f'
+  INTO is_admin
+  FROM auth.users u
+  WHERE u.id = auth.uid();
+
+  IF is_admin THEN
+    EXECUTE 'TRUNCATE ' || array_to_string(tables, ', ') || ' RESTART IDENTITY CASCADE';
+  ELSE
+    RAISE EXCEPTION 'You do not have permission to perform this action.';
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
+`;
 
 export default function DangerZonePage() {
     const { toast } = useToast();
@@ -66,26 +89,13 @@ export default function DangerZonePage() {
                 toast({
                     variant: 'destructive',
                     title: 'Reset Failed',
-                    description: error.message || 'An error occurred while trying to reset the data. You may need to create the `truncate_tables` RPC function in your database.',
+                    description: error.message || 'An error occurred. Please ensure the `truncate_tables` RPC function exists in your database by following the on-page instructions.',
                 });
             } finally {
                 setConfirmationText('');
             }
         });
     };
-    
-    // Note for developer: You need to create the `truncate_tables` function in your Supabase SQL editor.
-    // Go to Database -> Functions -> Create a new function.
-    // Use the following SQL:
-    /*
-    CREATE OR REPLACE FUNCTION truncate_tables(tables text[])
-    RETURNS void AS $$
-    BEGIN
-      EXECUTE 'TRUNCATE ' || array_to_string(tables, ', ') || ' RESTART IDENTITY CASCADE';
-    END;
-    $$ LANGUAGE plpgsql;
-    */
-
 
     return (
         <div className="space-y-6">
@@ -142,7 +152,29 @@ export default function DangerZonePage() {
                     </AlertDialog>
                 </CardContent>
             </Card>
+
+            <Alert variant="default" className="bg-blue-50 border-blue-200">
+                <Database className="h-4 w-4" />
+                <AlertTitle className="text-blue-900 font-bold">First-Time Setup Required</AlertTitle>
+                <p className="text-blue-800 text-sm">
+                    To use the reset feature, you must first run the SQL code below in your Supabase project's SQL Editor. This only needs to be done once.
+                </p>
+                <div className="mt-4 bg-background p-3 rounded-md border border-blue-200">
+                   <pre className="text-xs text-blue-950 whitespace-pre-wrap font-mono">
+                        {SQL_FUNCTION_CODE.trim()}
+                   </pre>
+                </div>
+                <div className="mt-4 flex gap-2">
+                     <CopyButton value={SQL_FUNCTION_CODE.trim()} variant="secondary" className="bg-white">
+                        Copy SQL Code
+                    </CopyButton>
+                    <Button asChild variant="outline" className="bg-white">
+                        <a href="https://supabase.com/dashboard/project/_/sql" target="_blank" rel="noopener noreferrer">
+                           <ExternalLink className="mr-2 h-4 w-4"/> Open Supabase SQL Editor
+                        </a>
+                    </Button>
+                </div>
+            </Alert>
         </div>
     );
 }
-
