@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -14,7 +15,6 @@ import { useToast } from '@/hooks/use-toast';
 import type { User } from '@supabase/supabase-js';
 import { LoadingScreen } from '@/components/loading-screen';
 import { useRouter } from 'next/navigation';
-import AdComponent from '@/components/ad-component';
 import BannerAd from '@/components/ads/banner-ad';
 
 const segments: WheelSegment[] = [
@@ -39,35 +39,6 @@ interface SpinRewardData {
   last_spin_date: string;
   spins_used_today: number;
 }
-
-
-const SpinButtonBannerAd: React.FC = () => {
-    const adContainerRef = useRef<HTMLDivElement>(null);
-  
-    useEffect(() => {
-        if (adContainerRef.current && adContainerRef.current.children.length === 0) {
-            const script = document.createElement('script');
-            script.async = true;
-            script.setAttribute('data-cfasync', 'false');
-            script.src = 'https://pl28325955.effectivegatecpm.com/9b25ac22cc9ae57f98a864d22c893580/invoke.js';
-            
-            const containerDiv = document.createElement('div');
-            containerDiv.id = 'container-9b25ac22cc9ae57f98a864d22c893580';
-            
-            adContainerRef.current.appendChild(script);
-            adContainerRef.current.appendChild(containerDiv);
-        }
-
-        // Cleanup function
-        return () => {
-            if (adContainerRef.current) {
-                adContainerRef.current.innerHTML = '';
-            }
-        };
-    }, []);
-
-    return <div ref={adContainerRef} className="flex justify-center mt-4"></div>;
-};
 
 
 export default function SpinRewardPage() {
@@ -338,11 +309,7 @@ export default function SpinRewardPage() {
                 <p className="text-center text-sm font-bold text-primary animate-pulse">
                     Please wait for the timer to unlock your next spin.
                 </p>
-                <div 
-                    className="overflow-hidden border-2 border-primary shadow-lg"
-                >
-                    <AdComponent />
-                </div>
+                <BannerAd adId="spin-reward-interstitial" />
             </div>
           )}
 
@@ -364,7 +331,7 @@ export default function SpinRewardPage() {
                     </AlertDescription>
                 </Alert>
             )}
-            <SpinButtonBannerAd />
+            <BannerAd adId="spin-reward-button" />
             <BannerAd adId="spin-reward" />
         </div>
       </main>

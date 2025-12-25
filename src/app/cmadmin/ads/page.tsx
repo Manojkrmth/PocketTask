@@ -48,7 +48,7 @@ const defaultAdScript = {
 };
 
 const defaultAdLocations: AdConfig[] = [
-    { id: 'home', name: 'Home Page', isEnabled: true, script: {key: '', format: 'iframe', height: 50, width: 320, invokeJs: ''}, customAd: { imageUrl: 'https://placehold.co/320x50/eee/31343C?text=My+Custom+Ad', text: 'Special Offer!', externalLink: 'https://google.com' } },
+    { id: 'home', name: 'Home Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: 'https://placehold.co/320x50/334155/ffffff?text=My+Custom+Ad', text: 'Special Offer!', externalLink: 'https://google.com' } },
     { id: 'notifications', name: 'Notifications Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
     { id: 'team', name: 'Team Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
     { id: 'tasks', name: 'Tasks Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
@@ -62,7 +62,6 @@ const defaultAdLocations: AdConfig[] = [
     { id: 'currency', name: 'Currency Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
     { id: 'edit-profile', name: 'Edit Profile Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
     { id: 'contact', name: 'Contact Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
-    { id: 'spin-reward', name: 'Spin & Win Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
     { id: 'tasks-start', name: 'Start Task Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
     { id: 'tasks-gmail', name: 'Gmail Task Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
     { id: 'tasks-social', name: 'Social Task Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
@@ -70,6 +69,9 @@ const defaultAdLocations: AdConfig[] = [
     { id: 'tasks-used-mails', name: 'Used Mails Task Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
     { id: 'tasks-visit-earn', name: 'Visit & Earn Task Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
     { id: 'tasks-watch-earn', name: 'Watch & Earn Task Page', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
+    { id: 'spin-reward', name: 'Spin Reward Page (Main Banner)', isEnabled: true, script: defaultAdScript, customAd: { imageUrl: '', text: '', externalLink: '' } },
+    { id: 'spin-reward-interstitial', name: 'Spin Reward Page (After Spin Ad)', isEnabled: true, script: { key: 'b31c5dc255761c9f094798ba3a76e1c2', format: 'iframe', height: 250, width: 300, invokeJs: 'https://www.highperformanceformat.com/b31c5dc255761c9f094798ba3a76e1c2/invoke.js'}, customAd: { imageUrl: '', text: '', externalLink: '' } },
+    { id: 'spin-reward-button', name: 'Spin Reward Page (Button Ad)', isEnabled: true, script: { key: '9b25ac22cc9ae57f98a864d22c893580', format: 'iframe', height: 90, width: 728, invokeJs: 'https://pl28325955.effectivegatecpm.com/9b25ac22cc9ae57f98a864d22c893580/invoke.js'}, customAd: { imageUrl: '', text: '', externalLink: '' } },
 ];
 
 export default function AdsManagerPage() {
@@ -89,18 +91,30 @@ export default function AdsManagerPage() {
                 .eq('id', 1)
                 .single();
 
-            if (error) {
+            if (error && error.code !== 'PGRST116') {
                 console.error('Error fetching settings:', error);
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch app settings.' });
             } else {
-                setSettings(data.settings_data);
-                const savedAds = data.settings_data.ads || [];
-                const mergedAds = defaultAdLocations.map(defaultAd => {
+                const fetchedSettings = data?.settings_data || {};
+                setSettings(fetchedSettings);
+                const savedAds = fetchedSettings.ads || [];
+                
+                // Merge saved ads with defaults, adding new defaults if they don't exist
+                const allAdIds = new Set(defaultAdLocations.map(ad => ad.id));
+                const finalAds = defaultAdLocations.map(defaultAd => {
                     const savedAd = savedAds.find((ad: AdConfig) => ad.id === defaultAd.id);
                     return savedAd ? { ...defaultAd, ...savedAd } : defaultAd;
                 });
-                setAdConfigs(mergedAds);
-                setAreAdsGloballyEnabled(data.settings_data.areAdsGloballyEnabled ?? true);
+
+                // Add any saved ads that are no longer in the default list (for backwards compatibility)
+                savedAds.forEach((savedAd: AdConfig) => {
+                    if (!allAdIds.has(savedAd.id)) {
+                        finalAds.push(savedAd);
+                    }
+                });
+                
+                setAdConfigs(finalAds);
+                setAreAdsGloballyEnabled(fetchedSettings.areAdsGloballyEnabled ?? true);
             }
             setLoading(false);
         };
@@ -117,9 +131,17 @@ export default function AdsManagerPage() {
 
     const handleScriptChange = (id: string, field: string, value: any) => {
         setAdConfigs(prev =>
-            prev.map(ad => 
-                ad.id === id ? { ...ad, script: { ...ad.script, [field]: value } } : ad
-            )
+            prev.map(ad => {
+                if (ad.id === id) {
+                    const newScript = { ...ad.script, [field]: value };
+                     // Convert height/width to numbers
+                    if (field === 'height' || field === 'width') {
+                        newScript[field] = parseInt(String(value), 10) || 0;
+                    }
+                    return { ...ad, script: newScript };
+                }
+                return ad;
+            })
         );
     }
     
@@ -226,6 +248,16 @@ export default function AdsManagerPage() {
                                       <div className="space-y-2">
                                           <Label>Invoke.js URL</Label>
                                           <Input value={ad.script.invokeJs} onChange={(e) => handleScriptChange(ad.id, 'invokeJs', e.target.value)} disabled={isSaving} />
+                                      </div>
+                                      <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label>Height (px)</Label>
+                                            <Input type="number" value={ad.script.height} onChange={(e) => handleScriptChange(ad.id, 'height', e.target.value)} disabled={isSaving} />
+                                        </div>
+                                         <div className="space-y-2">
+                                            <Label>Width (px)</Label>
+                                            <Input type="number" value={ad.script.width} onChange={(e) => handleScriptChange(ad.id, 'width', e.target.value)} disabled={isSaving} />
+                                        </div>
                                       </div>
                                   </CardContent>
                                 </Card>
