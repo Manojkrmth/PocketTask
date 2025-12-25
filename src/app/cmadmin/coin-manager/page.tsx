@@ -94,21 +94,25 @@ export default function CoinManagerPage() {
       } else {
         const userIds = [...new Set(data.map(item => item.user_id))];
         
-        const { data: usersData, error: usersError } = await supabase
-            .from('users')
-            .select('id, full_name, email')
-            .in('id', userIds);
+        if (userIds.length > 0) {
+            const { data: usersData, error: usersError } = await supabase
+                .from('users')
+                .select('id, full_name, email')
+                .in('id', userIds);
 
-        if(usersError){
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch user details for submissions.' });
-            setSubmissions(data.map(s => ({...s, users: null})) as CoinSubmission[]);
+            if(usersError){
+                toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch user details for submissions.' });
+                setSubmissions(data.map(s => ({...s, users: null})) as CoinSubmission[]);
+            } else {
+                const usersMap = new Map(usersData.map(u => [u.id, u]));
+                const submissionsWithUsers = data.map(s => ({
+                    ...s,
+                    users: usersMap.get(s.user_id) || null
+                }));
+                setSubmissions(submissionsWithUsers as CoinSubmission[]);
+            }
         } else {
-            const usersMap = new Map(usersData.map(u => [u.id, u]));
-            const submissionsWithUsers = data.map(s => ({
-                ...s,
-                users: usersMap.get(s.user_id) || null
-            }));
-            setSubmissions(submissionsWithUsers as CoinSubmission[]);
+            setSubmissions([]);
         }
       }
       setLoading(false);
