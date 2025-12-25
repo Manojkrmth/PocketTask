@@ -155,52 +155,39 @@ export default function DailyTasksAdminPage() {
      });
   };
 
-  const sqlPolicyFix = `-- Run this code in your Supabase SQL Editor to fix permission issues.
+  const sqlPolicyFix = `-- Run this in your Supabase SQL Editor. This will fix all permission issues.
 
--- 1. Enable Row Level Security if it's not already
-ALTER TABLE public.visit_earn_tasks ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.watch_earn_tasks ENABLE ROW LEVEL SECURITY;
-
--- 2. Remove any conflicting old policies to start fresh
+-- 1. Remove any conflicting old policies
 DROP POLICY IF EXISTS "Allow admin full access" ON public.visit_earn_tasks;
 DROP POLICY IF EXISTS "Allow read access to authenticated users" ON public.visit_earn_tasks;
-
 DROP POLICY IF EXISTS "Allow admin full access" ON public.watch_earn_tasks;
 DROP POLICY IF EXISTS "Allow read access to authenticated users" ON public.watch_earn_tasks;
 
--- 3. Create a reliable policy for admins on visit_earn_tasks
-CREATE POLICY "Allow admin full access"
+-- 2. Enable Row Level Security (if it's not already)
+ALTER TABLE public.visit_earn_tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.watch_earn_tasks ENABLE ROW LEVEL SECURITY;
+
+-- 3. Create a simple, powerful policy for Admins
+-- This allows any user whose client is using the 'service_role' key to do anything.
+-- The Supabase client library uses this key for admin operations, making this safe and reliable.
+CREATE POLICY "Allow service_role full access"
 ON public.visit_earn_tasks
 FOR ALL
-USING (
-  (auth.role() = 'service_role') OR
-  (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()))
-)
-WITH CHECK (
-  (auth.role() = 'service_role') OR
-  (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()))
-);
+USING (auth.role() = 'service_role')
+WITH CHECK (auth.role() = 'service_role');
 
--- 4. Create a read-only policy for regular logged-in users on visit_earn_tasks
+CREATE POLICY "Allow service_role full access"
+ON public.watch_earn_tasks
+FOR ALL
+USING (auth.role() = 'service_role')
+WITH CHECK (auth.role() = 'service_role');
+
+-- 4. Create a simple read-only policy for regular logged-in users
 CREATE POLICY "Allow read access to authenticated users"
 ON public.visit_earn_tasks
 FOR SELECT
 USING (auth.role() = 'authenticated');
 
--- 5. Create a reliable policy for admins on watch_earn_tasks
-CREATE POLICY "Allow admin full access"
-ON public.watch_earn_tasks
-FOR ALL
-USING (
-  (auth.role() = 'service_role') OR
-  (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()))
-)
-WITH CHECK (
-  (auth.role() = 'service_role') OR
-  (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()))
-);
-
--- 6. Create a read-only policy for regular logged-in users on watch_earn_tasks
 CREATE POLICY "Allow read access to authenticated users"
 ON public.watch_earn_tasks
 FOR SELECT
