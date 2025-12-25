@@ -157,37 +157,52 @@ export default function DailyTasksAdminPage() {
 
   const sqlPolicyFix = `-- Run this code in your Supabase SQL Editor to fix permission issues.
 
--- 1. Enable Row Level Security on the tables
+-- 1. Enable Row Level Security if it's not already
 ALTER TABLE public.visit_earn_tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.watch_earn_tasks ENABLE ROW LEVEL SECURITY;
 
--- 2. Remove any old policies to avoid conflicts
-DROP POLICY IF EXISTS "Allow read access to authenticated users" ON public.visit_earn_tasks;
+-- 2. Remove any conflicting old policies to start fresh
 DROP POLICY IF EXISTS "Allow admin full access" ON public.visit_earn_tasks;
-DROP POLICY IF EXISTS "Allow read access to authenticated users" ON public.watch_earn_tasks;
-DROP POLICY IF EXISTS "Allow admin full access" ON public.watch_earn_tasks;
+DROP POLICY IF EXISTS "Allow read access to authenticated users" ON public.visit_earn_tasks;
+DROP POLICY IF EXISTS "Allow admins to manage all visit_earn_tasks" ON public.visit_earn_tasks;
 
--- 3. Create policies for admin management
--- This policy allows anyone in the 'admins' table to do anything (SELECT, INSERT, UPDATE, DELETE).
+DROP POLICY IF EXISTS "Allow admin full access" ON public.watch_earn_tasks;
+DROP POLICY IF EXISTS "Allow read access to authenticated users" ON public.watch_earn_tasks;
+DROP POLICY IF EXISTS "Allow admins to manage all watch_earn_tasks" ON public.watch_earn_tasks;
+
+-- 3. Create a reliable policy for admins on visit_earn_tasks
 CREATE POLICY "Allow admin full access" ON public.visit_earn_tasks
 FOR ALL
-USING ( (SELECT count(*) FROM public.admins WHERE public.admins.user_id = auth.uid()) > 0 )
-WITH CHECK ( (SELECT count(*) FROM public.admins WHERE public.admins.user_id = auth.uid()) > 0 );
+USING (
+  (auth.role() = 'service_role') OR
+  (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()))
+)
+WITH CHECK (
+  (auth.role() = 'service_role') OR
+  (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()))
+);
 
-CREATE POLICY "Allow admin full access" ON public.watch_earn_tasks
-FOR ALL
-USING ( (SELECT count(*) FROM public.admins WHERE public.admins.user_id = auth.uid()) > 0 )
-WITH CHECK ( (SELECT count(*) FROM public.admins WHERE public.admins.user_id = auth.uid()) > 0 );
-
--- 4. Create policies for authenticated users to read data
--- This allows any logged-in user to view the tasks.
+-- 4. Create a read-only policy for regular logged-in users on visit_earn_tasks
 CREATE POLICY "Allow read access to authenticated users" ON public.visit_earn_tasks
 FOR SELECT
-USING ( auth.role() = 'authenticated' );
+USING (auth.role() = 'authenticated');
 
+-- 5. Create a reliable policy for admins on watch_earn_tasks
+CREATE POLICY "Allow admin full access" ON public.watch_earn_tasks
+FOR ALL
+USING (
+  (auth.role() = 'service_role') OR
+  (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()))
+)
+WITH CHECK (
+  (auth.role() = 'service_role') OR
+  (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()))
+);
+
+-- 6. Create a read-only policy for regular logged-in users on watch_earn_tasks
 CREATE POLICY "Allow read access to authenticated users" ON public.watch_earn_tasks
 FOR SELECT
-USING ( auth.role() = 'authenticated' );
+USING (auth.role() = 'authenticated');
 `;
 
 
