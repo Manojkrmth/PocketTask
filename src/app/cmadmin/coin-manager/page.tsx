@@ -82,12 +82,30 @@ export default function CoinManagerPage() {
 
   const fetchSubmissions = async () => {
       setLoading(true);
-      // Use supabase.rpc to call a function that can bypass RLS for admins
-      const { data, error } = await supabase.rpc('admin_get_all_coin_submissions');
+      const { data, error } = await supabase
+        .from('coinsubmissions')
+        .select(`
+            id,
+            created_at,
+            coin_type,
+            coin_amount,
+            reward_inr,
+            status,
+            user_id,
+            insta_id,
+            order_id,
+            metadata,
+            users (
+                full_name,
+                email
+            )
+        `)
+        .order('created_at', { ascending: false });
+
 
       if (error) {
         console.error("Error fetching coin submissions:", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch coin submissions. Ensure you have admin privileges and the required database function exists.' });
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch coin submissions. Ensure you have admin privileges.' });
       } else {
         setSubmissions(data as CoinSubmission[]);
       }

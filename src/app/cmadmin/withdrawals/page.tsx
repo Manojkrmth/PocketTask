@@ -76,7 +76,23 @@ export default function WithdrawalsPage() {
 
   const fetchRequests = async () => {
       setLoading(true);
-      const { data, error } = await supabase.rpc('admin_get_all_payments');
+      const { data, error } = await supabase
+        .from('payments')
+        .select(`
+            id,
+            created_at,
+            amount,
+            payment_method,
+            payment_details,
+            status,
+            user_id,
+            metadata,
+            users (
+                full_name,
+                email
+            )
+        `)
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error("Error fetching payment requests:", error);
