@@ -118,6 +118,20 @@ export default function DailyTasksAdminPage() {
           await fetchTasks();
       }
   };
+  
+  const handleToggleActive = async (task: DailyTask, type: TaskType, isActive: boolean) => {
+      startSubmitting(async () => {
+        const tableName = type === 'visit-earn' ? 'visit_earn_tasks' : 'watch_earn_tasks';
+        const { error } = await supabase.from(tableName).update({ is_active: isActive }).eq('id', task.id);
+        
+        if (error) {
+            toast({ variant: 'destructive', title: 'Update Failed', description: error.message });
+        } else {
+            toast({ title: 'Success', description: `Task has been ${isActive ? 'activated' : 'deactivated'}.` });
+            await fetchTasks();
+        }
+      });
+  };
 
   const handleSaveTask = (newTask: Omit<DailyTask, 'id' | 'created_at'> & { type: TaskType }) => {
     startSubmitting(async () => {
@@ -216,9 +230,13 @@ USING (auth.role() = 'authenticated');
                    <p className="text-xs text-muted-foreground">{task.description}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Switch checked={task.is_active} disabled />
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditClick(task, type)}><Edit className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteClick(task, type)}><Trash2 className="h-4 w-4" /></Button>
+                    <Switch 
+                      checked={task.is_active} 
+                      onCheckedChange={(checked) => handleToggleActive(task, type, checked)}
+                      disabled={isSubmitting}
+                    />
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditClick(task, type)} disabled={isSubmitting}><Edit className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteClick(task, type)} disabled={isSubmitting}><Trash2 className="h-4 w-4" /></Button>
                 </div>
               </div>
             </CardHeader>
@@ -390,5 +408,3 @@ function TaskFormDialog({ isOpen, onOpenChange, task, onSave, onUpdate, isSubmit
         </Dialog>
     )
 }
-
-    
