@@ -155,49 +155,55 @@ export default function DailyTasksAdminPage() {
      });
   };
 
-  const sqlPolicyFix = `-- 1. Purge all old policies to avoid conflicts
-DROP POLICY IF EXISTS "Allow all access for admins" ON public.visit_earn_tasks;
-DROP POLICY IF EXISTS "Allow read access for authenticated users" ON public.visit_earn_tasks;
-DROP POLICY IF EXISTS "Allow admins to do everything" ON public.visit_earn_tasks;
-DROP POLICY IF EXISTS "Allow service_role to perform all actions" ON public.visit_earn_tasks;
-DROP POLICY IF EXISTS "Enable read access for all users" ON public.visit_earn_tasks;
-DROP POLICY IF EXISTS "Enable insert for authenticated users only" ON public.visit_earn_tasks;
-DROP POLICY IF EXISTS "Enable update for users based on user_id" ON public.visit_earn_tasks;
+  const sqlPolicyFix = `-- Step 1: Create a security function to check for admin privileges.
+-- This is a more robust way to check permissions inside policies.
+CREATE OR REPLACE FUNCTION is_admin()
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.admins WHERE user_id = auth.uid()
+  );
+$$;
+
+-- Step 2: Drop all old policies to avoid conflicts
+DROP POLICY IF EXISTS "Allow admin full access" ON public.visit_earn_tasks;
+DROP POLICY IF EXISTS "Allow read for authenticated users" ON public.visit_earn_tasks;
+DROP POLICY IF EXISTS "Allow admin full access" ON public.watch_earn_tasks;
+DROP POLICY IF EXISTS "Allow read for authenticated users" ON public.watch_earn_tasks;
+-- Also drop any other variants that might exist
+DROP POLICY IF EXISTS "Allow all for admins" ON public.visit_earn_tasks;
+DROP POLICY IF EXISTS "Allow read for authenticated" ON public.visit_earn_tasks;
+DROP POLICY IF EXISTS "Allow all for admins" ON public.watch_earn_tasks;
+DROP POLICY IF EXISTS "Allow read for authenticated" ON public.watch_earn_tasks;
 
 
-DROP POLICY IF EXISTS "Allow all access for admins" ON public.watch_earn_tasks;
-DROP POLICY IF EXISTS "Allow read access for authenticated users" ON public.watch_earn_tasks;
-DROP POLICY IF EXISTS "Allow admins to do everything" ON public.watch_earn_tasks;
-DROP POLICY IF EXISTS "Allow service_role to perform all actions" ON public.watch_earn_tasks;
-DROP POLICY IF EXISTS "Enable read access for all users" ON public.watch_earn_tasks;
-DROP POLICY IF EXISTS "Enable insert for authenticated users only" ON public.watch_earn_tasks;
-DROP POLICY IF EXISTS "Enable update for users based on user_id" ON public.watch_earn_tasks;
+-- Step 3: Create new, simple policies using the security function
+-- For visit_earn_tasks
+CREATE POLICY "Allow admin full access"
+ON public.visit_earn_tasks
+FOR ALL
+USING (is_admin())
+WITH CHECK (is_admin());
+
+CREATE POLICY "Allow read for authenticated users"
+ON public.visit_earn_tasks
+FOR SELECT
+USING (auth.role() = 'authenticated');
 
 
--- 2. Create new, simple policies for visit_earn_tasks
-CREATE POLICY "Allow admin full access" ON public.visit_earn_tasks
-FOR ALL USING (
-  EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid())
-)
-WITH CHECK (
-  EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid())
-);
+-- For watch_earn_tasks
+CREATE POLICY "Allow admin full access"
+ON public.watch_earn_tasks
+FOR ALL
+USING (is_admin())
+WITH CHECK (is_admin());
 
-CREATE POLICY "Allow read for authenticated users" ON public.visit_earn_tasks
-FOR SELECT USING (auth.role() = 'authenticated');
-
-
--- 3. Create new, simple policies for watch_earn_tasks
-CREATE POLICY "Allow admin full access" ON public.watch_earn_tasks
-FOR ALL USING (
-  EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid())
-)
-WITH CHECK (
-  EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid())
-);
-
-CREATE POLICY "Allow read for authenticated users" ON public.watch_earn_tasks
-FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Allow read for authenticated users"
+ON public.watch_earn_tasks
+FOR SELECT
+USING (auth.role() = 'authenticated');
 `;
 
 
