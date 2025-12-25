@@ -19,6 +19,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Alert, AlertTitle } from '@/components/ui/alert';
 import { CopyButton } from '@/components/copy-button';
 
