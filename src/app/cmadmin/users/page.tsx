@@ -13,14 +13,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -32,13 +24,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, Loader2, Mail, Phone, UserX, UserCheck, Eye } from 'lucide-react';
+import { Loader2, Mail, Phone, UserX, UserCheck, Eye } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { useCurrency } from '@/context/currency-context';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 interface AppUser {
   id: string;
@@ -163,7 +156,9 @@ export default function UsersPage() {
                   <TableRow key={user.id}>
                     <TableCell>
                       <div className="font-medium">{user.full_name || 'N/A'}</div>
-                      <div className="text-xs text-muted-foreground">ID: {user.id}</div>
+                      <Link href={`/cmadmin/users/${user.id}`} className="text-xs text-muted-foreground hover:underline">
+                        ID: {user.id}
+                      </Link>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2 mb-1">
@@ -176,7 +171,7 @@ export default function UsersPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={user.status === 'Blocked' ? 'destructive' : 'outline'}>
+                       <Badge variant={user.status === 'Blocked' ? 'destructive' : 'outline'} className={cn(user.status !== 'Blocked' && 'bg-green-100 text-green-800 border-green-200')}>
                         {user.status || 'Active'}
                       </Badge>
                     </TableCell>
@@ -187,39 +182,34 @@ export default function UsersPage() {
                       {formatCurrency(user.balance_available || 0)}
                     </TableCell>
                     <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0" disabled={isUpdating && selectedUser?.id === user.id}>
-                            <span className="sr-only">Open menu</span>
-                            {isUpdating && selectedUser?.id === user.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <MoreHorizontal className="h-4 w-4" />}
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                           <DropdownMenuItem onSelect={() => router.push(`/cmadmin/users/${user.id}`)}>
-                            <Eye className="mr-2 h-4 w-4"/>
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          {user.status !== 'Blocked' ? (
-                            <DropdownMenuItem 
-                              className="text-destructive"
-                              onSelect={() => openConfirmationDialog(user, 'Block')}
+                      <div className="flex gap-2 justify-end">
+                        <Button variant="outline" size="icon" className="h-8 w-8" asChild>
+                            <Link href={`/cmadmin/users/${user.id}`}>
+                                <Eye className="h-4 w-4" />
+                            </Link>
+                        </Button>
+                        {user.status !== 'Blocked' ? (
+                            <Button 
+                                variant="outline" 
+                                size="icon" 
+                                className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                onClick={() => openConfirmationDialog(user, 'Block')}
+                                disabled={isUpdating && selectedUser?.id === user.id}
                             >
-                              <UserX className="mr-2 h-4 w-4"/>
-                              Block User
-                            </DropdownMenuItem>
-                          ) : (
-                            <DropdownMenuItem 
-                              className="text-green-600"
-                              onSelect={() => openConfirmationDialog(user, 'Unblock')}
+                               {isUpdating && selectedUser?.id === user.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <UserX className="h-4 w-4"/>}
+                            </Button>
+                        ) : (
+                             <Button 
+                                variant="outline" 
+                                size="icon" 
+                                className="h-8 w-8 text-green-600 hover:bg-green-100/80 hover:text-green-700"
+                                onClick={() => openConfirmationDialog(user, 'Unblock')}
+                                disabled={isUpdating && selectedUser?.id === user.id}
                             >
-                              <UserCheck className="mr-2 h-4 w-4"/>
-                              Unblock User
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                               {isUpdating && selectedUser?.id === user.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <UserCheck className="h-4 w-4"/>}
+                            </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -245,7 +235,10 @@ export default function UsersPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmAction}>
+            <AlertDialogAction 
+                onClick={confirmAction}
+                className={cn(actionType === 'Block' && 'bg-destructive hover:bg-destructive/90')}
+            >
               Confirm
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -254,5 +247,3 @@ export default function UsersPage() {
     </>
   );
 }
-
-    
