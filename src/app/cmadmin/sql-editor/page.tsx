@@ -219,6 +219,17 @@ ALTER TABLE public.coinsubmissions
 ADD COLUMN IF NOT EXISTS metadata jsonb;
 `;
 
+const walletHistoryPolicySql = `
+-- =================================================================
+-- FIX: Wallet History Permissions
+-- =================================================================
+-- Allows admins to add reward entries to user wallets.
+-- Run this if you get a "violates row-level security policy for table 'wallet_history'" error.
+-- =================================================================
+CREATE POLICY "Allow admins to create wallet history" ON public.wallet_history
+FOR INSERT WITH CHECK (is_admin(auth.uid()));
+`;
+
 export default function SqlEditorPage() {
 
   return (
@@ -278,6 +289,30 @@ export default function SqlEditorPage() {
         </CardContent>
        </Card>
 
+       <Card className="border-blue-500">
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2"><AlertTriangle className="text-blue-500"/> Fix: Wallet History Permissions</CardTitle>
+            <CardDescription>
+                Allows admins to credit rewards to user wallets. Run this if you get a "violates row-level security policy for table 'wallet_history'" error when approving tasks or coins.
+            </CardDescription>
+        </CardHeader>
+        <CardContent>
+            <div className="relative rounded-md bg-muted/50 p-4">
+              <CopyButton 
+                value={walletHistoryPolicySql}
+                variant="ghost"
+                size="icon"
+                className="absolute top-2 right-2 h-7 w-7"
+              >
+                  <Copy className="h-4 w-4" />
+              </CopyButton>
+              <pre className="text-sm whitespace-pre-wrap font-mono">
+                <code>{walletHistoryPolicySql.trim()}</code>
+              </pre>
+            </div>
+        </CardContent>
+       </Card>
+
        <Card>
         <CardHeader>
             <CardTitle>Master RLS & Functions Script</CardTitle>
@@ -306,4 +341,3 @@ export default function SqlEditorPage() {
   );
 }
 
-    
