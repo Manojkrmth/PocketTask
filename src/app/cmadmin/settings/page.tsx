@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
@@ -23,14 +22,12 @@ export default function SettingsPage() {
     
     // Dedicated state for Construction Mode
     const [isUnderConstruction, setIsUnderConstruction] = useState(false);
-    const [isConstructionLoading, setIsConstructionLoading] = useState(true);
     const [isSavingConstruction, startSavingConstruction] = useTransition();
 
 
     useEffect(() => {
         const fetchAllSettings = async () => {
             setLoading(true);
-            setIsConstructionLoading(true);
 
             // Fetch main settings
             const { data, error } = await supabase
@@ -44,22 +41,10 @@ export default function SettingsPage() {
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch app settings.' });
             } else {
                 setSettings(data.settings_data || {});
+                // Set the separate state for construction mode
+                setIsUnderConstruction(data.settings_data?.isUnderConstruction || false);
             }
             setLoading(false);
-
-            // Fetch maintenance mode separately
-            const { data: maintenanceData, error: maintenanceError } = await supabase
-                .from('maintenance_mode')
-                .select('is_enabled')
-                .eq('id', 1)
-                .single();
-            
-            if (maintenanceError && maintenanceError.code !== 'PGRST116') {
-                 console.error('Error fetching maintenance mode:', maintenanceError);
-            } else {
-                setIsUnderConstruction(maintenanceData?.is_enabled || false);
-            }
-            setIsConstructionLoading(false);
         };
         
         fetchAllSettings();
@@ -67,13 +52,22 @@ export default function SettingsPage() {
     
     const handleSaveConstructionMode = () => {
         startSavingConstruction(async () => {
-             const { error } = await supabase
-                .from('maintenance_mode')
-                .update({ is_enabled: isUnderConstruction })
+            const { data, error } = await supabase
+                .from('settings')
+                .select('settings_data')
+                .eq('id', 1)
+                .single();
+
+            const currentSettings = data?.settings_data || {};
+            const updatedSettings = { ...currentSettings, isUnderConstruction: isUnderConstruction };
+            
+            const { error: updateError } = await supabase
+                .from('settings')
+                .update({ settings_data: updatedSettings })
                 .eq('id', 1);
 
-            if (error) {
-                toast({ variant: 'destructive', title: 'Save Failed', description: error.message });
+            if (updateError) {
+                toast({ variant: 'destructive', title: 'Save Failed', description: updateError.message });
             } else {
                 toast({ title: 'Success', description: 'Construction mode has been updated.' });
             }
@@ -96,9 +90,24 @@ export default function SettingsPage() {
 
     const handleSaveChanges = () => {
         startSaving(async () => {
+             // Fetch latest settings, merge our changes, then update.
+            const { data: currentData, error: fetchError } = await supabase
+                .from('settings')
+                .select('settings_data')
+                .eq('id', 1)
+                .single();
+
+            if (fetchError) {
+                toast({ variant: 'destructive', title: 'Save Failed', description: 'Could not get latest settings. Please refresh.' });
+                return;
+            }
+
+            // Merge our local changes on top of the latest settings from DB.
+            const newSettings = { ...currentData.settings_data, ...settings };
+
             const { error } = await supabase
                 .from('settings')
-                .update({ settings_data: settings })
+                .update({ settings_data: newSettings })
                 .eq('id', 1);
 
             if (error) {
@@ -130,18 +139,16 @@ export default function SettingsPage() {
                     <CardDescription>If enabled, the entire app will show a "Under Construction" page to users.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {isConstructionLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : (
-                        <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                            <Label htmlFor="construction-mode" className="font-semibold">Enable Construction Mode</Label>
-                            <Switch
-                                id="construction-mode"
-                                checked={isUnderConstruction}
-                                onCheckedChange={setIsUnderConstruction}
-                                disabled={isSavingConstruction}
-                            />
-                        </div>
-                    )}
-                     <Button onClick={handleSaveConstructionMode} disabled={isSavingConstruction || isConstructionLoading}>
+                    <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                        <Label htmlFor="construction-mode" className="font-semibold">Enable Construction Mode</Label>
+                        <Switch
+                            id="construction-mode"
+                            checked={isUnderConstruction}
+                            onCheckedChange={setIsUnderConstruction}
+                            disabled={isSavingConstruction}
+                        />
+                    </div>
+                     <Button onClick={handleSaveConstructionMode} disabled={isSavingConstruction || loading}>
                         {isSavingConstruction ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                         Save Construction Status
                     </Button>
@@ -335,5 +342,3 @@ export default function SettingsPage() {
         </div>
     );
 }
-
-    

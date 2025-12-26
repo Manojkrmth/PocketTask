@@ -32,8 +32,8 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
 
         try {
             const { data, error } = await supabase
-                .from('maintenance_mode')
-                .select('is_enabled')
+                .from('settings')
+                .select('settings_data->isUnderConstruction')
                 .eq('id', 1)
                 .single();
             
@@ -42,7 +42,7 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
             }
             
             // Explicitly check for true. If it's false, null, or undefined, mode is off.
-            if (data && data.is_enabled === true) {
+            if (data && data.isUnderConstruction === true) {
                 setIsUnderConstruction(true);
             } else {
                 setIsUnderConstruction(false);
@@ -125,5 +125,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-    
