@@ -60,11 +60,10 @@ function ReferrerInfoCard({ referralCode }: { referralCode: string }) {
         }
 
         const fetchReferrer = async () => {
-            const upperCaseCode = referralCode.toUpperCase();
             const { data, error } = await supabase
                 .from('users')
                 .select('email')
-                .eq('referral_code', upperCaseCode)
+                .eq('referral_code', referralCode)
                 .single();
             
             if (error && error.code !== 'PGRST116') {
