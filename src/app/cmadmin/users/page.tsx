@@ -68,12 +68,11 @@ export default function UsersPage() {
 
   const fetchUsers = async () => {
     setLoading(true);
-    // Reverted to direct table access as per user's intent to handle RLS from scratch.
-    const { data, error } = await supabase.from('users').select('*').order('created_at', { ascending: false });
+    const { data, error } = await supabase.rpc('get_all_users');
 
     if (error) {
       console.error("Error fetching users:", error);
-      toast({ variant: "destructive", title: "Error", description: "Could not fetch users. Please ensure you have set up RLS policies correctly." });
+      toast({ variant: "destructive", title: "Error", description: "Could not fetch users. Please run the latest SQL script from the SQL Editor page." });
     } else {
       setUsers(data as AppUser[]);
     }
@@ -255,3 +254,5 @@ export default function UsersPage() {
     </>
   );
 }
+
+    

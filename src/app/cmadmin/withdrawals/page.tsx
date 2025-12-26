@@ -81,7 +81,7 @@ export default function WithdrawalsPage() {
 
       if (error) {
         console.error("Error fetching payment requests:", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch requests. Make sure you have run the latest SQL script.' });
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch requests. Please run the latest SQL script from the SQL Editor page.' });
       } else {
         setRequests(data as PaymentRequest[]);
       }
@@ -90,7 +90,7 @@ export default function WithdrawalsPage() {
 
   useEffect(() => {
     fetchRequests();
-  }, []);
+  }, [toast]);
   
   const handleUpdateRequest = async () => {
     if (!selectedRequest || !newStatus) return;
@@ -334,3 +334,5 @@ export default function WithdrawalsPage() {
     </>
   );
 }
+
+    

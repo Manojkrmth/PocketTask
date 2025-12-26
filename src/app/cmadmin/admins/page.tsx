@@ -69,7 +69,7 @@ export default function AdminsPage() {
 
     if (error) {
       console.error("Error fetching admins:", error);
-      toast({ variant: "destructive", title: "Error", description: "Could not fetch admins. Please run the latest SQL script from the Users page." });
+      toast({ variant: "destructive", title: "Error", description: "Could not fetch admins. Please run the latest SQL script from the SQL Editor page." });
     } else {
       setAdmins(data as AdminUser[]);
     }
@@ -258,3 +258,5 @@ export default function AdminsPage() {
     </>
   );
 }
+
+    
