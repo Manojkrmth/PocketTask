@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
@@ -125,28 +126,43 @@ export default function UsersPage() {
     user.mobile?.includes(filter)
   );
   
-  const sqlPolicyFix = `-- 1. पुरानी सभी नीतियों को हटाएं ताकि कोई टकराव न हो
-DROP POLICY IF EXISTS "Allow admins to read all users" ON public.users;
-DROP POLICY IF EXISTS "Enable admins to manage users" ON public.users;
-DROP POLICY IF EXISTS "Allow individual users to view their own data" ON public.users;
-DROP POLICY IF EXISTS "Allow individual users to update their own data" ON public.users;
-DROP POLICY IF EXISTS "Allow admin select" ON public.users;
+  const sqlPolicyFix = `-- POLICY FIX SCRIPT
+-- This script will:
+-- 1. Ensure the admins table exists and insert the primary super admin.
+-- 2. Drop all existing policies on the 'users', 'wallet_history' tables to prevent conflicts.
+-- 3. Create correct policies for admins to manage users and wallet history.
+-- 4. Create policies for individual users to see their own data.
+-- 5. Create helper functions to get total user count and balance securely.
 
--- 2. सुपर एडमिन को 'admins' टेबल में डालें (यदि वे पहले से मौजूद नहीं हैं)
+-- 1. सुपर एडमिन को 'admins' टेबल में डालें (यदि वे पहले से मौजूद नहीं हैं)
 INSERT INTO public.admins (user_id, role)
 SELECT '98cda2fc-f09d-4840-9f47-ec0c749a6bbd', 'admin'
 WHERE NOT EXISTS (
     SELECT 1 FROM public.admins WHERE user_id = '98cda2fc-f09d-4840-9f47-ec0c749a6bbd'
 );
+INSERT INTO public.admins (user_id, role)
+SELECT '7fa62eb6-4e08-4064-ace3-3f6116efa29f', 'admin'
+WHERE NOT EXISTS (
+    SELECT 1 FROM public.admins WHERE user_id = '7fa62eb6-4e08-4064-ace3-3f6116efa29f'
+);
 
--- 3. व्यवस्थापकों को सभी उपयोगकर्ताओं को प्रबंधित करने की अनुमति दें
+
+-- 2. पुरानी सभी नीतियों को हटाएं ताकि कोई टकराव न हो
+DROP POLICY IF EXISTS "Allow admins to read all users" ON public.users;
+DROP POLICY IF EXISTS "Enable admins to manage users" ON public.users;
+DROP POLICY IF EXISTS "Allow individual users to view their own data" ON public.users;
+DROP POLICY IF EXISTS "Allow individual users to update their own data" ON public.users;
+DROP POLICY IF EXISTS "Allow admin select" ON public.users;
+DROP POLICY IF EXISTS "Allow admins to read user data" ON public.users;
+DROP POLICY IF EXISTS "Allow admins to read specific user" ON public.users;
+DROP POLICY IF EXISTS "Allow admin access" ON public.wallet_history;
+
+
+-- 3. व्यवस्थापकों को सभी उपयोगकर्ताओं को प्रबंधित करने की अनुमति दें (लेकिन केवल पढ़ें)
 CREATE POLICY "Enable admins to manage users"
 ON public.users
-FOR ALL
+FOR SELECT
 USING (
-  EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid())
-)
-WITH CHECK (
   EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid())
 );
 
@@ -163,7 +179,18 @@ FOR UPDATE
 USING (auth.uid() = id)
 WITH CHECK (auth.uid() = id);
 
--- 6. कुल उपयोगकर्ताओं की गिनती के लिए RPC फ़ंक्शन
+-- 6. एडमिन को वॉलेट इतिहास में रिकॉर्ड जोड़ने की अनुमति दें
+CREATE POLICY "Allow admin access on wallet_history"
+ON public.wallet_history
+FOR ALL
+USING (
+  EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid())
+)
+WITH CHECK (
+  EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid())
+);
+
+-- 7. कुल उपयोगकर्ताओं की गिनती के लिए RPC फ़ंक्शन
 CREATE OR REPLACE FUNCTION get_total_users_count()
 RETURNS integer
 LANGUAGE plpgsql
@@ -179,7 +206,7 @@ BEGIN
 END;
 $$;
 
--- 7. सभी उपयोगकर्ताओं के कुल बैलेंस की गणना के लिए RPC फ़ंक्शन
+-- 8. सभी उपयोगकर्ताओं के कुल बैलेंस की गणना के लिए RPC फ़ंक्शन
 CREATE OR REPLACE FUNCTION get_total_users_balance()
 RETURNS double precision
 LANGUAGE plpgsql
@@ -218,7 +245,7 @@ $$;`;
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Can't see all users?</AlertTitle>
           <div className="space-y-2">
-            <p>If you can only see admin accounts, you need to update your database security rules. Please run the following SQL code in your Supabase SQL Editor.</p>
+            <p>If you are unable to view all users or edit their balances, you may need to update your database security rules. Please run the following SQL code in your Supabase SQL Editor.</p>
             <Textarea className="font-mono bg-destructive/10 text-destructive-foreground h-48" readOnly value={sqlPolicyFix} />
             <Button variant="secondary" size="sm" onClick={() => navigator.clipboard.writeText(sqlPolicyFix)}>Copy SQL</Button>
           </div>
@@ -285,10 +312,6 @@ $$;`;
                             <Eye className="mr-2 h-4 w-4"/>
                             View Details
                           </DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => router.push(`/cmadmin/users/${user.id}/edit`)}>
-                            <Edit className="mr-2 h-4 w-4"/>
-                            Edit User
-                          </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           {user.status !== 'Blocked' ? (
                             <DropdownMenuItem 
@@ -343,5 +366,3 @@ $$;`;
     </>
   );
 }
-
-    

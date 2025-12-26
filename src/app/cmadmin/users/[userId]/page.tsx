@@ -177,12 +177,6 @@ export default function UserDetailsPage() {
             <p className="text-muted-foreground">User ID: {user.id}</p>
         </div>
         <div className="flex gap-2">
-            <Button variant="outline" asChild>
-              <Link href={`/cmadmin/users/${userId}/edit`}>
-                <Edit className="mr-2 h-4 w-4"/>
-                Edit User
-              </Link>
-            </Button>
             <Button onClick={() => router.push('/cmadmin/users')}>Back to List</Button>
         </div>
       </div>
@@ -309,7 +303,3 @@ export default function UserDetailsPage() {
     </>
   );
 }
-
-    
-
-    
