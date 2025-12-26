@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +16,7 @@ const masterSqlScript = `
 -- =================================================================
 
 -- Step 1: Create a helper function to check for admin role.
+-- Using CREATE OR REPLACE ensures the function is updated without dropping dependencies.
 CREATE OR REPLACE FUNCTION is_admin(user_id uuid)
 RETURNS boolean
 LANGUAGE plpgsql
@@ -32,7 +32,7 @@ BEGIN
 END;
 $$;
 
--- Step 2: Create secure functions to fetch data for the admin panel.
+-- Step 2: Create/Update secure functions to fetch data for the admin panel.
 -- These functions run with the permissions of the user who defined them (the admin).
 
 -- Function to get all users
@@ -110,6 +110,7 @@ $$;
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow admins to read all users" ON public.users;
 DROP POLICY IF EXISTS "Allow individual users to read their own data" ON public.users;
+DROP POLICY IF EXISTS "Allow users to update their own profile" ON public.users;
 CREATE POLICY "Allow admins to read all users" ON public.users FOR SELECT USING (is_admin(auth.uid()));
 CREATE POLICY "Allow individual users to read their own data" ON public.users FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "Allow users to update their own profile" ON public.users FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
@@ -124,6 +125,7 @@ CREATE POLICY "Allow admins to manage other admins" ON public.admins FOR ALL USI
 ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow admins to manage payments" ON public.payments;
 DROP POLICY IF EXISTS "Allow users to see their own payments" ON public.payments;
+DROP POLICY IF EXISTS "Allow users to create their own payment requests" ON public.payments;
 CREATE POLICY "Allow admins to manage payments" ON public.payments FOR ALL USING (is_admin(auth.uid()));
 CREATE POLICY "Allow users to see their own payments" ON public.payments FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Allow users to create their own payment requests" ON public.payments FOR INSERT WITH CHECK (auth.uid() = user_id);
@@ -132,6 +134,7 @@ CREATE POLICY "Allow users to create their own payment requests" ON public.payme
 ALTER TABLE public.wallet_history ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow admins to see all wallet history" ON public.wallet_history;
 DROP POLICY IF EXISTS "Allow users to see their own wallet history" ON public.wallet_history;
+DROP POLICY IF EXISTS "Allow admins to create wallet history" ON public.wallet_history;
 CREATE POLICY "Allow admins to see all wallet history" ON public.wallet_history FOR SELECT USING (is_admin(auth.uid()));
 CREATE POLICY "Allow users to see their own wallet history" ON public.wallet_history FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Allow admins to create wallet history" ON public.wallet_history FOR INSERT WITH CHECK (is_admin(auth.uid()));
@@ -372,9 +375,8 @@ const withdrawalRequestsSql = `
 -- =================================================================
 -- Creates/Updates the function to securely fetch all withdrawal requests
 -- for the admin panel. Run this if the Withdrawals page shows an error or is empty.
+-- THIS SCRIPT IS SAFE TO RUN MULTIPLE TIMES.
 -- =================================================================
-DROP FUNCTION IF EXISTS public.get_all_payment_requests();
-DROP FUNCTION IF EXISTS public.is_admin(uuid);
 
 CREATE OR REPLACE FUNCTION is_admin(user_id uuid)
 RETURNS boolean
@@ -629,3 +631,5 @@ export default function SqlEditorPage() {
   );
 }
 
+
+    
