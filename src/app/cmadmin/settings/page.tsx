@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
@@ -36,13 +37,14 @@ export default function SettingsPage() {
                 .eq('id', 1)
                 .single();
 
-            if (error) {
+            if (error && error.code !== 'PGRST116') {
                 console.error('Error fetching settings:', error);
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch app settings.' });
             } else {
-                setSettings(data.settings_data || {});
-                // Set the separate state for construction mode
-                setIsUnderConstruction(data.settings_data?.isUnderConstruction || false);
+                const fetchedSettings = data?.settings_data || {};
+                setSettings(fetchedSettings);
+                // Set the separate state for construction mode from the main settings object
+                setIsUnderConstruction(fetchedSettings.isUnderConstruction || false);
             }
             setLoading(false);
         };
@@ -59,6 +61,7 @@ export default function SettingsPage() {
                 .single();
 
             const currentSettings = data?.settings_data || {};
+            // Explicitly set the value based on the switch state
             const updatedSettings = { ...currentSettings, isUnderConstruction: isUnderConstruction };
             
             const { error: updateError } = await supabase
@@ -246,7 +249,7 @@ export default function SettingsPage() {
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><LinkIcon className="h-5 w-5 text-primary" /> Social Media Links</CardTitle>
-                    <CardDescription>These links appear on the home and profile pages.</CardDescription>
+                    <CardDescription>These links appear on the home and profile pages.</Description>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
@@ -341,4 +344,5 @@ export default function SettingsPage() {
             </div>
         </div>
     );
-}
+
+    
