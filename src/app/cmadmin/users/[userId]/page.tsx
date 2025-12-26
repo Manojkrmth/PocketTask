@@ -114,25 +114,22 @@ export default function UserDetailsPage() {
     
     startBalanceUpdate(async () => {
         const amount = parseFloat(balanceAmount);
-        const modificationAmount = balanceAction === 'debit' ? -amount : amount;
 
         try {
-            // Insert record into wallet_history. The available balance is derived from this table via an RPC.
-            const { error: historyError } = await supabase.from('wallet_history').insert({
-                user_id: userId,
-                amount: modificationAmount,
-                type: balanceAction === 'credit' ? 'manual_credit' : 'manual_debit',
-                status: 'Completed',
-                description: `Admin: ${balanceDescription}`
+            const { error } = await supabase.rpc('update_user_balance', {
+                p_user_id: userId,
+                p_amount: amount,
+                p_action: balanceAction,
+                p_description: `Admin: ${balanceDescription}`
             });
 
-            if (historyError) throw historyError;
+            if (error) throw error;
 
-            toast({ title: 'Balance Updated', description: 'The user wallet history has been updated. Refreshing data...' });
+            toast({ title: 'Balance Updated', description: 'The user wallet and history have been updated.' });
             setIsBalanceDialogOpen(false);
             setBalanceAmount('');
             setBalanceDescription('');
-            await fetchAllData(); // Refresh all data from the database
+            await fetchAllData(); // Refresh all data
 
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Update Failed', description: error.message });

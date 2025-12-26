@@ -126,12 +126,14 @@ export default function UsersPage() {
     user.mobile?.includes(filter)
   );
   
-  const sqlPolicyFix = `-- POLICY FIX SCRIPT V3
+  const sqlPolicyFix = `-- POLICY FIX SCRIPT V4
 -- This script will:
 -- 1. Ensure the primary super admin exists in the 'admins' table.
 -- 2. Drop all potentially conflicting policies on relevant tables.
 -- 3. Create correct RLS policies for admins and users.
--- 4. Create or replace RPC functions with 'SECURITY DEFINER' for secure data aggregation.
+-- 4. Create or replace RPC functions with 'SECURITY DEFINER' for secure data aggregation and updates.
+
+BEGIN;
 
 -- 1. सुपर एडमिन को 'admins' टेबल में डालें (यदि वे पहले से मौजूद नहीं हैं)
 INSERT INTO public.admins (user_id, role)
@@ -139,8 +141,9 @@ SELECT '98cda2fc-f09d-4840-9f47-ec0c749a6bbd', 'admin'
 WHERE NOT EXISTS (
     SELECT 1 FROM public.admins WHERE user_id = '98cda2fc-f09d-4840-9f47-ec0c749a6bbd'
 ) AND EXISTS (
-    SELECT 1 FROM public.users WHERE id = '98cda2fc-f09d-4840-9f47-ec0c749a6bbd'
+    SELECT 1 FROM auth.users WHERE id = '98cda2fc-f09d-4840-9f47-ec0c749a6bbd'
 );
+
 
 -- 2. पुरानी सभी नीतियों को हटाएं ताकि कोई टकराव न हो
 DROP POLICY IF EXISTS "Enable admins to manage users" ON public.users;
@@ -149,12 +152,12 @@ DROP POLICY IF EXISTS "Allow individual users to update their own data" ON publi
 DROP POLICY IF EXISTS "Allow admin to read specific user" ON public.users;
 DROP POLICY IF EXISTS "Allow admin access on wallet_history" ON public.wallet_history;
 
--- 3. व्यवस्थापकों को सभी उपयोगकर्ताओं को देखने की अनुमति दें
+-- 3. एडमिन को सभी उपयोगकर्ताओं को देखने की अनुमति दें
 CREATE POLICY "Enable admins to manage users"
 ON public.users FOR SELECT
 USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 
--- 4. व्यवस्थापकों को विशिष्ट उपयोगकर्ता पढ़ने की अनुमति दें (विवरण पृष्ठ के लिए)
+-- 4. एडमिन को विशिष्ट उपयोगकर्ता पढ़ने की अनुमति दें (विवरण पृष्ठ के लिए)
 CREATE POLICY "Allow admin to read specific user"
 ON public.users FOR SELECT
 USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
@@ -206,6 +209,38 @@ BEGIN
     RETURN total_balance;
 END;
 $$;
+
+-- 10. बैलेंस अपडेट और इतिहास रिकॉर्डिंग के लिए नया RPC फ़ंक्शन
+CREATE OR REPLACE FUNCTION update_user_balance(p_user_id uuid, p_amount double precision, p_action text, p_description text)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  modification_amount double precision;
+BEGIN
+  -- Determine the amount to add or subtract
+  IF p_action = 'credit' THEN
+    modification_amount := p_amount;
+  ELSIF p_action = 'debit' THEN
+    modification_amount := -p_amount;
+  ELSE
+    RAISE EXCEPTION 'Invalid action type. Use "credit" or "debit".';
+  END IF;
+
+  -- Update the user's available balance directly in the users table
+  UPDATE public.users
+  SET balance_available = balance_available + modification_amount
+  WHERE id = p_user_id;
+
+  -- Insert a record into the wallet history
+  INSERT INTO public.wallet_history (user_id, amount, type, status, description)
+  VALUES (p_user_id, modification_amount, 'manual_' || p_action, 'Completed', p_description);
+END;
+$$;
+
+
+COMMIT;
 `;
 
 
