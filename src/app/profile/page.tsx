@@ -50,7 +50,7 @@ const legalItems = [
 ];
 
 function ReferrerInfoCard({ referralCode }: { referralCode: string }) {
-    const [referrerEmail, setReferrerEmail] = useState<string | null>(null);
+    const [referrer, setReferrer] = useState<{ full_name: string, email: string } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -62,14 +62,14 @@ function ReferrerInfoCard({ referralCode }: { referralCode: string }) {
         const fetchReferrer = async () => {
             const { data, error } = await supabase
                 .from('users')
-                .select('email')
+                .select('full_name, email')
                 .eq('referral_code', referralCode)
                 .single();
             
             if (error && error.code !== 'PGRST116') {
                 console.error("Error fetching referrer data:", error);
             } else if (data) {
-                setReferrerEmail(data.email);
+                setReferrer(data);
             }
             setIsLoading(false);
         };
@@ -83,10 +83,10 @@ function ReferrerInfoCard({ referralCode }: { referralCode: string }) {
                 <CardTitle className='flex items-center gap-2'><Contact className="h-5 w-5 text-primary"/> You Were Referred By</CardTitle>
             </CardHeader>
             <CardContent>
-                {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : referrerEmail ? (
+                {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : referrer ? (
                     <div className="flex items-center gap-2">
                        <Mail className="h-5 w-5 text-muted-foreground"/>
-                       <p className="font-bold text-md">{referrerEmail}</p>
+                       <p className="font-bold text-md">{referrer.full_name} ({referrer.email})</p>
                     </div>
                 ) : (
                     <p className="text-sm text-muted-foreground">Could not load referrer information.</p>
