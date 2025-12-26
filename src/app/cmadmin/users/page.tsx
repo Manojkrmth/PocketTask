@@ -126,71 +126,56 @@ export default function UsersPage() {
     user.mobile?.includes(filter)
   );
   
-  const sqlPolicyFix = `-- POLICY FIX SCRIPT
+  const sqlPolicyFix = `-- POLICY FIX SCRIPT V3
 -- This script will:
--- 1. Ensure the admins table exists and insert the primary super admin.
--- 2. Drop all existing policies on the 'users', 'wallet_history' tables to prevent conflicts.
--- 3. Create correct policies for admins to manage users and wallet history.
--- 4. Create policies for individual users to see their own data.
--- 5. Create helper functions to get total user count and balance securely.
+-- 1. Ensure the primary super admin exists in the 'admins' table.
+-- 2. Drop all potentially conflicting policies on relevant tables.
+-- 3. Create correct RLS policies for admins and users.
+-- 4. Create or replace RPC functions with 'SECURITY DEFINER' for secure data aggregation.
 
 -- 1. सुपर एडमिन को 'admins' टेबल में डालें (यदि वे पहले से मौजूद नहीं हैं)
 INSERT INTO public.admins (user_id, role)
 SELECT '98cda2fc-f09d-4840-9f47-ec0c749a6bbd', 'admin'
 WHERE NOT EXISTS (
     SELECT 1 FROM public.admins WHERE user_id = '98cda2fc-f09d-4840-9f47-ec0c749a6bbd'
+) AND EXISTS (
+    SELECT 1 FROM public.users WHERE id = '98cda2fc-f09d-4840-9f47-ec0c749a6bbd'
 );
-INSERT INTO public.admins (user_id, role)
-SELECT '7fa62eb6-4e08-4064-ace3-3f6116efa29f', 'admin'
-WHERE NOT EXISTS (
-    SELECT 1 FROM public.admins WHERE user_id = '7fa62eb6-4e08-4064-ace3-3f6116efa29f'
-);
-
 
 -- 2. पुरानी सभी नीतियों को हटाएं ताकि कोई टकराव न हो
-DROP POLICY IF EXISTS "Allow admins to read all users" ON public.users;
 DROP POLICY IF EXISTS "Enable admins to manage users" ON public.users;
 DROP POLICY IF EXISTS "Allow individual users to view their own data" ON public.users;
 DROP POLICY IF EXISTS "Allow individual users to update their own data" ON public.users;
-DROP POLICY IF EXISTS "Allow admin select" ON public.users;
-DROP POLICY IF EXISTS "Allow admins to read user data" ON public.users;
-DROP POLICY IF EXISTS "Allow admins to read specific user" ON public.users;
-DROP POLICY IF EXISTS "Allow admin access" ON public.wallet_history;
+DROP POLICY IF EXISTS "Allow admin to read specific user" ON public.users;
+DROP POLICY IF EXISTS "Allow admin access on wallet_history" ON public.wallet_history;
 
-
--- 3. व्यवस्थापकों को सभी उपयोगकर्ताओं को प्रबंधित करने की अनुमति दें (लेकिन केवल पढ़ें)
+-- 3. व्यवस्थापकों को सभी उपयोगकर्ताओं को देखने की अनुमति दें
 CREATE POLICY "Enable admins to manage users"
-ON public.users
-FOR SELECT
-USING (
-  EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid())
-);
+ON public.users FOR SELECT
+USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 
--- 4. उपयोगकर्ताओं के लिए अपनी जानकारी देखने हेतु एक नई नीति बनाएं
+-- 4. व्यवस्थापकों को विशिष्ट उपयोगकर्ता पढ़ने की अनुमति दें (विवरण पृष्ठ के लिए)
+CREATE POLICY "Allow admin to read specific user"
+ON public.users FOR SELECT
+USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
+
+-- 5. उपयोगकर्ताओं के लिए अपनी जानकारी देखने हेतु एक नई नीति बनाएं
 CREATE POLICY "Allow individual users to view their own data"
-ON public.users
-FOR SELECT
+ON public.users FOR SELECT
 USING (auth.uid() = id);
 
--- 5. उपयोगकर्ताओं को अपनी जानकारी अपडेट करने की अनुमति दें
+-- 6. उपयोगकर्ताओं को अपनी जानकारी अपडेट करने की अनुमति दें
 CREATE POLICY "Allow individual users to update their own data"
-ON public.users
-FOR UPDATE
+ON public.users FOR UPDATE
 USING (auth.uid() = id)
 WITH CHECK (auth.uid() = id);
 
--- 6. एडमिन को वॉलेट इतिहास में रिकॉर्ड जोड़ने की अनुमति दें
+-- 7. एडमिन को वॉलेट इतिहास में रिकॉर्ड जोड़ने की अनुमति दें
 CREATE POLICY "Allow admin access on wallet_history"
-ON public.wallet_history
-FOR ALL
-USING (
-  EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid())
-)
-WITH CHECK (
-  EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid())
-);
+ON public.wallet_history FOR INSERT
+WITH CHECK (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 
--- 7. कुल उपयोगकर्ताओं की गिनती के लिए RPC फ़ंक्शन
+-- 8. कुल उपयोगकर्ताओं की गिनती के लिए RPC फ़ंक्शन
 CREATE OR REPLACE FUNCTION get_total_users_count()
 RETURNS integer
 LANGUAGE plpgsql
@@ -206,7 +191,7 @@ BEGIN
 END;
 $$;
 
--- 8. सभी उपयोगकर्ताओं के कुल बैलेंस की गणना के लिए RPC फ़ंक्शन
+-- 9. सभी उपयोगकर्ताओं के कुल बैलेंस की गणना के लिए RPC फ़ंक्शन
 CREATE OR REPLACE FUNCTION get_total_users_balance()
 RETURNS double precision
 LANGUAGE plpgsql
@@ -220,7 +205,8 @@ BEGIN
     FROM public.users;
     RETURN total_balance;
 END;
-$$;`;
+$$;
+`;
 
 
   return (
