@@ -32,15 +32,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, Loader2, Mail, Phone, UserX, UserCheck, Eye, Edit, AlertTriangle } from 'lucide-react';
+import { MoreHorizontal, Loader2, Mail, Phone, UserX, UserCheck, Eye, Edit } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { useCurrency } from '@/context/currency-context';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
-import { Alert, AlertTitle } from '@/components/ui/alert';
-import { Textarea } from '@/components/ui/textarea';
 
 interface AppUser {
   id: string;
@@ -124,46 +122,6 @@ export default function UsersPage() {
     user.mobile?.includes(filter)
   );
   
-  const sqlPolicyFix = `-- =================================================================
--- MASTER SQL SCRIPT TO DROP ALL RLS POLICIES
--- WARNING: This script will remove ALL Row-Level Security policies
--- from every table in your 'public' schema. Your data will be
--- unprotected until you create new policies.
--- =================================================================
-
-DO $$
-DECLARE
-    policy_record RECORD;
-    table_record RECORD;
-BEGIN
-    -- Loop through all tables in the 'public' schema
-    FOR table_record IN
-        SELECT tablename FROM pg_tables WHERE schemaname = 'public'
-    LOOP
-        -- For each table, loop through all its policies
-        FOR policy_record IN
-            SELECT policyname FROM pg_policies WHERE schemaname = 'public' AND tablename = table_record.tablename
-        LOOP
-            -- Drop the policy
-            EXECUTE 'DROP POLICY IF EXISTS "' || policy_record.policyname || '" ON public."' || table_record.tablename || '";';
-            RAISE NOTICE 'Dropped policy "%" on table "public.%"', policy_record.policyname, table_record.tablename;
-        END LOOP;
-    END LOOP;
-    
-    -- Also drop the helper functions we created before
-    DROP FUNCTION IF EXISTS public.get_all_users();
-    DROP FUNCTION IF EXISTS public.get_all_admins();
-    DROP FUNCTION IF EXISTS public.get_all_payment_requests();
-    DROP FUNCTION IF EXISTS public.truncate_all_tables();
-    DROP FUNCTION IF EXISTS public.truncate_history(text,date);
-
-
-    RAISE NOTICE 'All RLS policies and helper functions in schema "public" have been dropped.';
-END;
-$$;
-`;
-
-
   return (
     <>
       <div className="space-y-6">
@@ -181,16 +139,6 @@ $$;
             className="max-w-sm"
           />
         </div>
-        
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Drop All RLS Policies</AlertTitle>
-          <div className="space-y-2">
-            <p>As requested, here is the script to remove ALL RLS policies from your database. Run this in your Supabase SQL Editor to start from scratch. Your data will be unprotected until you create new policies.</p>
-            <Textarea className="font-mono bg-destructive/10 text-destructive-foreground h-48" readOnly value={sqlPolicyFix} />
-            <Button variant="secondary" size="sm" onClick={() => navigator.clipboard.writeText(sqlPolicyFix)}>Copy SQL</Button>
-          </div>
-        </Alert>
 
         <div className="border rounded-lg bg-card">
           <Table>
