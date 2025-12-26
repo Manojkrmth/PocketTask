@@ -34,17 +34,10 @@ interface LevelData {
   earnings: number;
 }
 
-interface TeamMember {
-  id: string;
-  referral_code: string;
-  created_at: string;
-}
-
 export default function TeamPage() {
   const router = useRouter();
   const { formatCurrency } = useCurrency();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const [teamStats, setTeamStats] = useState({
@@ -54,94 +47,58 @@ export default function TeamPage() {
 
   const [teamData, setTeamData] = useState<LevelData[]>([]);
   
-  const commissions = useMemo(() => [10, 5, 3, 2, 1], []);
+  const [commissionSettings, setCommissionSettings] = useState<number[]>([]);
 
-  const fetchTeamData = useCallback(async (userCode: string, userId: string) => {
+  const fetchTeamData = useCallback(async (userId: string) => {
     setIsLoading(true);
 
-    let allUsers: TeamMember[] = [];
-    try {
-        const { data, error } = await supabase.from('users').select('id, referral_code, created_at');
-        if (error) throw error;
-        allUsers = data;
-    } catch(e) {
-        console.error("Failed to fetch users:", e);
-        setIsLoading(false);
-        return;
+    // Fetch referral commissions from settings
+    const { data: settingsData, error: settingsError } = await supabase
+      .from('settings')
+      .select('settings_data->referralCommissions')
+      .eq('id', 1)
+      .single();
+
+    if (settingsError || !settingsData?.referralCommissions) {
+      console.error("Could not fetch referral commission settings:", settingsError);
+      setCommissionSettings([10, 5, 3, 2, 1]); // Fallback commissions
+    } else {
+      setCommissionSettings(settingsData.referralCommissions as number[]);
     }
     
-    // Fetch all user tasks to calculate earnings
-    let allUserTasks: any[] = [];
-    try {
-        const { data, error } = await supabase.from('usertasks').select('user_id, reward, status');
-        if(error) throw error;
-        allUserTasks = data.filter(task => task.status === 'Approved');
-    } catch (e) {
-        console.error("Failed to fetch user tasks:", e);
+    // Fetch referral tree data
+    const { data: treeData, error: treeError } = await supabase.rpc('get_user_referral_tree', { p_user_id: userId });
+
+    if (treeError) {
+      console.error("Error fetching referral tree:", treeError);
+      setIsLoading(false);
+      return;
     }
     
-    let levels: TeamMember[][] = Array(5).fill(0).map(() => []);
-    let directReferrals: TeamMember[] = [];
-
-    // Find direct referrals (Level 1)
-    try {
-        const { data: level1Data, error: level1Error } = await supabase.from('users').select('id, referral_code, created_at').eq('referred_by', userCode);
-        if(level1Error) throw level1Error;
-        directReferrals = level1Data;
-        levels[0] = level1Data;
-    } catch (e) {
-         console.error("Failed to fetch level 1 referrals:", e);
-    }
-
-
-    // Recursively find referrals for subsequent levels
-    let currentLevelReferrals = directReferrals;
-    for (let level = 1; level < 5; level++) {
-        if (currentLevelReferrals.length === 0) break;
-        const nextLevelReferralCodes = currentLevelReferrals.map(u => u.referral_code);
-        
-        try {
-            const { data: nextLevelData, error: nextLevelError } = await supabase.from('users').select('id, referral_code, created_at').in('referred_by', nextLevelReferralCodes);
-            if(nextLevelError) throw nextLevelError;
-            levels[level] = nextLevelData;
-            currentLevelReferrals = nextLevelData;
-        } catch(e) {
-            console.error(`Failed to fetch level ${level+2} referrals:`, e);
-            break; 
-        }
-    }
+    const commissions = settingsData?.referralCommissions as number[] || [10, 5, 3, 2, 1];
     
-    const totalTeamSize = levels.reduce((sum, level) => sum + level.length, 0);
-
-    const levelStats = levels.map((levelMembers, index) => {
-        const level = index + 1;
-        const memberIds = levelMembers.map(m => m.id);
-        
-        const levelEarnings = allUserTasks.reduce((sum, task) => {
-            if (memberIds.includes(task.user_id)) {
-                return sum + (task.reward * (commissions[index] / 100));
-            }
-            return sum;
-        }, 0);
-        
+    const processedLevels = Array.from({ length: 5 }, (_, i) => {
+        const level = i + 1;
+        const levelInfo = treeData.find(d => d.level === level);
         return {
             level: level,
-            commission: commissions[index],
-            members: levelMembers.length,
-            earnings: levelEarnings
+            commission: commissions[i] || 0,
+            members: levelInfo ? levelInfo.member_count : 0,
+            earnings: levelInfo ? levelInfo.total_earnings * ((commissions[i] || 0) / 100) : 0,
         };
     });
 
-    const totalReferralEarnings = levelStats.reduce((sum, level) => sum + level.earnings, 0);
+    const totalTeamSize = processedLevels.reduce((sum, level) => sum + level.members, 0);
+    const totalReferralEarnings = processedLevels.reduce((sum, level) => sum + level.earnings, 0);
 
-    setTeamData(levelStats);
+    setTeamData(processedLevels);
     setTeamStats({
-        totalTeamSize: totalTeamSize,
-        totalReferralEarnings: totalReferralEarnings,
+        totalTeamSize,
+        totalReferralEarnings,
     });
     
     setIsLoading(false);
-  }, [commissions]);
+  }, []);
 
   useEffect(() => {
     const checkUserStatus = async () => {
@@ -156,7 +113,7 @@ export default function TeamPage() {
       
       const { data: profile, error } = await supabase
         .from('users')
-        .select('status, referral_code')
+        .select('status')
         .eq('id', session.user.id)
         .single();
         
@@ -165,12 +122,7 @@ export default function TeamPage() {
         return;
       }
 
-      if (profile?.referral_code) {
-        setCurrentUserProfile(profile);
-        await fetchTeamData(profile.referral_code, session.user.id);
-      } else {
-        setIsLoading(false);
-      }
+      await fetchTeamData(session.user.id);
     };
     checkUserStatus();
   }, [router, fetchTeamData]);
