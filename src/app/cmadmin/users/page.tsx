@@ -126,7 +126,7 @@ export default function UsersPage() {
     user.mobile?.includes(filter)
   );
   
-  const sqlPolicyFix = `-- POLICY FIX SCRIPT V20
+  const sqlPolicyFix = `-- POLICY FIX SCRIPT V25
 -- This script will:
 -- 1. Ensure the primary super admin exists in the 'admins' table.
 -- 2. Drop all potentially conflicting policies on relevant tables.
@@ -141,8 +141,6 @@ INSERT INTO public.admins (user_id, role)
 SELECT '98cda2fc-f09d-4840-9f47-ec0c749a6bbd', 'admin'
 WHERE NOT EXISTS (
     SELECT 1 FROM public.admins WHERE user_id = '98cda2fc-f09d-4840-9f47-ec0c749a6bbd'
-) AND EXISTS (
-    SELECT 1 FROM auth.users WHERE id = '98cda2fc-f09d-4840-9f47-ec0c749a6bbd'
 );
 
 -- 2. Drop and Create policies for 'users' table.
@@ -195,6 +193,7 @@ USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 
 
 -- 5. Create or replace the RPC functions needed for dashboard stats.
+DROP FUNCTION IF EXISTS get_top_referral_users(integer);
 CREATE OR REPLACE FUNCTION get_total_users_count()
 RETURNS integer LANGUAGE sql SECURITY DEFINER AS $$
     SELECT COUNT(*)::integer FROM public.users;
@@ -205,7 +204,6 @@ RETURNS double precision LANGUAGE sql SECURITY DEFINER AS $$
     SELECT COALESCE(SUM(balance_available), 0) FROM public.users;
 $$;
 
-DROP FUNCTION IF EXISTS get_top_referral_users(integer);
 CREATE OR REPLACE FUNCTION get_top_referral_users(limit_count integer)
 RETURNS TABLE(id uuid, full_name text, email text, referral_count bigint)
 LANGUAGE plpgsql AS $$
@@ -384,4 +382,6 @@ COMMIT;
 
     
     
+    
+
     
