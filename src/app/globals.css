@@ -132,17 +132,31 @@ body {
     animation: pulse-background-fast 5s ease-in-out infinite;
   }
   
-  @keyframes tricolor-spin {
-    0% {
+  @keyframes spin-gear {
+    from {
       transform: rotate(0deg);
     }
-    100% {
+    to {
       transform: rotate(360deg);
     }
   }
 
-  .animate-tricolor-spin {
-    animation: tricolor-spin 1.5s linear infinite;
+  .animate-spin-gear {
+    animation: spin-gear 10s linear infinite;
+  }
+
+  @keyframes swing-wrench {
+    0%, 100% {
+      transform: rotate(-15deg);
+    }
+    50% {
+      transform: rotate(10deg);
+    }
+  }
+
+  .animate-swing-wrench {
+    animation: swing-wrench 4s ease-in-out infinite;
+    transform-origin: 20% 80%;
   }
 
   @keyframes slide-in-out {
