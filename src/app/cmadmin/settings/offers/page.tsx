@@ -179,16 +179,16 @@ export default function OffersSettingsPage() {
                     </DialogHeader>
                     <div className="py-4 space-y-4">
                        <div className="space-y-2">
-                            <Label htmlFor="imageUrl" className="flex items-center gap-2"><ImageIcon/> Image URL</Label>
-                            <Input id="imageUrl" value={editingOffer?.image_url || ''} onChange={e => setEditingOffer({...editingOffer, image_url: e.target.value})} placeholder="https://example.com/image.png" disabled={isSubmitting} />
+                            <Label htmlFor="image_url" className="flex items-center gap-2"><ImageIcon/> Image URL</Label>
+                            <Input id="image_url" value={editingOffer?.image_url || ''} onChange={e => setEditingOffer({...editingOffer, image_url: e.target.value})} placeholder="https://example.com/image.png" disabled={isSubmitting} />
                         </div>
                          <div className="space-y-2">
                             <Label htmlFor="description" className="flex items-center gap-2"><TextIcon/> Description (Optional)</Label>
                             <Input id="description" value={editingOffer?.description || ''} onChange={e => setEditingOffer({...editingOffer, description: e.target.value})} placeholder="e.g., Summer Sale" disabled={isSubmitting} />
                         </div>
                          <div className="space-y-2">
-                            <Label htmlFor="redirectLink" className="flex items-center gap-2"><LinkIcon/> Redirect Link (Optional)</Label>
-                            <Input id="redirectLink" value={editingOffer?.redirect_link || ''} onChange={e => setEditingOffer({...editingOffer, redirect_link: e.target.value})} placeholder="https://example.com/offer" disabled={isSubmitting} />
+                            <Label htmlFor="redirect_link" className="flex items-center gap-2"><LinkIcon/> Redirect Link (Optional)</Label>
+                            <Input id="redirect_link" value={editingOffer?.redirect_link || ''} onChange={e => setEditingOffer({...editingOffer, redirect_link: e.target.value})} placeholder="https://example.com/offer" disabled={isSubmitting} />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="sort_order">Sort Order</Label>
