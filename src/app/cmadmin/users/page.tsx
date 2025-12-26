@@ -133,6 +133,8 @@ DROP POLICY IF EXISTS "Allow individual users to update their own data" ON publi
 DROP POLICY IF EXISTS "Authenticated users can see all users" ON public.users;
 DROP POLICY IF EXISTS "Allow admin select" ON public.users;
 DROP POLICY IF EXISTS "Superusers can read all user" ON public.users;
+DROP POLICY IF EXISTS "Allow admins to see all users" ON public.users;
+
 
 -- 2. सुपर एडमिन को 'admins' टेबल में डालें (यदि वे पहले से मौजूद नहीं हैं)
 INSERT INTO public.admins (user_id, role)
@@ -145,7 +147,6 @@ WHERE NOT EXISTS (
 CREATE POLICY "Allow admins to read all users"
 ON public.users
 FOR SELECT
-TO authenticated
 USING (
   EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid())
 );
@@ -166,14 +167,12 @@ WITH CHECK (
 CREATE POLICY "Allow individual users to view their own data"
 ON public.users
 FOR SELECT
-TO authenticated
 USING (auth.uid() = id);
 
 -- 6. उपयोगकर्ताओं को अपनी जानकारी अपडेट करने की अनुमति दें (उदा. नाम, मोबाइल)
 CREATE POLICY "Allow individual users to update their own data"
 ON public.users
 FOR UPDATE
-TO authenticated
 USING (auth.uid() = id)
 WITH CHECK (auth.uid() = id);
 
@@ -191,6 +190,23 @@ BEGIN
     FROM public.users;
 
     return total_count;
+END;
+$$;
+
+-- 8. सभी उपयोगकर्ताओं के कुल बैलेंस की गणना के लिए RPC फ़ंक्शन
+CREATE OR REPLACE FUNCTION get_total_users_balance()
+RETURNS double precision
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    total_balance double precision;
+BEGIN
+    SELECT COALESCE(SUM(balance_available), 0)
+    INTO total_balance
+    FROM public.users;
+
+    RETURN total_balance;
 END;
 $$;`;
 
