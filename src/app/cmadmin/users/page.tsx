@@ -138,11 +138,6 @@ BEGIN;
 -- Drop all existing policies to avoid conflicts
 DROP POLICY IF EXISTS "Enable read access for authenticated users" ON public.admins;
 DROP POLICY IF EXISTS "Allow admins to manage the admins table" ON public.admins;
-DROP POLICY IF EXISTS "Allow admin management by existing admins" ON public.admins;
-DROP POLICY IF EXISTS "Allow admins to add/remove admins" ON public.admins;
-DROP POLICY IF EXISTS "Allow admins to see other admins" ON public.admins;
-DROP POLICY IF EXISTS "Allow authenticated users to read admins" ON public.admins;
-DROP POLICY IF EXISTS "Allow super admin to manage admins" ON public.admins;
 
 -- Allow any authenticated user to see who the admins are.
 CREATE POLICY "Enable read access for authenticated users" ON public.admins
@@ -162,17 +157,7 @@ USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 DROP POLICY IF EXISTS "Allow individual users to view their own data" ON public.users;
 DROP POLICY IF EXISTS "Allow individual users to update their own data" ON public.users;
 DROP POLICY IF EXISTS "Enable read access for admins" ON public.users;
-DROP POLICY IF EXISTS "Enable full access for admins" ON public.users;
-DROP POLICY IF EXISTS "Allow admin full access to users" ON public.users;
-DROP POLICY IF EXISTS "Allow admin to read all users" ON public.users;
 DROP POLICY IF EXISTS "Allow admins to update users" ON public.users;
-DROP POLICY IF EXISTS "Enable admins to manage users" ON public.users;
-DROP POLICY IF EXISTS "Users can insert their own profile" ON public.users;
-DROP POLICY IF EXISTS "Users can manage their own profile" ON public.users;
-DROP POLICY IF EXISTS "Users can read their own profile" ON public.users;
-DROP POLICY IF EXISTS "Users can update their own data" ON public.users;
-DROP POLICY IF EXISTS "Users can update their own profile" ON public.users;
-DROP POLICY IF EXISTS "Users can view their own data" ON public.users;
 
 
 -- Allow users to see and update their own data.
@@ -196,9 +181,6 @@ FOR UPDATE USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()
 -- Drop all existing policies
 DROP POLICY IF EXISTS "Allow read access to everyone" ON public.notifications;
 DROP POLICY IF EXISTS "Allow admin to manage notifications" ON public.notifications;
-DROP POLICY IF EXISTS "Allow authenticated users to read notifications" ON public.notifications;
-DROP POLICY IF EXISTS "Allow admin full access to notifications" ON public.notifications;
-DROP POLICY IF EXISTS "Allow admins to manage all tables" ON public.notifications;
 
 
 -- Allow any logged-in user to read notifications.
@@ -216,8 +198,6 @@ FOR ALL USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 -- Drop all existing policies
 DROP POLICY IF EXISTS "Allow read access to everyone" ON public.settings;
 DROP POLICY IF EXISTS "Allow admin full access" ON public.settings;
-DROP POLICY IF EXISTS "Allow admins to manage settings" ON public.settings;
-DROP POLICY IF EXISTS "Enable read access for all users" ON public.settings;
 
 
 -- Allow any logged-in user to read settings (they are not sensitive).
@@ -232,10 +212,7 @@ FOR ALL USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 -- 5. PAYMENTS TABLE (WITHDRAWALS)
 -- =============================================
 -- Drop all existing policies
-DROP POLICY IF EXISTS "Allow admins to manage all tables" ON public.payments;
-DROP POLICY IF EXISTS "Allow admins to read all payments" ON public.payments;
-DROP POLICY IF EXISTS "Allow admins to update payments" ON public.payments;
-DROP POLICY IF EXISTS "Allow admins to view and update all payment requests" ON public.payments;
+DROP POLICY IF EXISTS "Allow admins to manage all payments" ON public.payments;
 DROP POLICY IF EXISTS "Allow users to insert their own payment requests" ON public.payments;
 DROP POLICY IF EXISTS "Allow users to view their own payment requests" ON public.payments;
 
