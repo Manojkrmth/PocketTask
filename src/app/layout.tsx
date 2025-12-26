@@ -1,4 +1,5 @@
 
+
 'use client';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
@@ -36,26 +37,30 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
         setLoading(false);
     };
     
-    // Only check settings if it's not an admin or auth page
-    if (!isAdminPage && !isAuthPage) {
+    // Always fetch settings for non-admin users to check for maintenance mode.
+    if (!isAdminPage) {
         fetchSettings();
     } else {
-        setLoading(false);
+        setLoading(false); // Don't block admin pages
     }
-  }, [isAdminPage, isAuthPage]);
+  }, [isAdminPage]);
   
-  if (loading) {
+  if (loading && !isAdminPage) {
     return <LoadingScreen />;
   }
   
-  if (isAuthPage || isAdminPage) {
-    return <>{children}</>;
+  if (isUnderConstruction && !isAdminPage) {
+      return (
+        <main className="max-w-md mx-auto bg-background min-h-screen relative shadow-2xl">
+            <MaintenancePage />
+        </main>
+      );
   }
 
   return (
-    <main className="max-w-md mx-auto bg-background min-h-screen relative pb-24 shadow-2xl">
-        {isUnderConstruction ? <MaintenancePage /> : children}
-        {!isUnderConstruction && (
+    <main className={cn(!isAdminPage && "max-w-md mx-auto bg-background min-h-screen relative pb-24 shadow-2xl")}>
+        {children}
+        {!isAdminPage && !isAuthPage && (
             <>
                 <Suspense fallback={null}>
                   <BottomNav />
@@ -103,3 +108,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+    

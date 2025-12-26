@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
@@ -52,10 +53,11 @@ export default function SettingsPage() {
     };
     
     const handleTopLevelChange = (key: string, value: any) => {
-         setSettings((prev: any) => ({
-            ...prev,
-            [key]: value,
-        }));
+         setSettings((prev: any) => {
+            const newSettings = { ...prev };
+            newSettings[key] = value;
+            return newSettings;
+        });
     };
 
     const handlePopupStyleChange = (key: string, value: string) => {
@@ -306,5 +308,7 @@ export default function SettingsPage() {
         </div>
     );
 }
+
+    
 
     
