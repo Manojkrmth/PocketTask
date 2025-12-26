@@ -52,11 +52,10 @@ export default function SettingsPage() {
     };
     
     const handleTopLevelChange = (key: string, value: any) => {
-         setSettings((prev: any) => {
-            const newSettings = { ...prev };
-            newSettings[key] = value;
-            return newSettings;
-        });
+         setSettings((prev: any) => ({
+            ...prev,
+            [key]: value,
+        }));
     };
 
     const handlePopupStyleChange = (key: string, value: string) => {
@@ -307,3 +306,5 @@ export default function SettingsPage() {
         </div>
     );
 }
+
+    
