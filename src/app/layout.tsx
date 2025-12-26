@@ -12,6 +12,7 @@ import { AnnouncementPopup } from '@/components/announcement-popup';
 import { supabase } from '@/lib/supabase';
 import { LoadingScreen } from '@/components/loading-screen';
 import MaintenancePage from './maintenance/page';
+import { cn } from '@/lib/utils';
 
 
 function LayoutWrapper({ children }: { children: React.ReactNode }) {
