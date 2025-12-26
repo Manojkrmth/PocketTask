@@ -125,19 +125,26 @@ export default function UsersPage() {
     user.mobile?.includes(filter)
   );
   
-  const sqlPolicyFix = `-- 1. सुनिश्चित करें कि पुरानी नीतियां हटा दी गई हैं
+  const sqlPolicyFix = `-- 1. पुरानी सभी नीतियों को हटाएं ताकि कोई टकराव न हो
 DROP POLICY IF EXISTS "Allow admins to read all users" ON public.users;
+DROP POLICY IF EXISTS "Enable admins to manage users" ON public.users;
 DROP POLICY IF EXISTS "Allow individual users to view their own data" ON public.users;
 DROP POLICY IF EXISTS "Allow individual users to update their own data" ON public.users;
-DROP POLICY IF EXISTS "Enable admins to manage users" ON public.users;
+DROP POLICY IF EXISTS "Authenticated users can see all users" ON public.users;
+DROP POLICY IF EXISTS "Allow admin select" ON public.users;
+DROP POLICY IF EXISTS "Superusers can read all user" ON public.users;
 
--- 2. व्यवस्थापकों (admins) के लिए उपयोगकर्ताओं को पढ़ने (read) की एक नई, सही नीति बनाएं
+
+-- 2. सुपर एडमिन के लिए उपयोगकर्ताओं को पढ़ने (read) की एक नई, सही नीति बनाएं
 CREATE POLICY "Allow admins to read all users"
 ON public.users
 FOR SELECT
 TO authenticated
 USING (
-  EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid())
+  auth.uid() IN (
+    '7fa62eb6-4e08-4064-ace3-3f6116efa29f',
+    '98cda2fc-f09d-4840-9f47-ec0c749a6bbd'
+  )
 );
 
 -- 3. व्यवस्थापकों (admins) को उपयोगकर्ताओं को प्रबंधित करने की अनुमति दें (update/delete)
@@ -150,6 +157,7 @@ USING (
 WITH CHECK (
   EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid())
 );
+
 
 -- 4. उपयोगकर्ताओं के लिए अपनी जानकारी देखने हेतु एक नई नीति बनाएं
 CREATE POLICY "Allow individual users to view their own data"
@@ -331,3 +339,5 @@ $$;`;
     </>
   );
 }
+
+    
