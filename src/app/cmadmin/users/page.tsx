@@ -126,7 +126,7 @@ export default function UsersPage() {
     user.mobile?.includes(filter)
   );
   
-  const sqlPolicyFix = `-- POLICY FIX SCRIPT V15
+  const sqlPolicyFix = `-- POLICY FIX SCRIPT V20
 -- This script will:
 -- 1. Ensure the primary super admin exists in the 'admins' table.
 -- 2. Drop all potentially conflicting policies on relevant tables.
@@ -145,70 +145,70 @@ WHERE NOT EXISTS (
     SELECT 1 FROM auth.users WHERE id = '98cda2fc-f09d-4840-9f47-ec0c749a6bbd'
 );
 
--- 2. Drop potentially conflicting policies on the 'users' table.
+-- 2. Drop and Create policies for 'users' table.
 DROP POLICY IF EXISTS "Enable admins to manage users" ON public.users;
 DROP POLICY IF EXISTS "Allow individual users to view their own data" ON public.users;
 DROP POLICY IF EXISTS "Allow individual users to update their own data" ON public.users;
 DROP POLICY IF EXISTS "Allow admin to read specific user" ON public.users;
 DROP POLICY IF EXISTS "Allow admins to update users" ON public.users;
 
--- 3. Create policies for the 'users' table.
-CREATE POLICY "Enable admins to manage users"
-ON public.users FOR SELECT
+CREATE POLICY "Enable admins to manage users" ON public.users FOR SELECT
 USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 
-CREATE POLICY "Allow individual users to view their own data"
-ON public.users FOR SELECT
+CREATE POLICY "Allow admin to read specific user" ON public.users FOR SELECT
+USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
+
+CREATE POLICY "Allow individual users to view their own data" ON public.users FOR SELECT
 USING (auth.uid() = id);
 
-CREATE POLICY "Allow individual users to update their own data"
-ON public.users FOR UPDATE
-USING (auth.uid() = id)
-WITH CHECK (auth.uid() = id);
+CREATE POLICY "Allow individual users to update their own data" ON public.users FOR UPDATE
+USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
 
-CREATE POLICY "Allow admins to update users"
-ON public.users FOR UPDATE
+CREATE POLICY "Allow admins to update users" ON public.users FOR UPDATE
 USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 
--- 4. Drop and Create policies for 'wallet_history'
+
+-- 3. Drop and Create policies for 'wallet_history'
 DROP POLICY IF EXISTS "Enable read access for own records" ON public.wallet_history;
 DROP POLICY IF EXISTS "Allow admins to read all history" ON public.wallet_history;
 DROP POLICY IF EXISTS "Allow admins to insert records" ON public.wallet_history;
 
-CREATE POLICY "Enable read access for own records"
-ON public.wallet_history FOR SELECT
+CREATE POLICY "Enable read access for own records" ON public.wallet_history FOR SELECT
 USING (auth.uid() = user_id);
 
-CREATE POLICY "Allow admins to read all history"
-ON public.wallet_history FOR SELECT
+CREATE POLICY "Allow admins to read all history" ON public.wallet_history FOR SELECT
 USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 
-CREATE POLICY "Allow admins to insert records"
-ON public.wallet_history FOR INSERT
+CREATE POLICY "Allow admins to insert records" ON public.wallet_history FOR INSERT
 WITH CHECK (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
+
+
+-- 4. Drop and Create policies for 'payments' table
+DROP POLICY IF EXISTS "Allow admins to read all payments" ON public.payments;
+DROP POLICY IF EXISTS "Allow admins to update payments" ON public.payments;
+
+CREATE POLICY "Allow admins to read all payments" ON public.payments FOR SELECT
+USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
+
+CREATE POLICY "Allow admins to update payments" ON public.payments FOR UPDATE
+USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
+
 
 -- 5. Create or replace the RPC functions needed for dashboard stats.
 CREATE OR REPLACE FUNCTION get_total_users_count()
-RETURNS integer
-LANGUAGE sql
-SECURITY DEFINER
-AS $$
+RETURNS integer LANGUAGE sql SECURITY DEFINER AS $$
     SELECT COUNT(*)::integer FROM public.users;
 $$;
 
 CREATE OR REPLACE FUNCTION get_total_users_balance()
-RETURNS double precision
-LANGUAGE sql
-SECURITY DEFINER
-AS $$
+RETURNS double precision LANGUAGE sql SECURITY DEFINER AS $$
     SELECT COALESCE(SUM(balance_available), 0) FROM public.users;
 $$;
 
 DROP FUNCTION IF EXISTS get_top_referral_users(integer);
 CREATE OR REPLACE FUNCTION get_top_referral_users(limit_count integer)
 RETURNS TABLE(id uuid, full_name text, email text, referral_count bigint)
-LANGUAGE plpgsql
-AS $$
+LANGUAGE plpgsql AS $$
 BEGIN
     RETURN QUERY
     SELECT
@@ -229,7 +229,7 @@ BEGIN
 END;
 $$;
 
--- Grant execute permissions to the authenticated role for the RPCs
+-- 6. Grant execute permissions to the authenticated role for the RPCs
 GRANT EXECUTE ON FUNCTION public.get_total_users_count() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_total_users_balance() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_top_referral_users(integer) TO authenticated;
@@ -382,5 +382,6 @@ COMMIT;
   );
 }
 
+    
     
     
