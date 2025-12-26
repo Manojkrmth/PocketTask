@@ -125,15 +125,15 @@ export default function UsersPage() {
     user.mobile?.includes(filter)
   );
   
-  const sqlPolicyFix = `-- 1. पुरानी नीति हटाएं
-DROP POLICY IF EXISTS "Allow users to view their own data" ON public.users;
-DROP POLICY IF EXISTS "Allow admins to view all users." ON public.users;
+  const sqlPolicyFix = `-- 1. पुरानी सभी नीतियों को हटाएं
+DROP POLICY IF EXISTS "Allow admins to access all users" ON public.users;
+DROP POLICY IF EXISTS "Allow individual users to view their own data" ON public.users;
 DROP POLICY IF EXISTS "Enable read access for all users" ON public.users;
 
--- 2. व्यवस्थापकों (admins) के लिए एक नई नीति बनाएं ताकि वे सभी उपयोगकर्ताओं को देख सकें
-CREATE POLICY "Allow admins to access all users"
+-- 2. व्यवस्थापकों (admins) के लिए केवल उपयोगकर्ताओं को पढ़ने (read) की नीति बनाएं
+CREATE POLICY "Allow admins to read all users"
 ON public.users
-FOR ALL
+FOR SELECT
 USING (
   EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid())
 );
@@ -143,6 +143,13 @@ CREATE POLICY "Allow individual users to view their own data"
 ON public.users
 FOR SELECT
 USING (auth.uid() = id);
+
+-- 4. उपयोगकर्ताओं को अपनी जानकारी अपडेट करने की अनुमति दें (उदा. नाम, मोबाइल)
+CREATE POLICY "Allow individual users to update their own data"
+ON public.users
+FOR UPDATE
+USING (auth.uid() = id)
+WITH CHECK (auth.uid() = id);
 `;
 
 
@@ -293,5 +300,3 @@ USING (auth.uid() = id);
     </>
   );
 }
-
-    
