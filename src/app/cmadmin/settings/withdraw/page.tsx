@@ -89,7 +89,7 @@ export default function WithdrawalSettingsPage() {
         });
     };
 
-    if (loading || !withdrawalSettings) {
+    if (loading) {
         return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;
     }
 
@@ -116,7 +116,7 @@ export default function WithdrawalSettingsPage() {
                         <Input
                             id="minAmount"
                             type="number"
-                            value={withdrawalSettings.minAmount}
+                            value={withdrawalSettings?.minAmount ?? ''}
                             onChange={(e) => handleInputChange('minAmount', e.target.value)}
                             disabled={isSaving}
                             placeholder="e.g., 500"
@@ -127,7 +127,7 @@ export default function WithdrawalSettingsPage() {
                         <Input
                             id="chargesPercent"
                             type="number"
-                            value={withdrawalSettings.chargesPercent}
+                            value={withdrawalSettings?.chargesPercent ?? ''}
                             onChange={(e) => handleInputChange('chargesPercent', e.target.value)}
                             disabled={isSaving}
                             placeholder="e.g., 5"
@@ -142,7 +142,7 @@ export default function WithdrawalSettingsPage() {
                     <CardDescription>Use the toggles to enable or disable payment methods for users.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {withdrawalSettings.methods.length > 0 ? (
+                    {withdrawalSettings?.methods && withdrawalSettings.methods.length > 0 ? (
                         withdrawalSettings.methods.map(method => (
                              <div key={method.id} className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <div className="space-y-0.5">
