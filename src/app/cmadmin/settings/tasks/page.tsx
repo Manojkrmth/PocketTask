@@ -5,12 +5,13 @@ import { useEffect, useState, useTransition } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Save, ListTodo, Clock } from 'lucide-react';
+import { Loader2, Save, ListTodo, Clock, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { useRouter } from 'next/navigation';
 
 interface TaskSetting {
     id: string;
@@ -27,6 +28,7 @@ interface TaskSetting {
 
 export default function TaskSettingsPage() {
     const { toast } = useToast();
+    const router = useRouter();
     const [taskSettings, setTaskSettings] = useState<TaskSetting[]>([]);
     const [loading, setLoading] = useState(true);
     const [isSaving, startSaving] = useTransition();
@@ -48,6 +50,7 @@ export default function TaskSettingsPage() {
                 const initializedSettings = (data.task_settings as any[]).map((task: any) => ({
                     reward: 0,
                     rules: '',
+                    enabled: task.enabled ?? true, // Default to true if missing
                     ...task
                 }));
                 setTaskSettings(initializedSettings);
@@ -86,9 +89,15 @@ export default function TaskSettingsPage() {
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold">Task Settings</h1>
-                <p className="text-muted-foreground">Enable, disable, and configure all task categories for users.</p>
+             <div className="flex justify-between items-center">
+                <div>
+                    <h1 className="text-3xl font-bold">Task Settings</h1>
+                    <p className="text-muted-foreground">Enable, disable, and configure all task categories for users.</p>
+                </div>
+                 <Button variant="outline" onClick={() => router.push('/cmadmin/settings')}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back to Settings
+                </Button>
             </div>
 
             <div className="space-y-6">

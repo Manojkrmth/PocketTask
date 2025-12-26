@@ -5,15 +5,17 @@ import { useEffect, useState, useTransition } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Save, Users, Percent } from 'lucide-react';
+import { Loader2, Save, Users, Percent, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { useRouter } from 'next/navigation';
 
 const MAX_LEVELS = 5;
 
 export default function ReferralSettingsPage() {
     const { toast } = useToast();
+    const router = useRouter();
     const [commissions, setCommissions] = useState<number[]>(Array(MAX_LEVELS).fill(0));
     const [loading, setLoading] = useState(true);
     const [isSaving, startSaving] = useTransition();
@@ -68,9 +70,15 @@ export default function ReferralSettingsPage() {
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold">Referral Settings</h1>
-                <p className="text-muted-foreground">Manage multi-level referral commission percentages.</p>
+            <div className="flex justify-between items-center">
+                <div>
+                    <h1 className="text-3xl font-bold">Referral Settings</h1>
+                    <p className="text-muted-foreground">Manage multi-level referral commission percentages.</p>
+                </div>
+                 <Button variant="outline" onClick={() => router.push('/cmadmin/settings')}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back to Settings
+                </Button>
             </div>
 
             <Card>

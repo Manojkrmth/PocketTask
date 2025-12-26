@@ -7,13 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, PlusCircle, Trash2, Edit, Link as LinkIcon, Image as ImageIcon, Text as TextIcon, Save } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Edit, Link as LinkIcon, Image as ImageIcon, Text as TextIcon, Save, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { useRouter } from 'next/navigation';
 
 interface Offer {
     id: number;
@@ -27,6 +28,7 @@ interface Offer {
 
 export default function OffersSettingsPage() {
     const { toast } = useToast();
+    const router = useRouter();
     const [offers, setOffers] = useState<Offer[]>([]);
     const [loading, setLoading] = useState(true);
     const [isSubmitting, startSubmitting] = useTransition();
@@ -127,9 +129,15 @@ export default function OffersSettingsPage() {
     return (
         <>
             <div className="space-y-6">
-                <div>
-                    <h1 className="text-3xl font-bold">Featured Offers</h1>
-                    <p className="text-muted-foreground">Manage the promotional offers on the home page carousel.</p>
+                <div className="flex justify-between items-center">
+                    <div>
+                        <h1 className="text-3xl font-bold">Featured Offers</h1>
+                        <p className="text-muted-foreground">Manage the promotional offers on the home page carousel.</p>
+                    </div>
+                     <Button variant="outline" onClick={() => router.push('/cmadmin/settings')}>
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Back to Settings
+                    </Button>
                 </div>
 
                 <Card>

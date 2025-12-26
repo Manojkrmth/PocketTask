@@ -5,11 +5,12 @@ import { useEffect, useState, useTransition } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Save, Wallet, IndianRupee, Percent } from 'lucide-react';
+import { Loader2, Save, Wallet, IndianRupee, Percent, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { useRouter } from 'next/navigation';
 
 interface MethodSetting {
     id: string;
@@ -25,7 +26,7 @@ interface WithdrawalSettings {
 
 export default function WithdrawalSettingsPage() {
     const { toast } = useToast();
-    const [settings, setSettings] = useState<any>(null);
+    const router = useRouter();
     const [withdrawalSettings, setWithdrawalSettings] = useState<WithdrawalSettings | null>(null);
     const [loading, setLoading] = useState(true);
     const [isSaving, startSaving] = useTransition();
@@ -35,7 +36,7 @@ export default function WithdrawalSettingsPage() {
             setLoading(true);
             const { data, error } = await supabase
                 .from('settings')
-                .select('settings_data')
+                .select('withdrawal_settings')
                 .eq('id', 1)
                 .single();
 
@@ -43,8 +44,7 @@ export default function WithdrawalSettingsPage() {
                 console.error('Error fetching settings:', error);
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch app settings.' });
             } else {
-                setSettings(data.settings_data);
-                setWithdrawalSettings(data.settings_data.withdrawal || { minAmount: 0, chargesPercent: 0, methods: [] });
+                setWithdrawalSettings(data.withdrawal_settings || { minAmount: 0, chargesPercent: 0, methods: [] });
             }
             setLoading(false);
         };
@@ -76,14 +76,9 @@ export default function WithdrawalSettingsPage() {
         if (!withdrawalSettings) return;
 
         startSaving(async () => {
-            const updatedSettings = {
-                ...settings,
-                withdrawal: withdrawalSettings
-            };
-
             const { error } = await supabase
                 .from('settings')
-                .update({ settings_data: updatedSettings })
+                .update({ withdrawal_settings: withdrawalSettings })
                 .eq('id', 1);
 
             if (error) {
@@ -100,9 +95,15 @@ export default function WithdrawalSettingsPage() {
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold">Withdrawal Settings</h1>
-                <p className="text-muted-foreground">Control all aspects of user withdrawals.</p>
+            <div className="flex justify-between items-center">
+                <div>
+                    <h1 className="text-3xl font-bold">Withdrawal Settings</h1>
+                    <p className="text-muted-foreground">Control all aspects of user withdrawals.</p>
+                </div>
+                 <Button variant="outline" onClick={() => router.push('/cmadmin/settings')}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back to Settings
+                </Button>
             </div>
 
             <Card>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Suspense, useMemo, useState, useEffect } from 'react';
@@ -62,16 +63,16 @@ function CoinTaskComponent() {
 
             const { data: settings, error } = await supabase
                 .from('settings')
-                .select('settings_data->taskSettings')
+                .select('task_settings')
                 .eq('id', 1)
                 .single();
 
-            if (error || !settings || !settings.taskSettings) {
+            if (error || !settings || !settings.task_settings) {
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not load task configuration.' });
                 router.push('/tasks');
                 return;
             }
-            setTaskSettings(settings.taskSettings as any[]);
+            setTaskSettings(settings.task_settings as any[]);
             setIsLoading(false);
         };
         initialize();

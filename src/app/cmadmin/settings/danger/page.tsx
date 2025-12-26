@@ -5,7 +5,7 @@ import { useState, useTransition } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Loader2, AlertTriangle, Trash2, Database, ExternalLink, Calendar } from 'lucide-react';
+import { Loader2, AlertTriangle, Trash2, Database, ExternalLink, Calendar, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -20,9 +20,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useRouter } from 'next/navigation';
 
 export default function DangerZonePage() {
     const { toast } = useToast();
+    const router = useRouter();
     const [isResetting, startResetting] = useTransition();
     const [isDeletingHistory, startDeletingHistory] = useTransition();
     const [confirmationText, setConfirmationText] = useState('');
@@ -95,9 +97,15 @@ export default function DangerZonePage() {
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold text-destructive">Danger Zone</h1>
-                <p className="text-muted-foreground">Be extremely careful. These actions are irreversible.</p>
+            <div className="flex justify-between items-center">
+                <div>
+                    <h1 className="text-3xl font-bold text-destructive">Danger Zone</h1>
+                    <p className="text-muted-foreground">Be extremely careful. These actions are irreversible.</p>
+                </div>
+                 <Button variant="outline" onClick={() => router.push('/cmadmin/settings')}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back to Settings
+                </Button>
             </div>
 
             <div className="grid md:grid-cols-2 gap-6">

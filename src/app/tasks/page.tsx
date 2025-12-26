@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -70,14 +71,14 @@ export default function ChooseTaskTypePage() {
       setIsLoading(true);
       const { data, error } = await supabase
         .from('settings')
-        .select('settings_data->taskSettings')
+        .select('task_settings')
         .eq('id', 1)
         .single();
       
       if (error) {
         console.error("Error fetching task settings", error);
-      } else if (data && data.taskSettings) {
-        setTaskSettings(data.taskSettings as any[]);
+      } else if (data && data.task_settings) {
+        setTaskSettings(data.task_settings as any[]);
       }
       setIsLoading(false);
     };
@@ -106,7 +107,7 @@ export default function ChooseTaskTypePage() {
           <div className="flex justify-center items-center h-64">
             <Loader2 className="h-8 w-8 animate-spin" />
           </div>
-        ) : (
+        ) : enabledTasks.length > 0 ? (
           <div className="grid grid-cols-2 gap-4">
             {enabledTasks.map((task) => (
               <Link href={`/tasks/${task.id}`} key={task.name} className="group">
@@ -135,6 +136,10 @@ export default function ChooseTaskTypePage() {
               </Link>
             ))}
           </div>
+        ) : (
+             <div className="text-center py-10">
+                <p className="text-muted-foreground">No tasks are available at the moment. Please check back later.</p>
+            </div>
         )}
         <BannerAd adId="tasks" />
       </main>
