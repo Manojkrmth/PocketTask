@@ -14,7 +14,6 @@ const MAX_LEVELS = 5;
 
 export default function ReferralSettingsPage() {
     const { toast } = useToast();
-    const [settings, setSettings] = useState<any>(null);
     const [commissions, setCommissions] = useState<number[]>(Array(MAX_LEVELS).fill(0));
     const [loading, setLoading] = useState(true);
     const [isSaving, startSaving] = useTransition();
@@ -24,17 +23,15 @@ export default function ReferralSettingsPage() {
             setLoading(true);
             const { data, error } = await supabase
                 .from('settings')
-                .select('settings_data')
+                .select('referral_commissions')
                 .eq('id', 1)
                 .single();
 
             if (error) {
                 console.error('Error fetching settings:', error);
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch app settings.' });
-            } else {
-                setSettings(data.settings_data);
-                const savedCommissions = data.settings_data.referralCommissions || [];
-                // Ensure the array has exactly MAX_LEVELS elements
+            } else if (data) {
+                const savedCommissions = data.referral_commissions || [];
                 const finalCommissions = Array.from({ length: MAX_LEVELS }, (_, i) => savedCommissions[i] || 0);
                 setCommissions(finalCommissions);
             }
@@ -46,20 +43,15 @@ export default function ReferralSettingsPage() {
     const handleCommissionChange = (levelIndex: number, value: string) => {
         const newCommissions = [...commissions];
         const numValue = parseFloat(value);
-        newCommissions[levelIndex] = isNaN(numValue) ? 0 : Math.max(0, numValue); // Ensure non-negative
+        newCommissions[levelIndex] = isNaN(numValue) ? 0 : Math.max(0, numValue);
         setCommissions(newCommissions);
     };
 
     const handleSaveChanges = () => {
         startSaving(async () => {
-            const updatedSettings = {
-                ...settings,
-                referralCommissions: commissions
-            };
-
             const { error } = await supabase
                 .from('settings')
-                .update({ settings_data: updatedSettings })
+                .update({ referral_commissions: commissions })
                 .eq('id', 1);
 
             if (error) {
