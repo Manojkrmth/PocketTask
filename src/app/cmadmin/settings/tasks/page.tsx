@@ -27,7 +27,6 @@ interface TaskSetting {
 
 export default function TaskSettingsPage() {
     const { toast } = useToast();
-    const [settings, setSettings] = useState<any>(null);
     const [taskSettings, setTaskSettings] = useState<TaskSetting[]>([]);
     const [loading, setLoading] = useState(true);
     const [isSaving, startSaving] = useTransition();
@@ -37,17 +36,16 @@ export default function TaskSettingsPage() {
             setLoading(true);
             const { data, error } = await supabase
                 .from('settings')
-                .select('settings_data')
+                .select('task_settings')
                 .eq('id', 1)
                 .single();
 
             if (error) {
                 console.error('Error fetching settings:', error);
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch app settings.' });
-            } else {
-                setSettings(data.settings_data);
+            } else if (data && data.task_settings) {
                 // Ensure default values if fields are missing
-                const initializedSettings = (data.settings_data.taskSettings || []).map((task: any) => ({
+                const initializedSettings = (data.task_settings as any[]).map((task: any) => ({
                     reward: 0,
                     rules: '',
                     ...task
@@ -69,14 +67,9 @@ export default function TaskSettingsPage() {
 
     const handleSaveChanges = () => {
         startSaving(async () => {
-            const updatedSettings = {
-                ...settings,
-                taskSettings: taskSettings
-            };
-
             const { error } = await supabase
                 .from('settings')
-                .update({ settings_data: updatedSettings })
+                .update({ task_settings: taskSettings })
                 .eq('id', 1);
 
             if (error) {
