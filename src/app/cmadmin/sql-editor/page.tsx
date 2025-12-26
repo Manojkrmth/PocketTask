@@ -1,9 +1,10 @@
 
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CopyButton } from '@/components/copy-button';
-import { Copy, AlertTriangle, AreaChart, BarChart } from 'lucide-react';
+import { Copy, AlertTriangle, AreaChart, BarChart, Users } from 'lucide-react';
 import { Alert, AlertTitle } from '@/components/ui/alert';
 
 const masterSqlScript = `
@@ -310,6 +311,61 @@ END;
 $$;
 `;
 
+const userReferralCountSql = `
+-- =================================================================
+-- FIX: User Referral Counts
+-- =================================================================
+-- Creates a function to fetch all users along with their Level 1 referral count.
+-- Run this ONCE to enable sorting by "Top Referrers" on the Users page.
+-- =================================================================
+
+CREATE OR REPLACE FUNCTION get_users_with_referral_counts()
+RETURNS TABLE(
+    id uuid,
+    full_name text,
+    email text,
+    mobile text,
+    status text,
+    created_at timestamptz,
+    referral_code text,
+    balance_available numeric,
+    referral_count bigint
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    IF is_admin(auth.uid()) THEN
+        RETURN QUERY
+        SELECT
+            u.id,
+            u.full_name,
+            u.email,
+            u.mobile,
+            u.status,
+            u.created_at,
+            u.referral_code,
+            u.balance_available,
+            COALESCE(rc.referral_count, 0) AS referral_count
+        FROM
+            public.users u
+        LEFT JOIN (
+            SELECT
+                referred_by,
+                COUNT(*) as referral_count
+            FROM
+                public.users
+            WHERE
+                referred_by IS NOT NULL
+            GROUP BY
+                referred_by
+        ) rc ON u.referral_code = rc.referred_by;
+    END IF;
+END;
+$$;
+`;
+
 export default function SqlEditorPage() {
 
   return (
@@ -320,6 +376,30 @@ export default function SqlEditorPage() {
           Run these SQL queries in your Supabase project to fix specific issues.
         </p>
       </div>
+      
+       <Card className="border-indigo-500">
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Users className="text-indigo-500"/> Fix: User Referral Counts</CardTitle>
+            <CardDescription>
+                This command creates a function to fetch users along with their referral counts. Run this once to enable sorting by "Top Referrers" on the Users page.
+            </CardDescription>
+        </CardHeader>
+        <CardContent>
+            <div className="relative rounded-md bg-muted/50 p-4">
+              <CopyButton 
+                value={userReferralCountSql}
+                variant="ghost"
+                size="icon"
+                className="absolute top-2 right-2 h-7 w-7"
+              >
+                  <Copy className="h-4 w-4" />
+              </CopyButton>
+              <pre className="text-sm whitespace-pre-wrap font-mono">
+                <code>{userReferralCountSql.trim()}</code>
+              </pre>
+            </div>
+        </CardContent>
+       </Card>
 
        <Card className="border-cyan-500">
         <CardHeader>
@@ -469,4 +549,3 @@ export default function SqlEditorPage() {
   );
 }
 
-    

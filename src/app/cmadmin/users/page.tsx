@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import {
   Table,
@@ -12,6 +12,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,7 +34,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Mail, Phone, UserX, UserCheck, Eye } from 'lucide-react';
+import { Loader2, Mail, Phone, UserX, UserCheck, Eye, ListFilter, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { useCurrency } from '@/context/currency-context';
@@ -32,6 +42,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface AppUser {
   id: string;
@@ -42,17 +53,22 @@ interface AppUser {
   created_at: string;
   referral_code: string;
   balance_available: number;
+  referral_count: number;
 }
 
 type ActionType = 'Block' | 'Unblock';
+type SortByType = 'latest' | 'balance' | 'referrals';
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<AppUser[]>([]);
+  const [allUsers, setAllUsers] = useState<AppUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
+  const [sortBy, setSortBy] = useState<SortByType>('latest');
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  
   const { formatCurrency } = useCurrency();
   const { toast } = useToast();
-  const router = useRouter();
   
   const [isUpdating, startUpdateTransition] = useTransition();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -61,13 +77,13 @@ export default function UsersPage() {
 
   const fetchUsers = async () => {
     setLoading(true);
-    const { data, error } = await supabase.rpc('get_all_users');
+    const { data, error } = await supabase.rpc('get_users_with_referral_counts');
 
     if (error) {
       console.error("Error fetching users:", error);
-      toast({ variant: "destructive", title: "Error", description: "Could not fetch users. Please run the latest SQL script from the SQL Editor page." });
+      toast({ variant: "destructive", title: "Error", description: "Could not fetch users. Please ensure the 'get_users_with_referral_counts' function exists by running the script from the SQL Editor page." });
     } else {
-      setUsers(data as AppUser[]);
+      setAllUsers(data as AppUser[]);
     }
     setLoading(false);
   };
@@ -107,12 +123,35 @@ export default function UsersPage() {
     setSelectedUser(null);
     setActionType(null);
   };
+  
+  const sortedAndFilteredUsers = useMemo(() => {
+    const filtered = allUsers.filter(user =>
+        (user.full_name?.toLowerCase().includes(filter.toLowerCase()) ?? false) ||
+        (user.email?.toLowerCase().includes(filter.toLowerCase()) ?? false) ||
+        (user.mobile?.includes(filter) ?? false)
+    );
+    
+    switch (sortBy) {
+        case 'balance':
+            return filtered.sort((a, b) => (b.balance_available || 0) - (a.balance_available || 0));
+        case 'referrals':
+             return filtered.sort((a, b) => (b.referral_count || 0) - (a.referral_count || 0));
+        case 'latest':
+        default:
+            return filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    }
+  }, [allUsers, filter, sortBy]);
+  
+  const totalPages = Math.ceil(sortedAndFilteredUsers.length / rowsPerPage);
+  const paginatedUsers = useMemo(() => {
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    return sortedAndFilteredUsers.slice(startIndex, startIndex + rowsPerPage);
+  }, [sortedAndFilteredUsers, currentPage, rowsPerPage]);
 
-  const filteredUsers = users.filter(user =>
-    user.full_name?.toLowerCase().includes(filter.toLowerCase()) ||
-    user.email?.toLowerCase().includes(filter.toLowerCase()) ||
-    user.mobile?.includes(filter)
-  );
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, sortBy, rowsPerPage]);
+
   
   return (
     <>
@@ -124,12 +163,32 @@ export default function UsersPage() {
               View, search, and manage all registered users.
             </p>
           </div>
-          <Input
-            placeholder="Filter by name, email, or mobile..."
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="max-w-sm"
-          />
+          <div className="flex gap-2">
+             <Input
+                placeholder="Filter by name, email, or mobile..."
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                className="w-64"
+             />
+             <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="gap-1">
+                        <ListFilter className="h-3.5 w-3.5" />
+                        <span>Sort by</span>
+                        <ChevronDown className="h-3.5 w-3.5" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Sort Users By</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuRadioGroup value={sortBy} onValueChange={(value) => setSortBy(value as SortByType)}>
+                        <DropdownMenuRadioItem value="latest">Latest Registered</DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value="balance">Top Balance</DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value="referrals">Top Referrers</DropdownMenuRadioItem>
+                    </DropdownMenuRadioGroup>
+                </DropdownMenuContent>
+             </DropdownMenu>
+          </div>
         </div>
 
         <div className="border rounded-lg bg-card">
@@ -151,8 +210,8 @@ export default function UsersPage() {
                     <Loader2 className="mx-auto h-6 w-6 animate-spin" />
                   </TableCell>
                 </TableRow>
-              ) : filteredUsers.length > 0 ? (
-                filteredUsers.map((user) => (
+              ) : paginatedUsers.length > 0 ? (
+                paginatedUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell>
                       <div className="font-medium">{user.full_name || 'N/A'}</div>
@@ -223,6 +282,55 @@ export default function UsersPage() {
             </TableBody>
           </Table>
         </div>
+        
+         <div className="flex items-center justify-between px-2">
+            <div className="text-sm text-muted-foreground">
+                Showing <strong>{paginatedUsers.length}</strong> of <strong>{sortedAndFilteredUsers.length}</strong> users.
+            </div>
+            <div className="flex items-center gap-6">
+                <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium">Rows per page</p>
+                    <Select
+                        value={`${rowsPerPage}`}
+                        onValueChange={(value) => setRowsPerPage(Number(value))}
+                    >
+                        <SelectTrigger className="h-8 w-[70px]">
+                            <SelectValue placeholder={rowsPerPage} />
+                        </SelectTrigger>
+                        <SelectContent side="top">
+                            {[10, 20, 50, 100].map((pageSize) => (
+                                <SelectItem key={pageSize} value={`${pageSize}`}>
+                                    {pageSize}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="text-sm font-medium">
+                    Page {currentPage} of {totalPages}
+                </div>
+                 <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        className="h-8 w-8 p-0"
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                    >
+                        <span className="sr-only">Go to previous page</span>
+                        <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        variant="outline"
+                        className="h-8 w-8 p-0"
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                    >
+                        <span className="sr-only">Go to next page</span>
+                        <ChevronRight className="h-4 w-4" />
+                    </Button>
+                </div>
+            </div>
+         </div>
       </div>
       <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <AlertDialogContent>
@@ -247,3 +355,4 @@ export default function UsersPage() {
     </>
   );
 }
+
