@@ -144,14 +144,12 @@ export default function WithdrawalsPage() {
                       .eq('id', pendingTransaction.id);
                 }
             } else if (newStatus === 'Approved') {
-                 // Update the existing 'withdrawal_pending' record to 'Completed'
-                 const { error: walletError } = await supabase
+                const { error: walletError } = await supabase
                     .from('wallet_history')
                     .update({ 
                         status: 'Completed', 
                         description: `Withdrawal to ${selectedRequest.payment_method}. UTR: ${actionDetail}`,
-                        type: 'withdrawal',
-                        metadata: { utr: actionDetail }
+                        metadata: { ...selectedRequest.metadata, utr: actionDetail, payment_id: selectedRequest.id }
                     })
                     .eq('user_id', selectedRequest.user_id)
                     .eq('type', 'withdrawal_pending')
