@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from "next/link";
@@ -55,7 +56,9 @@ export function BottomNav() {
                 : "text-primary-foreground/70"
             )}
           >
-            <item.icon className="w-6 h-6 transition-transform group-hover:scale-110" />
+            <div className="flex-shrink-0">
+               <item.icon className="w-6 h-6 transition-transform group-hover:scale-110" />
+            </div>
             <span className="text-xs font-medium">{item.label}</span>
           </Link>
         );

@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, Loader2, CheckCircle, XCircle, FileText, IndianRupee } from 'lucide-react';
+import { MoreHorizontal, Loader2, CheckCircle, XCircle, FileText, IndianRupee, Hash } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useCurrency } from '@/context/currency-context';
 import { cn } from '@/lib/utils';
@@ -103,7 +103,6 @@ export default function WithdrawalsPage() {
         try {
             const metadata = newStatus === 'Approved' ? { utr: actionDetail } : { reason: actionDetail };
             
-            // First, update the payment status
             const { error: updateError } = await supabase
                 .from('payments')
                 .update({ status: newStatus, metadata })
@@ -111,9 +110,7 @@ export default function WithdrawalsPage() {
             
             if (updateError) throw updateError;
             
-            // Now, handle wallet history based on the new status
             if (newStatus === 'Rejected') {
-                // Find the original "pending" transaction to refund
                 const { data: pendingTransaction, error: findError } = await supabase
                     .from('wallet_history')
                     .select('id, amount')
@@ -125,19 +122,17 @@ export default function WithdrawalsPage() {
                 if (findError && findError.code !== 'PGRST116') throw findError;
 
                 if (pendingTransaction) {
-                     // Insert a refund transaction
                     const { error: walletError } = await supabase
                         .from('wallet_history')
                         .insert({
                             user_id: selectedRequest.user_id,
-                            amount: Math.abs(pendingTransaction.amount), // Refund the positive amount
+                            amount: Math.abs(pendingTransaction.amount),
                             type: 'withdrawal_refund',
                             status: 'Completed',
                             description: `Refund for rejected withdrawal #${selectedRequest.id}. Reason: ${actionDetail}`
                         });
                     if (walletError) throw walletError;
 
-                    // Optionally, update the original pending transaction to 'cancelled' or similar
                     await supabase
                       .from('wallet_history')
                       .update({ status: 'Cancelled', description: `Request rejected by admin. Reason: ${actionDetail}` })
@@ -149,17 +144,14 @@ export default function WithdrawalsPage() {
                     .update({ 
                         status: 'Completed', 
                         description: `Withdrawal to ${selectedRequest.payment_method}. UTR: ${actionDetail}`,
-                        metadata: { ...selectedRequest.metadata, utr: actionDetail, payment_id: selectedRequest.id }
                     })
-                    .eq('user_id', selectedRequest.user_id)
-                    .eq('type', 'withdrawal_pending')
                     .eq('metadata->>payment_id', String(selectedRequest.id));
 
                 if (walletError) throw walletError;
             }
 
             toast({ title: 'Success', description: `Request #${selectedRequest.id} has been ${newStatus.toLowerCase()}.`});
-            await fetchRequests(); // Refresh data
+            await fetchRequests();
         } catch(error: any) {
             console.error('Error updating request:', error);
             toast({ variant: 'destructive', title: 'Update Failed', description: error.message });
@@ -206,6 +198,7 @@ export default function WithdrawalsPage() {
                 <TableCell>
                   <div className="font-medium">{item.users?.full_name || 'N/A'}</div>
                   <div className="text-xs text-muted-foreground">{item.users?.email}</div>
+                   <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1"><Hash className="h-3 w-3"/>Req #{item.id}</div>
                 </TableCell>
                 <TableCell>
                     <div className="font-semibold text-green-600">{formatCurrency(item.amount || 0)}</div>
