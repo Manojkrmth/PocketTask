@@ -163,13 +163,13 @@ export default function AdminDashboardPage() {
             </CardContent>
         </Card>
 
-        <Card className="bg-yellow-50 border-yellow-200">
+        <Card className="bg-green-50 border-green-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-yellow-800">Pending Tasks</CardTitle>
-                <Hourglass className="h-4 w-4 text-yellow-600" />
+                <CardTitle className="text-sm font-medium text-green-800">Total Withdrawn</CardTitle>
+                <TrendingUp className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
-                {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : <div className="text-2xl font-bold text-yellow-900">{pendingTasks}</div>}
+                {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : <div className="text-2xl font-bold text-green-900">{formatCurrency(totalWithdrawals || 0)}</div>}
             </CardContent>
         </Card>
 
@@ -183,13 +183,13 @@ export default function AdminDashboardPage() {
             </CardContent>
         </Card>
         
-        <Card className="bg-green-50 border-green-200">
+        <Card className="bg-yellow-50 border-yellow-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-green-800">Total Withdrawn</CardTitle>
-                <TrendingUp className="h-4 w-4 text-green-600" />
+                <CardTitle className="text-sm font-medium text-yellow-800">Pending Tasks</CardTitle>
+                <Hourglass className="h-4 w-4 text-yellow-600" />
             </CardHeader>
             <CardContent>
-                {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : <div className="text-2xl font-bold text-green-900">{formatCurrency(totalWithdrawals || 0)}</div>}
+                {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : <div className="text-2xl font-bold text-yellow-900">{pendingTasks}</div>}
             </CardContent>
         </Card>
 
