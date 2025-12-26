@@ -16,7 +16,8 @@ import {
     Crown,
     Copy,
     Coins,
-    Banknote
+    Banknote,
+    DollarSign
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -40,6 +41,7 @@ export default function AdminDashboardPage() {
   const [totalWithdrawals, setTotalWithdrawals] = useState<number | null>(null);
   const [pendingWithdrawals, setPendingWithdrawals] = useState<{count: number; amount: number} | null>(null);
   const [pendingCoins, setPendingCoins] = useState<number | null>(null);
+  const [totalRevenue, setTotalRevenue] = useState<number | null>(null);
   
   const [topBalanceUsers, setTopBalanceUsers] = useState<TopUser[]>([]);
   const [topReferralUsers, setTopReferralUsers] = useState<TopUser[]>([]);
@@ -70,6 +72,8 @@ export default function AdminDashboardPage() {
         pendingCoinsRes,
         topBalanceRes,
         topReferralRes,
+        approvedTasksRes,
+        approvedCoinsRes
       ] = await Promise.all([
         supabase.rpc('get_total_users_count'),
         supabase.from('usertasks').select('*', { count: 'exact', head: true }).eq('status', 'Pending'),
@@ -79,6 +83,8 @@ export default function AdminDashboardPage() {
         supabase.from('coinsubmissions').select('*', { count: 'exact', head: true }).eq('status', 'Pending'),
         supabase.from('users').select('id, full_name, email, balance_available').order('balance_available', { ascending: false }).limit(10),
         supabase.rpc('get_top_referral_users', { limit_count: 10 }),
+        supabase.from('usertasks').select('reward').eq('status', 'Approved'),
+        supabase.from('coinsubmissions').select('reward_inr').eq('status', 'Approved')
       ]);
       
       const { data: totalBalanceData, error: totalBalanceError } = await supabase.rpc('get_total_users_balance');
@@ -94,6 +100,10 @@ export default function AdminDashboardPage() {
       setPendingWithdrawals({count: pendingWithdrawalsCount, amount: pendingWithdrawalsAmount });
 
       setPendingCoins(pendingCoinsRes.count);
+      
+      const approvedTasksRevenue = approvedTasksRes.data?.reduce((sum, { reward }) => sum + (reward || 0), 0) || 0;
+      const approvedCoinsRevenue = approvedCoinsRes.data?.reduce((sum, { reward_inr }) => sum + (reward_inr || 0), 0) || 0;
+      setTotalRevenue(approvedTasksRevenue + approvedCoinsRevenue);
 
       if (topBalanceRes.data) setTopBalanceUsers(topBalanceRes.data);
       if (topReferralRes.data) setTopReferralUsers(topReferralRes.data);
@@ -122,7 +132,7 @@ export default function AdminDashboardPage() {
         </div>
       </div>
        
-       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="bg-blue-50 border-blue-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-blue-800">Total Users</CardTitle>
@@ -140,6 +150,16 @@ export default function AdminDashboardPage() {
             </CardHeader>
             <CardContent>
                 {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : <div className="text-2xl font-bold text-cyan-900">{formatCurrency(totalUsersBalance || 0)}</div>}
+            </CardContent>
+        </Card>
+        
+        <Card className="bg-emerald-50 border-emerald-200">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-emerald-800">Total Revenue Generated</CardTitle>
+                <DollarSign className="h-4 w-4 text-emerald-600" />
+            </CardHeader>
+            <CardContent>
+                {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : <div className="text-2xl font-bold text-emerald-900">{formatCurrency(totalRevenue || 0)}</div>}
             </CardContent>
         </Card>
 
