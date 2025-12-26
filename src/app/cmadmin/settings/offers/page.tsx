@@ -6,124 +6,131 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Save, Gift, PlusCircle, Trash2, Edit, Link as LinkIcon, Image as ImageIcon, Text as TextIcon } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Edit, Link as LinkIcon, Image as ImageIcon, Text as TextIcon, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 
 interface Offer {
-    id: string;
+    id: number;
+    created_at: string;
     imageUrl: string;
     description: string;
     redirectLink: string;
     enabled: boolean;
+    sort_order: number;
 }
 
 export default function OffersSettingsPage() {
     const { toast } = useToast();
-    const [settings, setSettings] = useState<any>(null);
     const [offers, setOffers] = useState<Offer[]>([]);
     const [loading, setLoading] = useState(true);
-    const [isSaving, startSaving] = useTransition();
+    const [isSubmitting, startSubmitting] = useTransition();
 
-    // State for new/editing offer
-    const [editOffer, setEditOffer] = useState<Partial<Offer> | null>(null);
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [editingOffer, setEditingOffer] = useState<Partial<Offer> | null>(null);
+
+    const fetchOffers = async () => {
+        setLoading(true);
+        const { data, error } = await supabase
+            .from('featured_offers')
+            .select('*')
+            .order('sort_order', { ascending: true })
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch offers. ' + error.message });
+        } else {
+            setOffers(data as Offer[]);
+        }
+        setLoading(false);
+    };
 
     useEffect(() => {
-        const fetchSettings = async () => {
-            setLoading(true);
-            const { data, error } = await supabase
-                .from('settings')
-                .select('settings_data')
-                .eq('id', 1)
-                .single();
-
-            if (error) {
-                console.error('Error fetching settings:', error);
-                toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch app settings.' });
-            } else {
-                setSettings(data.settings_data);
-                const fetchedOffers = data.settings_data.featuredOffers || [];
-                // Ensure backward compatibility by adding `enabled: true` if it's missing
-                const updatedOffers = fetchedOffers.map((offer: Offer) => ({ ...offer, enabled: offer.enabled ?? true }));
-                setOffers(updatedOffers);
-            }
-            setLoading(false);
-        };
-        fetchSettings();
+        fetchOffers();
     }, [toast]);
 
-    const handleSaveChanges = () => {
-        startSaving(async () => {
-            const updatedSettings = {
-                ...settings,
-                featuredOffers: offers,
-            };
-            
-            setSettings(updatedSettings); // Update local settings state before saving
-
-            const { error } = await supabase
-                .from('settings')
-                .update({ settings_data: updatedSettings })
-                .eq('id', 1);
-
-            if (error) {
-                toast({ variant: 'destructive', title: 'Save Failed', description: error.message });
-            } else {
-                toast({ title: 'Success', description: 'Featured offers have been updated.' });
-            }
-        });
-    };
-
     const handleAddNewClick = () => {
-        setEditOffer({ id: `offer_${Date.now()}`, imageUrl: '', description: '', redirectLink: '', enabled: true });
-    };
-    
-    const handleOfferEnabledChange = (offerId: string, checked: boolean) => {
-        setOffers(prev => prev.map(o => o.id === offerId ? { ...o, enabled: checked } : o));
+        setEditingOffer({ imageUrl: '', description: '', redirectLink: '', enabled: true, sort_order: (offers.length + 1) * 10 });
+        setDialogOpen(true);
     };
 
     const handleEditClick = (offer: Offer) => {
-        setEditOffer(offer);
+        setEditingOffer(offer);
+        setDialogOpen(true);
     };
 
-    const handleDelete = (offerId: string) => {
-        setOffers(prev => prev.filter(o => o.id !== offerId));
+    const handleDelete = async (offerId: number) => {
+        if (!window.confirm('Are you sure you want to delete this offer?')) return;
+        
+        startSubmitting(async () => {
+             const { error } = await supabase.from('featured_offers').delete().eq('id', offerId);
+             if (error) {
+                 toast({ variant: 'destructive', title: 'Delete Failed', description: error.message });
+             } else {
+                 toast({ title: 'Success', description: 'Offer has been deleted.' });
+                 await fetchOffers();
+             }
+        });
     };
 
-    const handleSaveOffer = () => {
-        if (!editOffer || !editOffer.imageUrl) {
+    const handleSaveOffer = async () => {
+        if (!editingOffer || !editingOffer.imageUrl) {
             toast({ variant: 'destructive', title: 'Validation Error', description: 'Image URL is required.' });
             return;
         }
 
-        const existingIndex = offers.findIndex(o => o.id === editOffer.id);
-        if (existingIndex > -1) {
-            // Update existing
-            const updatedOffers = [...offers];
-            updatedOffers[existingIndex] = editOffer as Offer;
-            setOffers(updatedOffers);
-        } else {
-            // Add new
-            setOffers(prev => [...prev, editOffer as Offer]);
-        }
-        setEditOffer(null);
+        startSubmitting(async () => {
+            const { error } = await supabase.from('featured_offers').upsert({
+                id: editingOffer.id,
+                imageUrl: editingOffer.imageUrl,
+                description: editingOffer.description,
+                redirectLink: editingOffer.redirectLink,
+                enabled: editingOffer.enabled,
+                sort_order: editingOffer.sort_order,
+            });
+
+            if (error) {
+                 toast({ variant: 'destructive', title: 'Save Failed', description: error.message });
+            } else {
+                 toast({ title: 'Success', description: 'Offer has been saved.' });
+                 setDialogOpen(false);
+                 await fetchOffers();
+            }
+        });
     };
+    
+    const handleToggleEnabled = async (offer: Offer) => {
+         startSubmitting(async () => {
+             const { error } = await supabase
+                .from('featured_offers')
+                .update({ enabled: !offer.enabled })
+                .eq('id', offer.id);
+            
+            if (error) {
+                 toast({ variant: 'destructive', title: 'Update Failed', description: error.message });
+            } else {
+                 toast({ title: 'Success', description: `Offer is now ${!offer.enabled ? 'enabled' : 'disabled'}.` });
+                 await fetchOffers();
+            }
+        });
+    }
 
     if (loading) {
         return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;
     }
 
     return (
-        <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold">Featured Offers</h1>
-                <p className="text-muted-foreground">Manage the promotional offers on the home page carousel.</p>
-            </div>
+        <>
+            <div className="space-y-6">
+                <div>
+                    <h1 className="text-3xl font-bold">Featured Offers</h1>
+                    <p className="text-muted-foreground">Manage the promotional offers on the home page carousel.</p>
+                </div>
 
-            {!editOffer ? (
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
                         <div>
@@ -136,7 +143,7 @@ export default function OffersSettingsPage() {
                         {offers.length > 0 ? (
                             offers.map(offer => (
                                 <div key={offer.id} className="flex items-center gap-4 border p-2 rounded-lg">
-                                    <Image src={offer.imageUrl} alt={offer.description} width={105} height={45} className="rounded-md object-cover aspect-[21/9] bg-muted" />
+                                    <Image src={offer.imageUrl} alt={offer.description || ''} width={105} height={45} className="rounded-md object-cover aspect-[21/9] bg-muted" />
                                     <div className="flex-1">
                                         <p className="font-semibold">{offer.description || 'No description'}</p>
                                         <p className="text-xs text-muted-foreground truncate">{offer.redirectLink || 'No link'}</p>
@@ -145,9 +152,9 @@ export default function OffersSettingsPage() {
                                         </Badge>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <Switch checked={offer.enabled} onCheckedChange={(checked) => handleOfferEnabledChange(offer.id, checked)} />
-                                        <Button variant="outline" size="icon" onClick={() => handleEditClick(offer)}><Edit className="h-4 w-4"/></Button>
-                                        <Button variant="destructive" size="icon" onClick={() => handleDelete(offer.id)}><Trash2 className="h-4 w-4"/></Button>
+                                        <Switch checked={offer.enabled} onCheckedChange={() => handleToggleEnabled(offer)} disabled={isSubmitting} />
+                                        <Button variant="outline" size="icon" onClick={() => handleEditClick(offer)} disabled={isSubmitting}><Edit className="h-4 w-4"/></Button>
+                                        <Button variant="destructive" size="icon" onClick={() => handleDelete(offer.id)} disabled={isSubmitting}><Trash2 className="h-4 w-4"/></Button>
                                     </div>
                                 </div>
                             ))
@@ -156,42 +163,46 @@ export default function OffersSettingsPage() {
                         )}
                     </CardContent>
                 </Card>
-            ) : (
-                 <Card>
-                    <CardHeader>
-                        <CardTitle>{offers.some(o => o.id === editOffer.id) ? 'Edit Offer' : 'Add New Offer'}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="space-y-2">
+            </div>
+            
+            <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) setEditingOffer(null); setDialogOpen(open);}}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{editingOffer?.id ? 'Edit Offer' : 'Add New Offer'}</DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4 space-y-4">
+                       <div className="space-y-2">
                             <Label htmlFor="imageUrl" className="flex items-center gap-2"><ImageIcon/> Image URL</Label>
-                            <Input id="imageUrl" value={editOffer.imageUrl || ''} onChange={e => setEditOffer({...editOffer, imageUrl: e.target.value})} placeholder="https://example.com/image.png" />
+                            <Input id="imageUrl" value={editingOffer?.imageUrl || ''} onChange={e => setEditingOffer({...editingOffer, imageUrl: e.target.value})} placeholder="https://example.com/image.png" disabled={isSubmitting} />
                         </div>
                          <div className="space-y-2">
                             <Label htmlFor="description" className="flex items-center gap-2"><TextIcon/> Description (Optional)</Label>
-                            <Input id="description" value={editOffer.description || ''} onChange={e => setEditOffer({...editOffer, description: e.target.value})} placeholder="e.g., Summer Sale" />
+                            <Input id="description" value={editingOffer?.description || ''} onChange={e => setEditingOffer({...editingOffer, description: e.target.value})} placeholder="e.g., Summer Sale" disabled={isSubmitting} />
                         </div>
                          <div className="space-y-2">
                             <Label htmlFor="redirectLink" className="flex items-center gap-2"><LinkIcon/> Redirect Link (Optional)</Label>
-                            <Input id="redirectLink" value={editOffer.redirectLink || ''} onChange={e => setEditOffer({...editOffer, redirectLink: e.target.value})} placeholder="https://example.com/offer" />
+                            <Input id="redirectLink" value={editingOffer?.redirectLink || ''} onChange={e => setEditingOffer({...editingOffer, redirectLink: e.target.value})} placeholder="https://example.com/offer" disabled={isSubmitting} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="sort_order">Sort Order</Label>
+                            <Input id="sort_order" type="number" value={editingOffer?.sort_order || 0} onChange={e => setEditingOffer({...editingOffer, sort_order: parseInt(e.target.value) || 0})} placeholder="e.g., 10, 20" disabled={isSubmitting} />
                         </div>
                          <div className="flex items-center space-x-2">
-                            <Switch id="enabled" checked={editOffer.enabled ?? true} onCheckedChange={checked => setEditOffer({...editOffer, enabled: checked })} />
+                            <Switch id="enabled" checked={editingOffer?.enabled ?? true} onCheckedChange={checked => setEditingOffer({...editingOffer, enabled: checked })} disabled={isSubmitting} />
                             <Label htmlFor="enabled">Enabled</Label>
                         </div>
-                        <div className="flex justify-end gap-2">
-                            <Button variant="ghost" onClick={() => setEditOffer(null)}>Cancel</Button>
-                            <Button onClick={handleSaveOffer}>Save Offer</Button>
-                        </div>
-                    </CardContent>
-                 </Card>
-            )}
-
-            <div className="flex justify-end gap-2">
-                <Button onClick={handleSaveChanges} disabled={isSaving || loading || !!editOffer}>
-                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                    Save All Changes to Carousel
-                </Button>
-            </div>
-        </div>
+                    </div>
+                    <DialogFooter>
+                         <DialogClose asChild>
+                            <Button variant="ghost" disabled={isSubmitting}>Cancel</Button>
+                        </DialogClose>
+                        <Button onClick={handleSaveOffer} disabled={isSubmitting}>
+                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4"/>}
+                            Save Offer
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }

@@ -118,6 +118,18 @@ export default function HomePage() {
       }
     };
 
+    const fetchOffers = async () => {
+        const { data, error } = await supabase
+            .from('featured_offers')
+            .select('*')
+            .eq('enabled', true)
+            .order('sort_order', { ascending: true });
+
+        if (!error && data) {
+            setFeaturedOffers(data);
+        }
+    };
+
     const setupUser = async (sessionUser: User) => {
       setUser(sessionUser);
       // Fetch user profile to get referral code and name
@@ -133,13 +145,13 @@ export default function HomePage() {
       // Fetch system settings
       const { data: settings } = await supabase.from('settings').select('settings_data').single();
       setSystemSettings(settings?.settings_data || {});
-      setFeaturedOffers(settings?.settings_data?.featuredOffers || []);
 
 
       await Promise.all([
         fetchWalletBalances(sessionUser.id),
         fetchNotificationCount(),
-        fetchTaskCounts(sessionUser.id)
+        fetchTaskCounts(sessionUser.id),
+        fetchOffers(),
       ]);
       
       setLoading(false);
@@ -172,14 +184,6 @@ export default function HomePage() {
       subscription.unsubscribe();
     };
   }, [router]);
-
-
-  const validFeaturedOffers = React.useMemo(() => {
-    if (!featuredOffers) return [];
-    return featuredOffers.filter(offer => 
-      offer.imageUrl && offer.enabled
-    );
-  }, [featuredOffers]);
 
   const handleComingSoon = () => {
     toast({
@@ -382,7 +386,7 @@ export default function HomePage() {
           <h2 className="text-md font-semibold mb-2 ml-1">Featured Offers</h2>
             {isLoading ? (
                 <div className="flex justify-center items-center h-48"><Loader2 className="h-8 w-8 animate-spin" /></div>
-            ) : validFeaturedOffers.length > 0 ? (
+            ) : featuredOffers.length > 0 ? (
                 <Carousel
                     opts={{
                         loop: true,
@@ -391,7 +395,7 @@ export default function HomePage() {
                     className="w-full"
                 >
                     <CarouselContent>
-                        {validFeaturedOffers.map((offer) => (
+                        {featuredOffers.map((offer) => (
                             <CarouselItem key={offer.id}>
                                 <Link href={offer.redirectLink || '#'} target="_blank" rel="noopener noreferrer">
                                     <Card className="overflow-hidden rounded-xl relative aspect-[21/9] block hover:opacity-90 transition-opacity">
