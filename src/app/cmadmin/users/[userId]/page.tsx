@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useEffect, useState, useTransition, useCallback } from 'react';
@@ -39,6 +40,7 @@ interface AppUser {
   status: string;
   created_at: string;
   referral_code: string;
+  balance_available: number;
 }
 
 interface FinancialStats {
@@ -63,7 +65,6 @@ export default function UserDetailsPage() {
   const [isBalanceDialogOpen, setIsBalanceDialogOpen] = useState(false);
   const [balanceAction, setBalanceAction] = useState<'credit' | 'debit'>('credit');
   const [balanceAmount, setBalanceAmount] = useState('');
-  const [balanceDescription, setBalanceDescription] = useState('');
   const [isUpdatingBalance, startBalanceUpdate] = useTransition();
 
   const fetchAllData = useCallback(async () => {
@@ -107,29 +108,28 @@ export default function UserDetailsPage() {
   }, [userId, fetchAllData]);
 
   const handleBalanceUpdate = () => {
-    if (!balanceAmount || !balanceDescription || !financials) {
-        toast({ variant: 'destructive', title: 'Missing fields', description: 'Please provide an amount and description.' });
+    if (!balanceAmount || !user) {
+        toast({ variant: 'destructive', title: 'Missing fields', description: 'Please provide an amount.' });
         return;
     }
     
     startBalanceUpdate(async () => {
         const amount = parseFloat(balanceAmount);
+        const currentBalance = user.balance_available || 0;
+        const newBalance = balanceAction === 'credit' ? currentBalance + amount : currentBalance - amount;
 
         try {
-            const { error } = await supabase.rpc('update_user_balance', {
-                p_user_id: userId,
-                p_amount: amount,
-                p_action: balanceAction,
-                p_description: `Admin: ${balanceDescription}`
-            });
+            const { error } = await supabase
+                .from('users')
+                .update({ balance_available: newBalance })
+                .eq('id', userId);
 
             if (error) throw error;
 
-            toast({ title: 'Balance Updated', description: 'The user wallet and history have been updated.' });
+            toast({ title: 'Balance Updated', description: "The user's balance has been updated." });
             setIsBalanceDialogOpen(false);
             setBalanceAmount('');
-            setBalanceDescription('');
-            await fetchAllData(); // Refresh all data
+            await fetchAllData();
 
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Update Failed', description: error.message });
@@ -158,7 +158,7 @@ export default function UserDetailsPage() {
   const formattedDate = format(new Date(user.created_at), 'PPP p');
 
   const stats = [
-    { label: 'Available Balance', value: formatCurrency(financials?.available_balance || 0), icon: Wallet, color: 'text-green-500' },
+    { label: 'Available Balance', value: formatCurrency(user.balance_available || 0), icon: Wallet, color: 'text-green-500' },
     { label: 'Pending Balance', value: formatCurrency(financials?.pending_balance || 0), icon: Clock, color: 'text-yellow-500' },
     { label: 'Total Earnings', value: formatCurrency(financials?.total_earnings || 0), icon: ArrowUp, color: 'text-blue-500' },
     { label: 'Total Withdrawn', value: formatCurrency(financials?.total_withdrawn || 0), icon: ArrowDown, color: 'text-red-500' },
@@ -262,7 +262,7 @@ export default function UserDetailsPage() {
         <DialogContent>
             <DialogHeader>
                 <DialogTitle>Edit User Balance</DialogTitle>
-                <DialogDescription>Manually credit or debit the user's wallet. This will be recorded in the wallet history.</DialogDescription>
+                <DialogDescription>Manually credit or debit the user's wallet. This will directly change the user's available balance.</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
                 <div className="space-y-2">
@@ -281,16 +281,12 @@ export default function UserDetailsPage() {
                     <Label htmlFor="balance-amount">Amount (in INR)</Label>
                     <Input id="balance-amount" type="number" placeholder="e.g., 100" value={balanceAmount} onChange={e => setBalanceAmount(e.target.value)} disabled={isUpdatingBalance} />
                 </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="balance-description">Reason / Description</Label>
-                    <Input id="balance-description" type="text" placeholder="e.g., Bonus for contest" value={balanceDescription} onChange={e => setBalanceDescription(e.target.value)} disabled={isUpdatingBalance} />
-                </div>
             </div>
             <DialogFooter>
                 <DialogClose asChild>
                     <Button variant="outline" disabled={isUpdatingBalance}>Cancel</Button>
                 </DialogClose>
-                <Button onClick={handleBalanceUpdate} disabled={isUpdatingBalance || !balanceAmount || !balanceDescription}>
+                <Button onClick={handleBalanceUpdate} disabled={isUpdatingBalance || !balanceAmount}>
                     {isUpdatingBalance && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
                     Confirm Update
                 </Button>

@@ -126,16 +126,16 @@ export default function UsersPage() {
     user.mobile?.includes(filter)
   );
   
-  const sqlPolicyFix = `-- POLICY FIX SCRIPT V4
+  const sqlPolicyFix = `-- POLICY FIX SCRIPT V8
 -- This script will:
 -- 1. Ensure the primary super admin exists in the 'admins' table.
 -- 2. Drop all potentially conflicting policies on relevant tables.
 -- 3. Create correct RLS policies for admins and users.
--- 4. Create or replace RPC functions with 'SECURITY DEFINER' for secure data aggregation and updates.
+-- 4. Give UPDATE permission to admins on the 'users' table.
 
 BEGIN;
 
--- 1. सुपर एडमिन को 'admins' टेबल में डालें (यदि वे पहले से मौजूद नहीं हैं)
+-- 1. Insert the super admin into the 'admins' table if they don't already exist.
 INSERT INTO public.admins (user_id, role)
 SELECT '98cda2fc-f09d-4840-9f47-ec0c749a6bbd', 'admin'
 WHERE NOT EXISTS (
@@ -144,100 +144,34 @@ WHERE NOT EXISTS (
     SELECT 1 FROM auth.users WHERE id = '98cda2fc-f09d-4840-9f47-ec0c749a6bbd'
 );
 
-
--- 2. पुरानी सभी नीतियों को हटाएं ताकि कोई टकराव न हो
+-- 2. Drop potentially conflicting policies on the 'users' table.
 DROP POLICY IF EXISTS "Enable admins to manage users" ON public.users;
 DROP POLICY IF EXISTS "Allow individual users to view their own data" ON public.users;
 DROP POLICY IF EXISTS "Allow individual users to update their own data" ON public.users;
 DROP POLICY IF EXISTS "Allow admin to read specific user" ON public.users;
-DROP POLICY IF EXISTS "Allow admin access on wallet_history" ON public.wallet_history;
+DROP POLICY IF EXISTS "Allow admins to update users" ON public.users;
 
--- 3. एडमिन को सभी उपयोगकर्ताओं को देखने की अनुमति दें
+-- 3. Create a policy for admins to SELECT (read) all users.
 CREATE POLICY "Enable admins to manage users"
 ON public.users FOR SELECT
 USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 
--- 4. एडमिन को विशिष्ट उपयोगकर्ता पढ़ने की अनुमति दें (विवरण पृष्ठ के लिए)
-CREATE POLICY "Allow admin to read specific user"
-ON public.users FOR SELECT
-USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
-
--- 5. उपयोगकर्ताओं के लिए अपनी जानकारी देखने हेतु एक नई नीति बनाएं
+-- 4. Create a policy for users to SELECT (read) their own data.
 CREATE POLICY "Allow individual users to view their own data"
 ON public.users FOR SELECT
 USING (auth.uid() = id);
 
--- 6. उपयोगकर्ताओं को अपनी जानकारी अपडेट करने की अनुमति दें
+-- 5. Create a policy for users to UPDATE their own data.
 CREATE POLICY "Allow individual users to update their own data"
 ON public.users FOR UPDATE
 USING (auth.uid() = id)
 WITH CHECK (auth.uid() = id);
 
--- 7. एडमिन को वॉलेट इतिहास में रिकॉर्ड जोड़ने की अनुमति दें
-CREATE POLICY "Allow admin access on wallet_history"
-ON public.wallet_history FOR INSERT
+-- 6. *** NEW *** Create a policy for admins to UPDATE any user's data.
+CREATE POLICY "Allow admins to update users"
+ON public.users FOR UPDATE
+USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()))
 WITH CHECK (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
-
--- 8. कुल उपयोगकर्ताओं की गिनती के लिए RPC फ़ंक्शन
-CREATE OR REPLACE FUNCTION get_total_users_count()
-RETURNS integer
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-    total_count integer;
-BEGIN
-    SELECT count(*)
-    INTO total_count
-    FROM public.users;
-    RETURN total_count;
-END;
-$$;
-
--- 9. सभी उपयोगकर्ताओं के कुल बैलेंस की गणना के लिए RPC फ़ंक्शन
-CREATE OR REPLACE FUNCTION get_total_users_balance()
-RETURNS double precision
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-    total_balance double precision;
-BEGIN
-    SELECT COALESCE(SUM(balance_available), 0)
-    INTO total_balance
-    FROM public.users;
-    RETURN total_balance;
-END;
-$$;
-
--- 10. बैलेंस अपडेट और इतिहास रिकॉर्डिंग के लिए नया RPC फ़ंक्शन
-CREATE OR REPLACE FUNCTION update_user_balance(p_user_id uuid, p_amount double precision, p_action text, p_description text)
-RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-  modification_amount double precision;
-BEGIN
-  -- Determine the amount to add or subtract
-  IF p_action = 'credit' THEN
-    modification_amount := p_amount;
-  ELSIF p_action = 'debit' THEN
-    modification_amount := -p_amount;
-  ELSE
-    RAISE EXCEPTION 'Invalid action type. Use "credit" or "debit".';
-  END IF;
-
-  -- Update the user's available balance directly in the users table
-  UPDATE public.users
-  SET balance_available = balance_available + modification_amount
-  WHERE id = p_user_id;
-
-  -- Insert a record into the wallet history
-  INSERT INTO public.wallet_history (user_id, amount, type, status, description)
-  VALUES (p_user_id, modification_amount, 'manual_' || p_action, 'Completed', p_description);
-END;
-$$;
 
 
 COMMIT;
