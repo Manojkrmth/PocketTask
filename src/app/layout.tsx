@@ -1,5 +1,4 @@
 
-
 'use client';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
@@ -33,8 +32,8 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
 
         try {
             const { data, error } = await supabase
-                .from('settings')
-                .select('settings_data->isUnderConstruction')
+                .from('maintenance_mode')
+                .select('is_enabled')
                 .eq('id', 1)
                 .single();
             
@@ -43,7 +42,7 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
             }
             
             // Explicitly check for true. If it's false, null, or undefined, mode is off.
-            if (data && (data as any).isUnderConstruction === true) {
+            if (data && data.is_enabled === true) {
                 setIsUnderConstruction(true);
             } else {
                 setIsUnderConstruction(false);
@@ -126,3 +125,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+    
