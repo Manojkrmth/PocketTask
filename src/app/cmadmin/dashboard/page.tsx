@@ -71,7 +71,7 @@ export default function AdminDashboardPage() {
         topBalanceRes,
         topReferralRes,
       ] = await Promise.all([
-        supabase.from('users').select('balance_available', { count: 'exact' }),
+        supabase.rpc('get_total_users_count'),
         supabase.from('usertasks').select('*', { count: 'exact', head: true }).eq('status', 'Pending'),
         supabase.from('support_tickets').select('*', { count: 'exact', head: true }).in('status', ['Open', 'In Progress']),
         supabase.from('payments').select('amount', { count: 'exact' }).eq('status', 'Approved'),
@@ -83,7 +83,7 @@ export default function AdminDashboardPage() {
       
       const { data: totalBalanceData, error: totalBalanceError } = await supabase.rpc('get_total_users_balance');
       
-      setTotalUsers(usersRes.count);
+      setTotalUsers(usersRes.data || 0);
       setTotalUsersBalance(totalBalanceData || 0);
       setPendingTasks(tasksCountRes.count);
       setPendingTickets(ticketsCountRes.count);
@@ -275,5 +275,7 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
+    
 
     

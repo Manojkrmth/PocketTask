@@ -125,10 +125,10 @@ export default function UsersPage() {
     user.mobile?.includes(filter)
   );
   
-  const sqlPolicyFix = `-- 1. पुरानी सभी नीतियों को हटाएं
-DROP POLICY IF EXISTS "Allow admins to access all users" ON public.users;
+  const sqlPolicyFix = `-- 1. पुरानी नीतियों को हटाएं
+DROP POLICY IF EXISTS "Allow admins to read all users" ON public.users;
 DROP POLICY IF EXISTS "Allow individual users to view their own data" ON public.users;
-DROP POLICY IF EXISTS "Enable read access for all users" ON public.users;
+DROP POLICY IF EXISTS "Allow individual users to update their own data" ON public.users;
 
 -- 2. व्यवस्थापकों (admins) के लिए केवल उपयोगकर्ताओं को पढ़ने (read) की नीति बनाएं
 CREATE POLICY "Allow admins to read all users"
@@ -150,6 +150,23 @@ ON public.users
 FOR UPDATE
 USING (auth.uid() = id)
 WITH CHECK (auth.uid() = id);
+
+-- 5. कुल उपयोगकर्ताओं की गिनती के लिए एक नया RPC फ़ंक्शन बनाएं
+CREATE OR REPLACE FUNCTION get_total_users_count()
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    total_count integer;
+BEGIN
+    SELECT count(*)
+    INTO total_count
+    FROM public.users;
+
+    return total_count;
+END;
+$$;
 `;
 
 
@@ -300,3 +317,5 @@ WITH CHECK (auth.uid() = id);
     </>
   );
 }
+
+    
