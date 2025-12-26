@@ -3,7 +3,7 @@
 
 import React, { useEffect, useRef, useState, memo } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Megaphone } from 'lucide-react';
+import { Megaphone } from 'lucide-react';
 import Image from 'next/image';
 import { Card } from '../ui/card';
 import { useInView } from 'react-intersection-observer';
@@ -132,18 +132,17 @@ const BannerAd: React.FC<BannerAdProps> = ({ adId }) => {
             try {
                 const { data, error } = await supabase
                     .from('settings')
-                    .select('settings_data')
+                    .select('ad_configs, are_ads_globally_enabled')
                     .eq('id', 1)
                     .single();
 
                 if (error) throw error;
 
-                if (data && data.settings_data) {
-                    const settings = data.settings_data;
-                    setAreAdsGloballyEnabled(settings.areAdsGloballyEnabled ?? true);
+                if (data) {
+                    setAreAdsGloballyEnabled(data.are_ads_globally_enabled ?? true);
                     
-                    if (settings.ads) {
-                        const config = (settings.ads as AdConfig[]).find(ad => ad.id === adId);
+                    if (data.ad_configs) {
+                        const config = (data.ad_configs as AdConfig[]).find(ad => ad.id === adId);
                         if (config) {
                             setAdConfig(config);
                         }

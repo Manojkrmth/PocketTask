@@ -104,7 +104,7 @@ export default function ProfilePage() {
   const [userProfile, setUserProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  const [systemSettings, setSystemSettings] = useState<any>(null);
+  const [settings, setSettings] = useState<any>(null);
 
   const fetchProfileData = useCallback(async (sessionUser: SupabaseUser) => {
     setIsLoading(true);
@@ -126,8 +126,8 @@ export default function ProfilePage() {
     }
     
     // Fetch system settings
-    const { data: settings } = await supabase.from('settings').select('settings_data').single();
-    setSystemSettings(settings?.settings_data || {});
+    const { data: appSettings } = await supabase.from('settings').select('*').eq('id', 1).single();
+    setSettings(appSettings || {});
 
     setIsLoading(false);
   }, [router]);
@@ -152,7 +152,6 @@ export default function ProfilePage() {
   }
   
   const hasReferrer = !!userProfile?.referred_by;
-  const socialLinks = systemSettings?.socialLinks || {};
 
   return (
     <div>
@@ -201,19 +200,19 @@ export default function ProfilePage() {
             <CardTitle>Connect with Us</CardTitle>
           </CardHeader>
           <CardContent className="flex justify-around">
-             <a href={socialLinks?.instagram || '#'} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 text-muted-foreground hover:text-primary">
+             <a href={settings?.instagram_link || '#'} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 text-muted-foreground hover:text-primary">
                 <div className="w-12 h-12 flex items-center justify-center bg-slate-100 rounded-full">
                     <InstagramIcon className="h-7 w-7 text-[#E1306C]" />
                 </div>
                 <span className="text-xs font-medium">Instagram</span>
             </a>
-             <a href={socialLinks?.whatsapp || '#'} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 text-muted-foreground hover:text-primary">
+             <a href={settings?.whatsapp_link || '#'} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 text-muted-foreground hover:text-primary">
                  <div className="w-12 h-12 flex items-center justify-center bg-slate-100 rounded-full">
                     <WhatsAppIcon className="h-7 w-7 text-[#25D366]"/>
                 </div>
                 <span className="text-xs font-medium">WhatsApp</span>
             </a>
-             <a href={socialLinks?.telegram || '#'} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 text-muted-foreground hover:text-primary">
+             <a href={settings?.telegram_link || '#'} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 text-muted-foreground hover:text-primary">
                  <div className="w-12 h-12 flex items-center justify-center bg-slate-100 rounded-full">
                     <TelegramIcon className="h-7 w-7 text-blue-500" />
                 </div>

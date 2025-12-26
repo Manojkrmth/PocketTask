@@ -23,12 +23,12 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
     const fetchRate = async () => {
       const { data, error } = await supabase
         .from('settings')
-        .select('settings_data->>usdToInrRate')
+        .select('usd_to_inr_rate')
         .eq('id', 1)
         .single();
         
-      if (!error && data && data.usdToInrRate) {
-        const rate = parseFloat(data.usdToInrRate as string);
+      if (!error && data && data.usd_to_inr_rate) {
+        const rate = parseFloat(data.usd_to_inr_rate as unknown as string);
         if (!isNaN(rate)) {
           setUsdToInrRate(rate);
         }

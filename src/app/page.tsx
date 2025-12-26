@@ -46,7 +46,7 @@ export default function HomePage() {
   const router = useRouter();
   const { formatCurrency } = useCurrency();
   const { toast } = useToast();
-  const [systemSettings, setSystemSettings] = React.useState<any>(null);
+  const [settings, setSettings] = React.useState<any>(null);
   const [featuredOffers, setFeaturedOffers] = React.useState<any[]>([]);
   const [taskCounts, setTaskCounts] = React.useState({ approved: 0, pending: 0, rejected: 0 });
   const [balances, setBalances] = React.useState({ available: 0, hold: 0 });
@@ -144,8 +144,8 @@ export default function HomePage() {
       setUserProfile(profile);
 
       // Fetch system settings
-      const { data: settings } = await supabase.from('settings').select('settings_data').single();
-      setSystemSettings(settings?.settings_data || {});
+      const { data: appSettings } = await supabase.from('settings').select('*').eq('id', 1).single();
+      setSettings(appSettings || {});
 
 
       await Promise.all([
@@ -195,8 +195,6 @@ export default function HomePage() {
 
   const isLoading = loading;
   
-  const socialLinks = systemSettings?.socialLinks || {};
-
   const getInitials = (name?: string, fallback?: string) => {
     if (name) {
       const parts = name.split(' ');
@@ -262,15 +260,15 @@ export default function HomePage() {
             </div>
         </Card>
 
-        {systemSettings?.noticeBoardText && (
+        {settings?.notice_board_text && (
           <div className="relative mt-4 flex h-8 items-center overflow-hidden rounded-full bg-white/20 px-2 text-xs text-primary-foreground">
               <span className="flex-shrink-0 bg-red-500 text-white font-bold px-3 py-1 rounded-full text-xxs z-10">NOTICE</span>
               <div className="relative flex overflow-x-hidden w-full">
                 <div className="animate-marquee whitespace-nowrap">
-                  <span className="mx-4">{systemSettings.noticeBoardText}</span>
+                  <span className="mx-4">{settings.notice_board_text}</span>
                 </div>
                 <div className="absolute top-0 animate-marquee2 whitespace-nowrap">
-                   <span className="mx-4">{systemSettings.noticeBoardText}</span>
+                   <span className="mx-4">{settings.notice_board_text}</span>
                 </div>
               </div>
           </div>
@@ -398,13 +396,13 @@ export default function HomePage() {
                     <CarouselContent>
                         {featuredOffers.map((offer) => (
                             <CarouselItem key={offer.id}>
-                                <Link href={offer.redirectLink || '#'} target="_blank" rel="noopener noreferrer">
+                                <Link href={offer.redirect_link || '#'} target="_blank" rel="noopener noreferrer">
                                     <Card className="overflow-hidden rounded-xl relative aspect-[21/9] block hover:opacity-90 transition-opacity bg-muted">
                                         <div className="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-md z-10">
                                             Ad
                                         </div>
                                         <Image
-                                            src={offer.imageUrl}
+                                            src={offer.image_url}
                                             alt={offer.description || 'Featured offer'}
                                             fill
                                             className="object-contain"
@@ -424,7 +422,7 @@ export default function HomePage() {
         </div>
 
         <div className="my-6 grid grid-cols-2 gap-4">
-          <a href={socialLinks?.whatsapp || '#'} target="_blank" rel="noopener noreferrer" className="group block relative"
+          <a href={settings?.whatsapp_link || '#'} target="_blank" rel="noopener noreferrer" className="group block relative"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             <div className="absolute -inset-0.5 bg-gradient-to-r from-green-400 to-cyan-500 rounded-lg blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
@@ -435,7 +433,7 @@ export default function HomePage() {
               </div>
             </Button>
           </a>
-          <a href={socialLinks?.telegram || '#'} target="_blank" rel="noopener noreferrer" className="group block relative"
+          <a href={settings?.telegram_link || '#'} target="_blank" rel="noopener noreferrer" className="group block relative"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-lg blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>

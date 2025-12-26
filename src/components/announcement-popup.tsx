@@ -9,20 +9,35 @@ import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from '@/lib/supabase';
 
+interface PopupNoticeSettings {
+    isEnabled: boolean;
+    displayType: 'text' | 'image';
+    text: string | null;
+    imageUrl: string | null;
+    redirectLink: string | null;
+}
 
 export function AnnouncementPopup() {
   const [isOpen, setIsOpen] = useState(false);
-  const [systemSettings, setSystemSettings] = useState<any>(null);
+  const [notice, setNotice] = useState<PopupNoticeSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchSettings = async () => {
         const { data, error } = await supabase
             .from('settings')
-            .select('settings_data')
+            .select('popup_notice_is_enabled, popup_notice_display_type, popup_notice_text, popup_notice_image_url, popup_notice_redirect_link')
+            .eq('id', 1)
             .single();
-        if (data && data.settings_data) {
-            setSystemSettings(data.settings_data);
+
+        if (!error && data) {
+            setNotice({
+                isEnabled: data.popup_notice_is_enabled,
+                displayType: data.popup_notice_display_type,
+                text: data.popup_notice_text,
+                imageUrl: data.popup_notice_image_url,
+                redirectLink: data.popup_notice_redirect_link
+            });
         }
         setIsLoading(false);
     };
@@ -30,7 +45,7 @@ export function AnnouncementPopup() {
   }, []);
 
   useEffect(() => {
-    if (isLoading || !systemSettings?.popupNotice?.isEnabled) return;
+    if (isLoading || !notice?.isEnabled) return;
 
     const hasSeenPopup = sessionStorage.getItem("hasSeenPopup");
     if (!hasSeenPopup) {
@@ -41,13 +56,11 @@ export function AnnouncementPopup() {
       
       return () => clearTimeout(timer);
     }
-  }, [systemSettings, isLoading]);
+  }, [notice, isLoading]);
 
-  if (isLoading) {
+  if (isLoading || !notice) {
     return null;
   }
-
-  const notice = systemSettings?.popupNotice;
   
   const shouldShowPopup = isOpen && notice?.isEnabled;
 
@@ -95,24 +108,18 @@ export function AnnouncementPopup() {
             <span className="sr-only">Close</span>
           </Button>
 
-          <div className={cn(
-              "flex items-center justify-center aspect-square",
-              !showImage && (notice.styles?.container || fallbackContent.styles.container)
-          )}>
+          <div className="flex items-center justify-center aspect-square">
             {showImage ? (
                  <Image
-                    src={notice.imageUrl}
+                    src={notice.imageUrl!}
                     alt={notice.text || "Promotional Ad"}
                     width={400}
                     height={400}
                     className="w-full h-full object-cover"
                 />
             ) : (
-                <div className={cn(
-                  "p-8 text-center", 
-                  showText ? (notice.styles?.text || fallbackContent.styles.text) : fallbackContent.styles.text
-                )}>
-                    {showText ? notice.text : fallbackContent.text}
+                <div className={cn("p-8 text-center", fallbackContent.styles.container, fallbackContent.styles.text)}>
+                    {notice.text || fallbackContent.text}
                 </div>
             )}
           </div>

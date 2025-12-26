@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
@@ -17,9 +18,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 interface Offer {
     id: number;
     created_at: string;
-    imageUrl: string;
+    image_url: string;
     description: string;
-    redirectLink: string;
+    redirect_link: string;
     enabled: boolean;
     sort_order: number;
 }
@@ -54,7 +55,7 @@ export default function OffersSettingsPage() {
     }, [toast]);
 
     const handleAddNewClick = () => {
-        setEditingOffer({ imageUrl: '', description: '', redirectLink: '', enabled: true, sort_order: (offers.length + 1) * 10 });
+        setEditingOffer({ image_url: '', description: '', redirect_link: '', enabled: true, sort_order: (offers.length + 1) * 10 });
         setDialogOpen(true);
     };
 
@@ -78,7 +79,7 @@ export default function OffersSettingsPage() {
     };
 
     const handleSaveOffer = async () => {
-        if (!editingOffer || !editingOffer.imageUrl) {
+        if (!editingOffer || !editingOffer.image_url) {
             toast({ variant: 'destructive', title: 'Validation Error', description: 'Image URL is required.' });
             return;
         }
@@ -86,9 +87,9 @@ export default function OffersSettingsPage() {
         startSubmitting(async () => {
             const { error } = await supabase.from('featured_offers').upsert({
                 id: editingOffer.id,
-                imageUrl: editingOffer.imageUrl,
+                image_url: editingOffer.image_url,
                 description: editingOffer.description,
-                redirectLink: editingOffer.redirectLink,
+                redirect_link: editingOffer.redirect_link,
                 enabled: editingOffer.enabled,
                 sort_order: editingOffer.sort_order,
             });
@@ -143,10 +144,10 @@ export default function OffersSettingsPage() {
                         {offers.length > 0 ? (
                             offers.map(offer => (
                                 <div key={offer.id} className="flex items-center gap-4 border p-2 rounded-lg">
-                                    <Image src={offer.imageUrl} alt={offer.description || ''} width={105} height={45} className="rounded-md object-cover aspect-[21/9] bg-muted" />
+                                    <Image src={offer.image_url} alt={offer.description || ''} width={105} height={45} className="rounded-md object-cover aspect-[21/9] bg-muted" />
                                     <div className="flex-1">
                                         <p className="font-semibold">{offer.description || 'No description'}</p>
-                                        <p className="text-xs text-muted-foreground truncate">{offer.redirectLink || 'No link'}</p>
+                                        <p className="text-xs text-muted-foreground truncate">{offer.redirect_link || 'No link'}</p>
                                         <Badge variant={offer.enabled ? "default" : "secondary"} className={cn("mt-1", offer.enabled && "bg-green-500")}>
                                             {offer.enabled ? 'Enabled' : 'Disabled'}
                                         </Badge>
@@ -173,7 +174,7 @@ export default function OffersSettingsPage() {
                     <div className="py-4 space-y-4">
                        <div className="space-y-2">
                             <Label htmlFor="imageUrl" className="flex items-center gap-2"><ImageIcon/> Image URL</Label>
-                            <Input id="imageUrl" value={editingOffer?.imageUrl || ''} onChange={e => setEditingOffer({...editingOffer, imageUrl: e.target.value})} placeholder="https://example.com/image.png" disabled={isSubmitting} />
+                            <Input id="imageUrl" value={editingOffer?.image_url || ''} onChange={e => setEditingOffer({...editingOffer, image_url: e.target.value})} placeholder="https://example.com/image.png" disabled={isSubmitting} />
                         </div>
                          <div className="space-y-2">
                             <Label htmlFor="description" className="flex items-center gap-2"><TextIcon/> Description (Optional)</Label>
@@ -181,7 +182,7 @@ export default function OffersSettingsPage() {
                         </div>
                          <div className="space-y-2">
                             <Label htmlFor="redirectLink" className="flex items-center gap-2"><LinkIcon/> Redirect Link (Optional)</Label>
-                            <Input id="redirectLink" value={editingOffer?.redirectLink || ''} onChange={e => setEditingOffer({...editingOffer, redirectLink: e.target.value})} placeholder="https://example.com/offer" disabled={isSubmitting} />
+                            <Input id="redirectLink" value={editingOffer?.redirect_link || ''} onChange={e => setEditingOffer({...editingOffer, redirect_link: e.target.value})} placeholder="https://example.com/offer" disabled={isSubmitting} />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="sort_order">Sort Order</Label>

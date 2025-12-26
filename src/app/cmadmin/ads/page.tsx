@@ -76,7 +76,6 @@ const defaultAdLocations: AdConfig[] = [
 
 export default function AdsManagerPage() {
     const { toast } = useToast();
-    const [settings, setSettings] = useState<any>(null);
     const [adConfigs, setAdConfigs] = useState<AdConfig[]>(defaultAdLocations);
     const [areAdsGloballyEnabled, setAreAdsGloballyEnabled] = useState(true);
     const [loading, setLoading] = useState(true);
@@ -87,17 +86,15 @@ export default function AdsManagerPage() {
             setLoading(true);
             const { data, error } = await supabase
                 .from('settings')
-                .select('settings_data')
+                .select('ad_configs, are_ads_globally_enabled')
                 .eq('id', 1)
                 .single();
 
             if (error && error.code !== 'PGRST116') {
-                console.error('Error fetching settings:', error);
-                toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch app settings.' });
-            } else {
-                const fetchedSettings = data?.settings_data || {};
-                setSettings(fetchedSettings);
-                const savedAds = fetchedSettings.ads || [];
+                console.error('Error fetching ad settings:', error);
+                toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch ad settings.' });
+            } else if (data) {
+                const savedAds = (data.ad_configs || []) as AdConfig[];
                 
                 // Merge saved ads with defaults, adding new defaults if they don't exist
                 const allAdIds = new Set(defaultAdLocations.map(ad => ad.id));
@@ -114,7 +111,7 @@ export default function AdsManagerPage() {
                 });
                 
                 setAdConfigs(finalAds);
-                setAreAdsGloballyEnabled(fetchedSettings.areAdsGloballyEnabled ?? true);
+                setAreAdsGloballyEnabled(data.are_ads_globally_enabled ?? true);
             }
             setLoading(false);
         };
@@ -155,15 +152,12 @@ export default function AdsManagerPage() {
 
     const handleSaveChanges = () => {
         startSaving(async () => {
-            const updatedSettings = {
-                ...settings,
-                ads: adConfigs,
-                areAdsGloballyEnabled: areAdsGloballyEnabled,
-            };
-
             const { error } = await supabase
                 .from('settings')
-                .update({ settings_data: updatedSettings })
+                .update({ 
+                    ad_configs: adConfigs,
+                    are_ads_globally_enabled: areAdsGloballyEnabled,
+                })
                 .eq('id', 1);
 
             if (error) {
@@ -301,7 +295,3 @@ export default function AdsManagerPage() {
         </div>
     );
 }
-
-    
-
-    
