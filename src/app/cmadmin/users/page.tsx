@@ -31,13 +31,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, Loader2, Mail, Phone, UserX, UserCheck, Eye, Edit } from 'lucide-react';
+import { MoreHorizontal, Loader2, Mail, Phone, UserX, UserCheck, Eye, Edit, AlertTriangle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { useCurrency } from '@/context/currency-context';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
+import { Alert, AlertTitle } from '@/components/ui/alert';
+import { Textarea } from '@/components/ui/textarea';
 
 interface AppUser {
   id: string;
@@ -122,6 +124,27 @@ export default function UsersPage() {
     user.email?.toLowerCase().includes(filter.toLowerCase()) ||
     user.mobile?.includes(filter)
   );
+  
+  const sqlPolicyFix = `-- 1. पुरानी नीति हटाएं
+DROP POLICY IF EXISTS "Allow users to view their own data" ON public.users;
+DROP POLICY IF EXISTS "Allow admins to view all users." ON public.users;
+DROP POLICY IF EXISTS "Enable read access for all users" ON public.users;
+
+-- 2. व्यवस्थापकों (admins) के लिए एक नई नीति बनाएं ताकि वे सभी उपयोगकर्ताओं को देख सकें
+CREATE POLICY "Allow admins to access all users"
+ON public.users
+FOR ALL
+USING (
+  EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid())
+);
+
+-- 3. उपयोगकर्ताओं के लिए अपनी जानकारी देखने हेतु एक नई नीति बनाएं
+CREATE POLICY "Allow individual users to view their own data"
+ON public.users
+FOR SELECT
+USING (auth.uid() = id);
+`;
+
 
   return (
     <>
@@ -140,6 +163,16 @@ export default function UsersPage() {
             className="max-w-sm"
           />
         </div>
+        
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Can't see all users?</AlertTitle>
+          <div className="space-y-2">
+            <p>If you can only see admin accounts, you need to update your database security rules. Please run the following SQL code in your Supabase SQL Editor.</p>
+            <Textarea className="font-mono bg-destructive/10 text-destructive-foreground h-48" readOnly value={sqlPolicyFix} />
+            <Button variant="secondary" size="sm" onClick={() => navigator.clipboard.writeText(sqlPolicyFix)}>Copy SQL</Button>
+          </div>
+        </Alert>
 
         <div className="border rounded-lg bg-card">
           <Table>
@@ -260,3 +293,5 @@ export default function UsersPage() {
     </>
   );
 }
+
+    
