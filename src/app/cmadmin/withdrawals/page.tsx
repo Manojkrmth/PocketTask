@@ -81,11 +81,8 @@ export default function WithdrawalsPage() {
 
       if (error) {
         console.error("Error fetching payment requests:", error);
-        let description = 'Could not fetch requests. Please check your network connection.';
-        if (error.message.includes('function get_all_payment_requests() does not exist')) {
-            description = 'The required database function is missing. Please go to the SQL Editor page and run the "Fix: Withdrawal Requests" script.';
-        }
-        toast({ variant: 'destructive', title: 'Error Fetching Data', description });
+        const description = 'Could not fetch requests. Please go to the SQL Editor page and run the "Master RLS & Functions Script" to fix all data access issues.';
+        toast({ variant: 'destructive', title: 'Error Fetching Data', description: description, duration: 10000 });
       } else {
         setRequests(data as PaymentRequest[]);
       }
