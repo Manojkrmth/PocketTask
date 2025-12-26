@@ -331,11 +331,9 @@ export default function SpinRewardPage() {
                     </AlertDescription>
                 </Alert>
             )}
-            <BannerAd adId="spin-reward-button" />
             <BannerAd adId="spin-reward" />
         </div>
       </main>
     </div>
   );
 }
-
