@@ -20,8 +20,18 @@ import {
   DialogFooter,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
-import { Loader2, PlusCircle, UserPlus, Shield } from 'lucide-react';
+import { Loader2, PlusCircle, UserPlus, Shield, UserX } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
@@ -46,9 +56,11 @@ export default function AdminsPage() {
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   
-  const [isAdding, startAdd] = useTransition();
+  const [isProcessing, startProcessing] = useTransition();
 
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [dismissDialogOpen, setDismissDialogOpen] = useState(false);
+  const [selectedAdminToDismiss, setSelectedAdminToDismiss] = useState<AdminUser | null>(null);
 
   const [newAdminUserId, setNewAdminUserId] = useState('');
 
@@ -78,7 +90,7 @@ export default function AdminsPage() {
         return;
     }
 
-    startAdd(async () => {
+    startProcessing(async () => {
         // First, check if user exists
         const { data: user, error: userError } = await supabase
             .from('users')
@@ -111,6 +123,31 @@ export default function AdminsPage() {
     });
   }
 
+  const openDismissDialog = (admin: AdminUser) => {
+    setSelectedAdminToDismiss(admin);
+    setDismissDialogOpen(true);
+  }
+
+  const handleDismissAdmin = () => {
+      if (!selectedAdminToDismiss) return;
+      
+      startProcessing(async () => {
+        const { error } = await supabase
+            .from('admins')
+            .delete()
+            .eq('user_id', selectedAdminToDismiss.user_id);
+
+        if (error) {
+            toast({ variant: 'destructive', title: 'Failed to Dismiss', description: error.message });
+        } else {
+            toast({ title: 'Success', description: `${selectedAdminToDismiss.users?.full_name || 'Admin'} has been dismissed.` });
+            setDismissDialogOpen(false);
+            setSelectedAdminToDismiss(null);
+            await fetchAdmins();
+        }
+      });
+  }
+
   return (
     <>
       <div className="space-y-6">
@@ -137,13 +174,13 @@ export default function AdminsPage() {
                         value={newAdminUserId}
                         onChange={(e) => setNewAdminUserId(e.target.value)}
                         placeholder="Enter the full User ID"
-                        disabled={isAdding}
+                        disabled={isProcessing}
                     />
                 </div>
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => setAddDialogOpen(false)} disabled={isAdding}>Cancel</Button>
-                    <Button onClick={handleAddAdmin} disabled={isAdding}>
-                        {isAdding ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <UserPlus className="mr-2 h-4 w-4"/>}
+                    <Button variant="outline" onClick={() => setAddDialogOpen(false)} disabled={isProcessing}>Cancel</Button>
+                    <Button onClick={handleAddAdmin} disabled={isProcessing}>
+                        {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <UserPlus className="mr-2 h-4 w-4"/>}
                         Confirm Add
                     </Button>
                 </DialogFooter>
@@ -158,12 +195,13 @@ export default function AdminsPage() {
                 <TableHead>Admin User</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Added On</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={3} className="h-24 text-center">
+                  <TableCell colSpan={4} className="h-24 text-center">
                     <Loader2 className="mx-auto h-6 w-6 animate-spin" />
                   </TableCell>
                 </TableRow>
@@ -187,11 +225,25 @@ export default function AdminsPage() {
                     <TableCell className="text-sm text-muted-foreground">
                       {formatDistanceToNow(new Date(admin.created_at), { addSuffix: true })}
                     </TableCell>
+                    <TableCell className="text-right">
+                       {admin.user_id !== nonDeletableAdminId && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                onClick={() => openDismissDialog(admin)}
+                                disabled={isProcessing}
+                            >
+                                <UserX className="mr-2 h-4 w-4" />
+                                Dismiss Admin
+                            </Button>
+                       )}
+                    </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={3} className="h-24 text-center">
+                  <TableCell colSpan={4} className="h-24 text-center">
                     No admins found.
                   </TableCell>
                 </TableRow>
@@ -200,6 +252,23 @@ export default function AdminsPage() {
           </Table>
         </div>
       </div>
+      <AlertDialog open={dismissDialogOpen} onOpenChange={setDismissDialogOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    This will remove admin privileges for <span className="font-bold">{selectedAdminToDismiss?.users?.full_name || 'this user'}</span>. They will remain a regular user.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel disabled={isProcessing}>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDismissAdmin} disabled={isProcessing}>
+                    {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                    Confirm Dismissal
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
