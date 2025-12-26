@@ -169,42 +169,6 @@ export default function DailyTasksAdminPage() {
      });
   };
 
-  const sqlPolicyFix = `-- This script simplifies and corrects the security policies for daily tasks.
--- 1. Drop all potentially conflicting old policies
-DROP POLICY IF EXISTS "Allow all for admins" ON public.visit_earn_tasks;
-DROP POLICY IF EXISTS "Allow read for authenticated" ON public.visit_earn_tasks;
-DROP POLICY IF EXISTS "Allow all for admins" ON public.watch_earn_tasks;
-DROP POLICY IF EXISTS "Allow read for authenticated" ON public.watch_earn_tasks;
--- Also drop other possible old names
-DROP POLICY IF EXISTS "Allow admin full access" ON public.visit_earn_tasks;
-DROP POLICY IF EXISTS "Allow read access to authenticated users" ON public.visit_earn_tasks;
-DROP POLICY IF EXISTS "Allow admin full access" ON public.watch_earn_tasks;
-DROP POLICY IF EXISTS "Allow read access to authenticated users" ON public.watch_earn_tasks;
-
--- 2. Create new, correct policies for visit_earn_tasks
-CREATE POLICY "Allow all for admins"
-ON public.visit_earn_tasks
-FOR ALL USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()))
-WITH CHECK (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
-
-CREATE POLICY "Allow read for authenticated"
-ON public.visit_earn_tasks
-FOR SELECT
-USING (auth.role() = 'authenticated');
-
--- 3. Create new, correct policies for watch_earn_tasks
-CREATE POLICY "Allow all for admins"
-ON public.watch_earn_tasks
-FOR ALL USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()))
-WITH CHECK (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
-
-CREATE POLICY "Allow read for authenticated"
-ON public.watch_earn_tasks
-FOR SELECT
-USING (auth.role() = 'authenticated');
-`;
-
-
   const renderTaskList = (type: TaskType) => (
     <div className="space-y-4">
       {loading ? (
@@ -247,16 +211,6 @@ USING (auth.role() = 'authenticated');
           <h1 className="text-3xl font-bold">Daily Tasks</h1>
           <p className="text-muted-foreground">Manage Visit &amp; Earn and Watch &amp; Earn tasks.</p>
         </div>
-
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Permission Error Detected</AlertTitle>
-          <div className="space-y-2">
-            <p>If you are unable to add, edit, or delete tasks, you need to update your database security rules. Please run the following SQL code in your Supabase SQL Editor.</p>
-            <Textarea className="font-mono bg-destructive/10 text-destructive-foreground h-48" readOnly value={sqlPolicyFix} />
-            <Button variant="secondary" size="sm" onClick={() => navigator.clipboard.writeText(sqlPolicyFix)}>Copy SQL</Button>
-          </div>
-        </Alert>
 
         <Card>
           <CardHeader>
@@ -397,3 +351,5 @@ function TaskFormDialog({ isOpen, onOpenChange, task, onSave, onUpdate, isSubmit
         </Dialog>
     )
 }
+
+    

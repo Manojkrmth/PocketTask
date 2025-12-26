@@ -153,9 +153,11 @@ CREATE TABLE public.settings (
     withdrawal_settings jsonb NOT NULL DEFAULT '{}'::jsonb,
     are_ads_globally_enabled boolean NOT NULL DEFAULT true,
     ad_configs jsonb NOT NULL DEFAULT '[]'::jsonb,
-    CONSTRAINT settings_pkey PRIMARY KEY (id),
     CONSTRAINT settings_id_check CHECK (id = 1)
 );
+
+ALTER TABLE public.settings ADD CONSTRAINT settings_pkey PRIMARY KEY (id);
+
 
 -- Enable RLS for the new table
 ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
@@ -207,14 +209,16 @@ FOR ALL USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()))
 WITH CHECK (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 
 CREATE POLICY "Allow read for authenticated" ON public.visit_earn_tasks
-FOR SELECT USING (auth.role() = 'authenticated');
+FOR SELECT
+USING (auth.role() = 'authenticated');
 
 CREATE POLICY "Allow all for admins" ON public.watch_earn_tasks
 FOR ALL USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()))
 WITH CHECK (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 
 CREATE POLICY "Allow read for authenticated" ON public.watch_earn_tasks
-FOR SELECT USING (auth.role() = 'authenticated');
+FOR SELECT
+USING (auth.role() = 'authenticated');
 
 
 -- 4. Recreate other policies for consistency
@@ -239,6 +243,7 @@ CREATE POLICY "Allow admins to read all history" ON public.wallet_history FOR SE
 CREATE POLICY "Allow admins to insert records" ON public.wallet_history FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 CREATE POLICY "Enable insert for own withdrawal requests" ON public.wallet_history FOR INSERT WITH CHECK (auth.uid() = user_id AND type = 'withdrawal_pending');
 
+DROP FUNCTION IF EXISTS get_all_payment_requests();
 CREATE OR REPLACE FUNCTION get_all_payment_requests()
 RETURNS TABLE(id int, created_at text, amount float, payment_method text, payment_details text, status text, user_id uuid, metadata jsonb, users json)
 LANGUAGE plpgsql
@@ -419,3 +424,5 @@ COMMIT;`;
     </>
   );
 }
+
+    
