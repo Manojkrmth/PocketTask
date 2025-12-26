@@ -130,11 +130,7 @@ DROP POLICY IF EXISTS "Allow admins to read all users" ON public.users;
 DROP POLICY IF EXISTS "Enable admins to manage users" ON public.users;
 DROP POLICY IF EXISTS "Allow individual users to view their own data" ON public.users;
 DROP POLICY IF EXISTS "Allow individual users to update their own data" ON public.users;
-DROP POLICY IF EXISTS "Authenticated users can see all users" ON public.users;
 DROP POLICY IF EXISTS "Allow admin select" ON public.users;
-DROP POLICY IF EXISTS "Superusers can read all user" ON public.users;
-DROP POLICY IF EXISTS "Allow admins to see all users" ON public.users;
-
 
 -- 2. सुपर एडमिन को 'admins' टेबल में डालें (यदि वे पहले से मौजूद नहीं हैं)
 INSERT INTO public.admins (user_id, role)
@@ -143,15 +139,7 @@ WHERE NOT EXISTS (
     SELECT 1 FROM public.admins WHERE user_id = '98cda2fc-f09d-4840-9f47-ec0c749a6bbd'
 );
 
--- 3. 'admins' टेबल के आधार पर उपयोगकर्ताओं को पढ़ने (read) की एक नई, सही नीति बनाएं
-CREATE POLICY "Allow admins to read all users"
-ON public.users
-FOR SELECT
-USING (
-  EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid())
-);
-
--- 4. व्यवस्थापकों (admins) को उपयोगकर्ताओं को प्रबंधित करने की अनुमति दें (update/delete)
+-- 3. व्यवस्थापकों को सभी उपयोगकर्ताओं को प्रबंधित करने की अनुमति दें
 CREATE POLICY "Enable admins to manage users"
 ON public.users
 FOR ALL
@@ -162,21 +150,20 @@ WITH CHECK (
   EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid())
 );
 
-
--- 5. उपयोगकर्ताओं के लिए अपनी जानकारी देखने हेतु एक नई नीति बनाएं
+-- 4. उपयोगकर्ताओं के लिए अपनी जानकारी देखने हेतु एक नई नीति बनाएं
 CREATE POLICY "Allow individual users to view their own data"
 ON public.users
 FOR SELECT
 USING (auth.uid() = id);
 
--- 6. उपयोगकर्ताओं को अपनी जानकारी अपडेट करने की अनुमति दें (उदा. नाम, मोबाइल)
+-- 5. उपयोगकर्ताओं को अपनी जानकारी अपडेट करने की अनुमति दें
 CREATE POLICY "Allow individual users to update their own data"
 ON public.users
 FOR UPDATE
 USING (auth.uid() = id)
 WITH CHECK (auth.uid() = id);
 
--- 7. कुल उपयोगकर्ताओं की गिनती के लिए RPC फ़ंक्शन (यदि मौजूद नहीं है)
+-- 6. कुल उपयोगकर्ताओं की गिनती के लिए RPC फ़ंक्शन
 CREATE OR REPLACE FUNCTION get_total_users_count()
 RETURNS integer
 LANGUAGE plpgsql
@@ -188,12 +175,11 @@ BEGIN
     SELECT count(*)
     INTO total_count
     FROM public.users;
-
-    return total_count;
+    RETURN total_count;
 END;
 $$;
 
--- 8. सभी उपयोगकर्ताओं के कुल बैलेंस की गणना के लिए RPC फ़ंक्शन
+-- 7. सभी उपयोगकर्ताओं के कुल बैलेंस की गणना के लिए RPC फ़ंक्शन
 CREATE OR REPLACE FUNCTION get_total_users_balance()
 RETURNS double precision
 LANGUAGE plpgsql
@@ -205,7 +191,6 @@ BEGIN
     SELECT COALESCE(SUM(balance_available), 0)
     INTO total_balance
     FROM public.users;
-
     RETURN total_balance;
 END;
 $$;`;
@@ -358,3 +343,5 @@ $$;`;
     </>
   );
 }
+
+    
