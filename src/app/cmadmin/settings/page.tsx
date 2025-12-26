@@ -34,7 +34,7 @@ export default function SettingsPage() {
 
             const { data, error } = await supabase
                 .from('settings')
-                .select('settings_data')
+                .select('*')
                 .eq('id', 1)
                 .single();
 
@@ -42,7 +42,23 @@ export default function SettingsPage() {
                 console.error('Error fetching settings:', error);
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch app settings.' });
             } else if (data) {
-                setSettings(data.settings_data || {});
+                // Reconstruct the nested structure for the UI state
+                setSettings({
+                    usdToInrRate: data.usd_to_inr_rate,
+                    noticeBoardText: data.notice_board_text,
+                    socialLinks: {
+                        whatsapp: data.whatsapp_link,
+                        telegram: data.telegram_link,
+                        instagram: data.instagram_link,
+                    },
+                    popupNotice: {
+                        isEnabled: data.popup_notice_is_enabled,
+                        displayType: data.popup_notice_display_type,
+                        text: data.popup_notice_text,
+                        imageUrl: data.popup_notice_image_url,
+                        redirectLink: data.popup_notice_redirect_link
+                    }
+                });
             }
 
             setLoading(false);
@@ -65,28 +81,11 @@ export default function SettingsPage() {
          setSettings((prev: any) => ({ ...prev, [key]: value }));
     };
 
-    const handleSaveSection = useCallback(async (sectionKeys: string[], startTransition: React.TransitionStartFunction, changedData: any) => {
+    const handleSaveSection = useCallback(async (startTransition: React.TransitionStartFunction, updateData: any) => {
         startTransition(async () => {
-             const { data: currentSettingsData, error: fetchError } = await supabase
-                .from('settings')
-                .select('settings_data')
-                .eq('id', 1)
-                .single();
-
-            if (fetchError) {
-                toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch latest settings before saving.' });
-                return;
-            }
-
-            let updatedSettingsData = { ...(currentSettingsData.settings_data || {}) };
-            
-            sectionKeys.forEach(key => {
-                updatedSettingsData[key] = changedData[key];
-            });
-
             const { error } = await supabase
                 .from('settings')
-                .update({ settings_data: updatedSettingsData })
+                .update(updateData)
                 .eq('id', 1);
 
             if (error) {
@@ -179,7 +178,7 @@ export default function SettingsPage() {
                     </div>
                 </CardContent>
                 <CardFooter>
-                    <Button onClick={() => handleSaveSection(['usdToInrRate'], startFinancialSaving, { usdToInrRate: settings.usdToInrRate })} disabled={isFinancialSaving}>
+                    <Button onClick={() => handleSaveSection(startFinancialSaving, { usd_to_inr_rate: settings.usdToInrRate })} disabled={isFinancialSaving}>
                         {isFinancialSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                         Save Financial Settings
                     </Button>
@@ -205,7 +204,7 @@ export default function SettingsPage() {
                     </div>
                 </CardContent>
                  <CardFooter>
-                    <Button onClick={() => handleSaveSection(['noticeBoardText'], startNoticeSaving, { noticeBoardText: settings.noticeBoardText })} disabled={isNoticeSaving}>
+                    <Button onClick={() => handleSaveSection(startNoticeSaving, { notice_board_text: settings.noticeBoardText })} disabled={isNoticeSaving}>
                         {isNoticeSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                         Save Notice Board
                     </Button>
@@ -232,7 +231,11 @@ export default function SettingsPage() {
                     </div>
                 </CardContent>
                  <CardFooter>
-                    <Button onClick={() => handleSaveSection(['socialLinks'], startSocialSaving, { socialLinks: settings.socialLinks })} disabled={isSocialSaving}>
+                    <Button onClick={() => handleSaveSection(startSocialSaving, { 
+                        whatsapp_link: settings.socialLinks.whatsapp,
+                        telegram_link: settings.socialLinks.telegram,
+                        instagram_link: settings.socialLinks.instagram,
+                     })} disabled={isSocialSaving}>
                         {isSocialSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                         Save Social Links
                     </Button>
@@ -295,7 +298,13 @@ export default function SettingsPage() {
                     )}
                 </CardContent>
                  <CardFooter>
-                    <Button onClick={() => handleSaveSection(['popupNotice'], startPopupSaving, { popupNotice: settings.popupNotice })} disabled={isPopupSaving}>
+                    <Button onClick={() => handleSaveSection(startPopupSaving, {
+                        popup_notice_is_enabled: settings.popupNotice.isEnabled,
+                        popup_notice_display_type: settings.popupNotice.displayType,
+                        popup_notice_text: settings.popupNotice.text,
+                        popup_notice_image_url: settings.popupNotice.imageUrl,
+                        popup_notice_redirect_link: settings.popupNotice.redirectLink,
+                    })} disabled={isPopupSaving}>
                         {isPopupSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                         Save Pop-up Notice
                     </Button>

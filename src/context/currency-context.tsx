@@ -28,7 +28,7 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
         .single();
         
       if (!error && data && data.usd_to_inr_rate) {
-        const rate = parseFloat(data.usd_to_inr_rate as unknown as string);
+        const rate = data.usd_to_inr_rate;
         if (!isNaN(rate)) {
           setUsdToInrRate(rate);
         }
