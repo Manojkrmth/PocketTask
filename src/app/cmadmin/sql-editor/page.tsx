@@ -1,8 +1,9 @@
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CopyButton } from '@/components/copy-button';
-import { Copy, AlertTriangle, AreaChart } from 'lucide-react';
+import { Copy, AlertTriangle, AreaChart, BarChart } from 'lucide-react';
 import { Alert, AlertTitle } from '@/components/ui/alert';
 
 const masterSqlScript = `
@@ -208,6 +209,18 @@ ALTER TABLE public.settings
 ADD COLUMN IF NOT EXISTS is_maintenance_mode_enabled BOOLEAN DEFAULT FALSE;
 `;
 
+const analyticsToggleSql = `
+-- =================================================================
+-- FIX: Analytics Toggle
+-- =================================================================
+-- Adds the 'is_analytics_enabled' column to your settings table.
+-- Run this in your Supabase SQL Editor to enable the analytics toggle in settings.
+-- =================================================================
+ALTER TABLE public.settings
+ADD COLUMN IF NOT EXISTS is_analytics_enabled BOOLEAN DEFAULT TRUE;
+`;
+
+
 const coinManagerMetadataSql = `
 -- =================================================================
 -- FIX: Coin Manager Metadata
@@ -307,6 +320,30 @@ export default function SqlEditorPage() {
           Run these SQL queries in your Supabase project to fix specific issues.
         </p>
       </div>
+
+       <Card className="border-cyan-500">
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2"><BarChart className="text-cyan-500"/> Fix: Analytics Toggle</CardTitle>
+            <CardDescription>
+                This command adds the necessary column to your database to control the Analytics Chart from the admin settings page. Run this once.
+            </CardDescription>
+        </CardHeader>
+        <CardContent>
+            <div className="relative rounded-md bg-muted/50 p-4">
+              <CopyButton 
+                value={analyticsToggleSql}
+                variant="ghost"
+                size="icon"
+                className="absolute top-2 right-2 h-7 w-7"
+              >
+                  <Copy className="h-4 w-4" />
+              </CopyButton>
+              <pre className="text-sm whitespace-pre-wrap font-mono">
+                <code>{analyticsToggleSql.trim()}</code>
+              </pre>
+            </div>
+        </CardContent>
+       </Card>
 
       <Card className="border-purple-500">
         <CardHeader>
@@ -431,3 +468,5 @@ export default function SqlEditorPage() {
     </div>
   );
 }
+
+    

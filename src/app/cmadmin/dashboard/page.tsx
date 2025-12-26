@@ -65,6 +65,8 @@ export default function AdminDashboardPage() {
 
   const [showAllBalance, setShowAllBalance] = useState(false);
   const [showAllReferrals, setShowAllReferrals] = useState(false);
+  
+  const [isAnalyticsEnabled, setIsAnalyticsEnabled] = useState(true);
 
 
   useEffect(() => {
@@ -78,6 +80,7 @@ export default function AdminDashboardPage() {
 
       // Fetch counts in parallel
       const [
+        settingsRes,
         usersRes, 
         tasksCountRes, 
         ticketsCountRes,
@@ -90,6 +93,7 @@ export default function AdminDashboardPage() {
         approvedCoinsRes,
         dailyStatsRes
       ] = await Promise.all([
+        supabase.from('settings').select('is_analytics_enabled').eq('id', 1).single(),
         supabase.rpc('get_total_users_count'),
         supabase.from('usertasks').select('*', { count: 'exact', head: true }).eq('status', 'Pending'),
         supabase.from('support_tickets').select('*', { count: 'exact', head: true }).in('status', ['Open', 'In Progress']),
@@ -103,6 +107,10 @@ export default function AdminDashboardPage() {
         supabase.rpc('get_daily_dashboard_stats', { days_count: 14 })
       ]);
       
+      if(settingsRes.data) {
+        setIsAnalyticsEnabled(settingsRes.data.is_analytics_enabled ?? true);
+      }
+
       const { data: totalBalanceData, error: totalBalanceError } = await supabase.rpc('get_total_users_balance');
       
       const totalUsersCount = usersRes.data || 0;
@@ -298,28 +306,30 @@ export default function AdminDashboardPage() {
 
        </div>
 
-       <Card>
-        <CardHeader>
-          <CardTitle>Business Analytics</CardTitle>
-          <CardDescription>A 14-day overview of key business metrics. Growth is compared to the prior 7 days.</CardDescription>
-        </CardHeader>
-        <CardContent>
-            <div className="grid grid-cols-3 gap-4 mb-6">
-                <GrowthCard title="Revenue Growth" value={growthStats.revenueChange} />
-                <GrowthCard title="Withdrawals Growth" value={growthStats.withdrawalsChange} />
-                <GrowthCard title="New Users Growth" value={growthStats.usersChange} />
-            </div>
-           {isLoading ? (
-             <div className="flex justify-center items-center h-80"><Loader2 className="h-8 w-8 animate-spin"/></div>
-           ) : dailyStats.length > 0 ? (
-             <DailyStatsChart data={dailyStats} />
-           ) : (
-             <div className="flex justify-center items-center h-80 text-muted-foreground">
-                Could not load chart data. Ensure you have run the necessary SQL function.
-             </div>
-           )}
-        </CardContent>
-       </Card>
+       {isAnalyticsEnabled && (
+         <Card>
+          <CardHeader>
+            <CardTitle>Business Analytics</CardTitle>
+            <CardDescription>A 14-day overview of key business metrics. Growth is compared to the prior 7 days.</CardDescription>
+          </CardHeader>
+          <CardContent>
+              <div className="grid grid-cols-3 gap-4 mb-6">
+                  <GrowthCard title="Revenue Growth" value={growthStats.revenueChange} />
+                  <GrowthCard title="Withdrawals Growth" value={growthStats.withdrawalsChange} />
+                  <GrowthCard title="New Users Growth" value={growthStats.usersChange} />
+              </div>
+            {isLoading ? (
+              <div className="flex justify-center items-center h-80"><Loader2 className="h-8 w-8 animate-spin"/></div>
+            ) : dailyStats.length > 0 ? (
+              <DailyStatsChart data={dailyStats} />
+            ) : (
+              <div className="flex justify-center items-center h-80 text-muted-foreground">
+                  Could not load chart data. Ensure you have run the necessary SQL function.
+              </div>
+            )}
+          </CardContent>
+         </Card>
+       )}
 
        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="h-full">
@@ -397,3 +407,6 @@ export default function AdminDashboardPage() {
   );
 }
 
+
+
+    

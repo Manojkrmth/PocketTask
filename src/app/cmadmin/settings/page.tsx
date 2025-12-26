@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Save, Link as LinkIcon, Settings, Image as ImageIcon, Text, Info, ToggleLeft, IndianRupee, Megaphone, ListTodo, Wallet, Gift, AlertTriangle, Users, Wrench } from 'lucide-react';
+import { Loader2, Save, Link as LinkIcon, Settings, Image as ImageIcon, Text, Info, ToggleLeft, IndianRupee, Megaphone, ListTodo, Wallet, Gift, AlertTriangle, Users, Wrench, BarChart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { InstagramIcon, TelegramIcon, WhatsAppIcon } from '@/components/icons';
 import { Switch } from '@/components/ui/switch';
@@ -27,6 +27,7 @@ export default function SettingsPage() {
     const [isSocialSaving, startSocialSaving] = useTransition();
     const [isPopupSaving, startPopupSaving] = useTransition();
     const [isMaintenanceSaving, startMaintenanceSaving] = useTransition();
+    const [isAnalyticsSaving, startAnalyticsSaving] = useTransition();
 
 
     useEffect(() => {
@@ -60,6 +61,7 @@ export default function SettingsPage() {
                         redirectLink: data.popup_notice_redirect_link
                     },
                     isMaintenanceModeEnabled: data.is_maintenance_mode_enabled ?? false,
+                    isAnalyticsEnabled: data.is_analytics_enabled ?? true,
                 });
             }
 
@@ -135,6 +137,32 @@ export default function SettingsPage() {
                     <Button onClick={() => handleSaveSection(startMaintenanceSaving, { is_maintenance_mode_enabled: settings.isMaintenanceModeEnabled })} disabled={isMaintenanceSaving}>
                         {isMaintenanceSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                         Save Maintenance Setting
+                    </Button>
+                </CardFooter>
+            </Card>
+
+             <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><BarChart className="h-5 w-5 text-primary" /> Analytics Settings</CardTitle>
+                    <CardDescription>Control the visibility of the Business Analytics chart on the dashboard.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                     <div className="flex items-center justify-between rounded-lg border p-4 shadow-sm">
+                        <Label htmlFor="analytics-enabled" className="font-semibold text-lg flex items-center gap-2">
+                           Enable Analytics on Dashboard
+                        </Label>
+                        <Switch
+                            id="analytics-enabled"
+                            checked={settings.isAnalyticsEnabled}
+                            onCheckedChange={(checked) => handleTopLevelChange('isAnalyticsEnabled', checked)}
+                            disabled={isAnalyticsSaving}
+                        />
+                    </div>
+                </CardContent>
+                 <CardFooter>
+                    <Button onClick={() => handleSaveSection(startAnalyticsSaving, { is_analytics_enabled: settings.isAnalyticsEnabled })} disabled={isAnalyticsSaving}>
+                        {isAnalyticsSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        Save Analytics Setting
                     </Button>
                 </CardFooter>
             </Card>
@@ -354,3 +382,5 @@ export default function SettingsPage() {
         </div>
     );
 }
+
+    
