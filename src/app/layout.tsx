@@ -41,7 +41,6 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
                 throw error;
             }
             
-            // Explicitly check for true. If it's false, null, or undefined, mode is off.
             if (data && data.isUnderConstruction === true) {
                 setIsUnderConstruction(true);
             } else {
@@ -64,13 +63,9 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
   
   if (isUnderConstruction && !isAdminPage) {
       return (
-        <html lang="en">
-          <body>
-            <main className="max-w-md mx-auto bg-background min-h-screen relative shadow-2xl">
-                <MaintenancePage />
-            </main>
-          </body>
-        </html>
+        <main className="max-w-md mx-auto bg-background min-h-screen relative shadow-2xl">
+            <MaintenancePage />
+        </main>
       );
   }
 
