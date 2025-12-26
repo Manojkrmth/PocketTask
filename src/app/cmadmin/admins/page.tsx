@@ -13,16 +13,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -32,11 +22,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
-import { Loader2, Trash2, PlusCircle, UserPlus } from 'lucide-react';
+import { Loader2, PlusCircle, UserPlus, Shield } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 interface AdminUser {
   id: number;
@@ -55,13 +47,10 @@ export default function AdminsPage() {
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   
-  const [isDeleting, startDelete] = useTransition();
   const [isAdding, startAdd] = useTransition();
 
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
 
-  const [selectedAdmin, setSelectedAdmin] = useState<AdminUser | null>(null);
   const [newAdminUserId, setNewAdminUserId] = useState('');
 
   const { toast } = useToast();
@@ -83,31 +72,6 @@ export default function AdminsPage() {
     fetchAdmins();
   }, [toast]);
 
-  const handleDeleteAdmin = () => {
-    if (!selectedAdmin) return;
-    
-    if(selectedAdmin.user_id === nonDeletableAdminId){
-        toast({ variant: 'destructive', title: 'Action Not Allowed', description: 'This super admin cannot be removed.' });
-        setDeleteDialogOpen(false);
-        return;
-    }
-
-    startDelete(async () => {
-      const { error } = await supabase
-        .from('admins')
-        .delete()
-        .eq('id', selectedAdmin.id);
-      
-      if (error) {
-        toast({ variant: 'destructive', title: 'Delete Failed', description: error.message });
-      } else {
-        toast({ title: 'Success', description: `Admin has been removed.` });
-        await fetchAdmins(); // Refresh the list
-      }
-      setDeleteDialogOpen(false);
-      setSelectedAdmin(null);
-    });
-  };
 
   const handleAddAdmin = () => {
     if (!newAdminUserId.trim()) {
@@ -147,11 +111,6 @@ export default function AdminsPage() {
         }
     });
   }
-
-  const openDeleteDialog = (admin: AdminUser) => {
-    setSelectedAdmin(admin);
-    setDeleteDialogOpen(true);
-  };
 
   return (
     <>
@@ -200,13 +159,12 @@ export default function AdminsPage() {
                 <TableHead>Admin User</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Added On</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="h-24 text-center">
+                  <TableCell colSpan={3} className="h-24 text-center">
                     <Loader2 className="mx-auto h-6 w-6 animate-spin" />
                   </TableCell>
                 </TableRow>
@@ -214,7 +172,15 @@ export default function AdminsPage() {
                 admins.map((admin) => (
                   <TableRow key={admin.id}>
                     <TableCell>
-                      <div className="font-medium">{admin.users?.full_name || 'N/A'}</div>
+                       <div className="flex items-center gap-2">
+                          <span className="font-medium">{admin.users?.full_name || 'N/A'}</span>
+                          {admin.user_id === nonDeletableAdminId && (
+                            <Badge className="bg-yellow-400 text-yellow-900 hover:bg-yellow-400">
+                               <Shield className="mr-1 h-3 w-3" />
+                               Super Admin
+                            </Badge>
+                          )}
+                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="text-sm text-muted-foreground">{admin.users?.email}</div>
@@ -222,23 +188,11 @@ export default function AdminsPage() {
                     <TableCell className="text-sm text-muted-foreground">
                       {formatDistanceToNow(new Date(admin.created_at), { addSuffix: true })}
                     </TableCell>
-                    <TableCell className="text-right">
-                       <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                            onClick={() => openDeleteDialog(admin)}
-                            disabled={isDeleting && selectedAdmin?.id === admin.id || admin.user_id === nonDeletableAdminId}
-                            title={admin.user_id === nonDeletableAdminId ? "This admin cannot be deleted" : "Remove admin"}
-                        >
-                            {isDeleting && selectedAdmin?.id === admin.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4"/>}
-                        </Button>
-                    </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={4} className="h-24 text-center">
+                  <TableCell colSpan={3} className="h-24 text-center">
                     No admins found.
                   </TableCell>
                 </TableRow>
@@ -247,24 +201,6 @@ export default function AdminsPage() {
           </Table>
         </div>
       </div>
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-               This action cannot be undone. This will permanently remove admin privileges from {' '}
-               <span className="font-bold">{selectedAdmin?.users?.email}</span>.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteAdmin} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
-              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Confirm Remove
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }
