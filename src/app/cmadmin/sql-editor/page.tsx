@@ -6,11 +6,10 @@ import { CopyButton } from '@/components/copy-button';
 import { Copy } from 'lucide-react';
 
 const userListSql = `
--- Step 1: Ensure RLS is enabled on the 'users' table.
--- This command will fail if it's already enabled, which is okay.
-ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+-- Drop the existing policy if it exists, to avoid "already exists" error.
+DROP POLICY IF EXISTS "Allow admins to read all users" ON public.users;
 
--- Step 2: Create a policy to allow admins to read all users.
+-- Create the policy to allow admins to read all users.
 -- This policy checks if the currently logged-in user's ID exists in the 'admins' table.
 CREATE POLICY "Allow admins to read all users"
 ON public.users
