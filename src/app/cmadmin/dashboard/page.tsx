@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -26,6 +25,7 @@ import { useCurrency } from '@/context/currency-context';
 import { CopyButton } from '@/components/copy-button';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { DailyStatsChart } from '@/components/charts/daily-stats-chart';
 
 interface TopUser {
     id: string;
@@ -48,6 +48,7 @@ export default function AdminDashboardPage() {
   
   const [topBalanceUsers, setTopBalanceUsers] = useState<TopUser[]>([]);
   const [topReferralUsers, setTopReferralUsers] = useState<TopUser[]>([]);
+  const [dailyStats, setDailyStats] = useState<any[]>([]);
 
   const [isLoading, setIsLoading] = useState(true);
   const { formatCurrency } = useCurrency();
@@ -76,7 +77,8 @@ export default function AdminDashboardPage() {
         topBalanceRes,
         topReferralRes,
         approvedTasksRes,
-        approvedCoinsRes
+        approvedCoinsRes,
+        dailyStatsRes
       ] = await Promise.all([
         supabase.rpc('get_total_users_count'),
         supabase.from('usertasks').select('*', { count: 'exact', head: true }).eq('status', 'Pending'),
@@ -87,7 +89,8 @@ export default function AdminDashboardPage() {
         supabase.from('users').select('id, full_name, email, balance_available').order('balance_available', { ascending: false }).limit(10),
         supabase.rpc('get_top_referral_users', { limit_count: 10 }),
         supabase.from('usertasks').select('reward').eq('status', 'Approved'),
-        supabase.from('coinsubmissions').select('reward_inr').eq('status', 'Approved')
+        supabase.from('coinsubmissions').select('reward_inr').eq('status', 'Approved'),
+        supabase.rpc('get_daily_dashboard_stats', { days_count: 14 })
       ]);
       
       const { data: totalBalanceData, error: totalBalanceError } = await supabase.rpc('get_total_users_balance');
@@ -110,6 +113,7 @@ export default function AdminDashboardPage() {
 
       if (topBalanceRes.data) setTopBalanceUsers(topBalanceRes.data);
       if (topReferralRes.data) setTopReferralUsers(topReferralRes.data);
+      if (dailyStatsRes.data) setDailyStats(dailyStatsRes.data);
       
       setIsLoading(false);
     };
@@ -237,6 +241,24 @@ export default function AdminDashboardPage() {
         </Link>
 
        </div>
+
+       <Card>
+        <CardHeader>
+          <CardTitle>Business Analytics</CardTitle>
+          <CardDescription>A 14-day overview of key business metrics.</CardDescription>
+        </CardHeader>
+        <CardContent>
+           {isLoading ? (
+             <div className="flex justify-center items-center h-80"><Loader2 className="h-8 w-8 animate-spin"/></div>
+           ) : dailyStats.length > 0 ? (
+             <DailyStatsChart data={dailyStats} />
+           ) : (
+             <div className="flex justify-center items-center h-80 text-muted-foreground">
+                Could not load chart data. Ensure you have run the necessary SQL function.
+             </div>
+           )}
+        </CardContent>
+       </Card>
 
        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="h-full">

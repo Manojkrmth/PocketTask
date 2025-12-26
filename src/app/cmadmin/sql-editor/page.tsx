@@ -1,9 +1,8 @@
-
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CopyButton } from '@/components/copy-button';
-import { Copy, AlertTriangle } from 'lucide-react';
+import { Copy, AlertTriangle, AreaChart } from 'lucide-react';
 import { Alert, AlertTitle } from '@/components/ui/alert';
 
 const masterSqlScript = `
@@ -230,6 +229,70 @@ CREATE POLICY "Allow admins to create wallet history" ON public.wallet_history
 FOR INSERT WITH CHECK (is_admin(auth.uid()));
 `;
 
+const dailyStatsFunctionSql = `
+-- =================================================================
+-- FIX: Business Analytics Chart
+-- =================================================================
+-- Creates a function to fetch daily statistics for the dashboard chart.
+-- Run this ONCE in your Supabase SQL Editor.
+-- =================================================================
+
+CREATE OR REPLACE FUNCTION get_daily_dashboard_stats(days_count integer)
+RETURNS TABLE(
+    date timestamptz,
+    total_revenue numeric,
+    total_withdrawals numeric,
+    new_users_count integer
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    IF is_admin(auth.uid()) THEN
+        RETURN QUERY
+        WITH date_series AS (
+            SELECT generate_series(
+                (NOW() - (days_count - 1) * interval '1 day')::date,
+                NOW()::date,
+                '1 day'::interval
+            )::date AS date
+        )
+        SELECT
+            ds.date::timestamptz,
+            COALESCE(daily_revenue.total, 0) AS total_revenue,
+            COALESCE(daily_withdrawals.total, 0) AS total_withdrawals,
+            COALESCE(daily_users.count, 0)::integer AS new_users_count
+        FROM date_series ds
+        LEFT JOIN (
+            SELECT
+                created_at::date AS date,
+                SUM(amount) AS total
+            FROM wallet_history
+            WHERE type IN ('task_reward', 'coin_credit', 'spin_win', 'referral_bonus') AND status = 'Completed'
+            GROUP BY date
+        ) daily_revenue ON ds.date = daily_revenue.date
+        LEFT JOIN (
+            SELECT
+                created_at::date AS date,
+                SUM(amount) AS total
+            FROM payments
+            WHERE status = 'Approved'
+            GROUP BY date
+        ) daily_withdrawals ON ds.date = daily_withdrawals.date
+        LEFT JOIN (
+            SELECT
+                created_at::date AS date,
+                COUNT(id) AS count
+            FROM users
+            GROUP BY date
+        ) daily_users ON ds.date = daily_users.date
+        ORDER BY ds.date ASC;
+    END IF;
+END;
+$$;
+`;
+
 export default function SqlEditorPage() {
 
   return (
@@ -240,6 +303,30 @@ export default function SqlEditorPage() {
           Run these SQL queries in your Supabase project to fix specific issues.
         </p>
       </div>
+
+      <Card className="border-purple-500">
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2"><AreaChart className="text-purple-500"/> Fix: Business Analytics Chart</CardTitle>
+            <CardDescription>
+                This command creates the necessary database function to power the Business Analytics chart on the dashboard. Run this once.
+            </CardDescription>
+        </CardHeader>
+        <CardContent>
+            <div className="relative rounded-md bg-muted/50 p-4">
+              <CopyButton 
+                value={dailyStatsFunctionSql}
+                variant="ghost"
+                size="icon"
+                className="absolute top-2 right-2 h-7 w-7"
+              >
+                  <Copy className="h-4 w-4" />
+              </CopyButton>
+              <pre className="text-sm whitespace-pre-wrap font-mono">
+                <code>{dailyStatsFunctionSql.trim()}</code>
+              </pre>
+            </div>
+        </CardContent>
+       </Card>
 
        <Card className="border-destructive">
         <CardHeader>
@@ -340,4 +427,3 @@ export default function SqlEditorPage() {
     </div>
   );
 }
-
