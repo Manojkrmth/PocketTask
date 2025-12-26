@@ -70,11 +70,12 @@ export default function UsersPage() {
 
   const fetchUsers = async () => {
     setLoading(true);
-    const { data, error } = await supabase.rpc('get_all_users');
+    // Reverted to direct table access as per user's intent to handle RLS from scratch.
+    const { data, error } = await supabase.from('users').select('*').order('created_at', { ascending: false });
 
     if (error) {
       console.error("Error fetching users:", error);
-      toast({ variant: "destructive", title: "Error", description: "Could not fetch users. Please ensure the 'get_all_users' function is created in your database." });
+      toast({ variant: "destructive", title: "Error", description: "Could not fetch users. Please ensure you have set up RLS policies correctly." });
     } else {
       setUsers(data as AppUser[]);
     }
@@ -124,230 +125,43 @@ export default function UsersPage() {
   );
   
   const sqlPolicyFix = `-- =================================================================
--- MASTER SQL SCRIPT FOR FIXING ALL ADMIN PANEL PERMISSIONS
--- Version: 5.0
--- Description: This script resets and correctly configures all RLS
--- policies and creates necessary helper functions for the admin panel.
+-- MASTER SQL SCRIPT TO DROP ALL RLS POLICIES
+-- WARNING: This script will remove ALL Row-Level Security policies
+-- from every table in your 'public' schema. Your data will be
+-- unprotected until you create new policies.
 -- =================================================================
 
-BEGIN;
-
--- =============================================
--- 1. ADMINS TABLE
--- =============================================
--- Drop all existing policies to avoid conflicts
-DROP POLICY IF EXISTS "Enable read access for authenticated users" ON public.admins;
-DROP POLICY IF EXISTS "Allow admins to manage the admins table" ON public.admins;
-
--- Allow any authenticated user to see who the admins are.
-CREATE POLICY "Enable read access for authenticated users" ON public.admins
-FOR SELECT
-USING (auth.role() = 'authenticated');
-
--- Only admins can add/remove other admins.
-CREATE POLICY "Allow admins to manage the admins table" ON public.admins
-FOR ALL
-USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
-
-
--- =============================================
--- 2. USERS TABLE
--- =============================================
--- Drop all existing policies
-DROP POLICY IF EXISTS "Allow individual users to view their own data" ON public.users;
-DROP POLICY IF EXISTS "Allow individual users to update their own data" ON public.users;
-DROP POLICY IF EXISTS "Enable read access for admins" ON public.users;
-DROP POLICY IF EXISTS "Allow admins to update users" ON public.users;
-
-
--- Allow users to see and update their own data.
-CREATE POLICY "Allow individual users to view their own data" ON public.users
-FOR SELECT USING (auth.uid() = id);
-
-CREATE POLICY "Allow individual users to update their own data" ON public.users
-FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
-
--- Allow admins to see/update all users
-CREATE POLICY "Enable read access for admins" ON public.users
-FOR SELECT USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
-
-CREATE POLICY "Allow admins to update users" ON public.users
-FOR UPDATE USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
-
-
--- =============================================
--- 3. NOTIFICATIONS TABLE
--- =============================================
--- Drop all existing policies
-DROP POLICY IF EXISTS "Allow read access to everyone" ON public.notifications;
-DROP POLICY IF EXISTS "Allow admin to manage notifications" ON public.notifications;
-
-
--- Allow any logged-in user to read notifications.
-CREATE POLICY "Allow read access to everyone" ON public.notifications
-FOR SELECT USING (auth.role() = 'authenticated');
-
--- Only admins can create/delete notifications.
-CREATE POLICY "Allow admin to manage notifications" ON public.notifications
-FOR ALL USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
-
-
--- =============================================
--- 4. SETTINGS TABLE
--- =============================================
--- Drop all existing policies
-DROP POLICY IF EXISTS "Allow read access to everyone" ON public.settings;
-DROP POLICY IF EXISTS "Allow admin full access" ON public.settings;
-
-
--- Allow any logged-in user to read settings (they are not sensitive).
-CREATE POLICY "Allow read access to everyone" ON public.settings
-FOR SELECT USING (auth.role() = 'authenticated');
-
--- Only admins can update settings.
-CREATE POLICY "Allow admin full access" ON public.settings
-FOR ALL USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
-
--- =============================================
--- 5. PAYMENTS TABLE (WITHDRAWALS)
--- =============================================
--- Drop all existing policies
-DROP POLICY IF EXISTS "Allow admins to manage all payments" ON public.payments;
-DROP POLICY IF EXISTS "Allow users to insert their own payment requests" ON public.payments;
-DROP POLICY IF EXISTS "Allow users to view their own payment requests" ON public.payments;
-
--- Allow users to create and see their own requests
-CREATE POLICY "Allow users to view their own payment requests" ON public.payments
-FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Allow users to insert their own payment requests" ON public.payments
-FOR INSERT WITH CHECK (auth.uid() = user_id);
-
--- Allow admins to do anything
-CREATE POLICY "Allow admins to manage all payments" ON public.payments
-FOR ALL USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
-
-
--- =============================================
--- 6. RPC HELPER FUNCTIONS (THE MOST IMPORTANT PART!)
--- These functions run with elevated privileges to bypass RLS issues safely.
--- =============================================
-
--- Function to get all users for the admin panel
-DROP FUNCTION IF EXISTS public.get_all_users();
-CREATE OR REPLACE FUNCTION public.get_all_users()
-RETURNS TABLE (
-  id uuid,
-  full_name text,
-  email text,
-  mobile text,
-  status text,
-  created_at text,
-  referral_code text,
-  balance_available double precision
-)
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
+DO $$
+DECLARE
+    policy_record RECORD;
+    table_record RECORD;
 BEGIN
-  -- This check ensures only admins can run this function.
-  IF NOT EXISTS (SELECT 1 FROM admins WHERE user_id = auth.uid()) THEN
-    RAISE EXCEPTION 'Permission denied to get_all_users. User is not an admin.';
-  END IF;
+    -- Loop through all tables in the 'public' schema
+    FOR table_record IN
+        SELECT tablename FROM pg_tables WHERE schemaname = 'public'
+    LOOP
+        -- For each table, loop through all its policies
+        FOR policy_record IN
+            SELECT policyname FROM pg_policies WHERE schemaname = 'public' AND tablename = table_record.tablename
+        LOOP
+            -- Drop the policy
+            EXECUTE 'DROP POLICY IF EXISTS "' || policy_record.policyname || '" ON public."' || table_record.tablename || '";';
+            RAISE NOTICE 'Dropped policy "%" on table "public.%"', policy_record.policyname, table_record.tablename;
+        END LOOP;
+    END LOOP;
+    
+    -- Also drop the helper functions we created before
+    DROP FUNCTION IF EXISTS public.get_all_users();
+    DROP FUNCTION IF EXISTS public.get_all_admins();
+    DROP FUNCTION IF EXISTS public.get_all_payment_requests();
+    DROP FUNCTION IF EXISTS public.truncate_all_tables();
+    DROP FUNCTION IF EXISTS public.truncate_history(text,date);
 
-  RETURN QUERY
-  SELECT
-    u.id,
-    u.full_name,
-    u.email,
-    u.mobile,
-    u.status,
-    u.created_at::text,
-    u.referral_code,
-    u.balance_available
-  FROM
-    users u
-  ORDER BY
-    u.created_at DESC;
+
+    RAISE NOTICE 'All RLS policies and helper functions in schema "public" have been dropped.';
 END;
 $$;
-
--- Function to get all admins with their details for the admin panel
-DROP FUNCTION IF EXISTS public.get_all_admins();
-CREATE OR REPLACE FUNCTION public.get_all_admins()
-RETURNS TABLE (
-    id bigint,
-    user_id uuid,
-    created_at text,
-    users json
-)
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM admins WHERE user_id = auth.uid()) THEN
-        RAISE EXCEPTION 'Permission denied to get_all_admins. User is not an admin.';
-    END IF;
-
-    RETURN QUERY
-    SELECT
-        a.id,
-        a.user_id,
-        a.created_at::text,
-        json_build_object('full_name', u.full_name, 'email', u.email)
-    FROM
-        admins a
-    LEFT JOIN
-        users u ON a.user_id = u.id
-    ORDER BY
-        a.created_at DESC;
-END;
-$$;
-
--- Function to get all payment requests for the admin panel
-DROP FUNCTION IF EXISTS public.get_all_payment_requests();
-CREATE OR REPLACE FUNCTION public.get_all_payment_requests()
-RETURNS TABLE(
-    id bigint,
-    created_at timestamp with time zone,
-    amount double precision,
-    payment_method text,
-    payment_details text,
-    status text,
-    user_id uuid,
-    metadata jsonb,
-    users json
-)
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM admins WHERE user_id = auth.uid()) THEN
-    RAISE EXCEPTION 'Permission denied. User is not an admin.';
-  END IF;
-
-  RETURN QUERY
-  SELECT
-    p.id,
-    p.created_at,
-    p.amount,
-    p.payment_method,
-    p.payment_details,
-    p.status,
-    p.user_id,
-    p.metadata,
-    json_build_object('full_name', u.full_name, 'email', u.email)
-  FROM payments p
-  LEFT JOIN users u ON p.user_id = u.id
-  ORDER BY p.created_at DESC;
-END;
-$$;
-
-
-COMMIT;`;
+`;
 
 
   return (
@@ -370,9 +184,9 @@ COMMIT;`;
         
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Can't see or edit users/settings?</AlertTitle>
+          <AlertTitle>Drop All RLS Policies</AlertTitle>
           <div className="space-y-2">
-            <p>If you are unable to view or manage data, your database permissions are likely incorrect. Please run the following SQL code in your Supabase SQL Editor to fix all security policies.</p>
+            <p>As requested, here is the script to remove ALL RLS policies from your database. Run this in your Supabase SQL Editor to start from scratch. Your data will be unprotected until you create new policies.</p>
             <Textarea className="font-mono bg-destructive/10 text-destructive-foreground h-48" readOnly value={sqlPolicyFix} />
             <Button variant="secondary" size="sm" onClick={() => navigator.clipboard.writeText(sqlPolicyFix)}>Copy SQL</Button>
           </div>
