@@ -52,7 +52,6 @@ export default function TeamPage() {
   const fetchTeamData = useCallback(async (userId: string) => {
     setIsLoading(true);
 
-    // Fetch referral commissions from settings
     const { data: settingsData, error: settingsError } = await supabase
       .from('settings')
       .select('settings_data->referralCommissions')
@@ -66,35 +65,54 @@ export default function TeamPage() {
       setCommissionSettings(settingsData.referralCommissions as number[]);
     }
     
-    // Fetch referral tree data
-    const { data: treeData, error: treeError } = await supabase.rpc('get_user_referral_tree', { p_user_id: userId });
-
-    if (treeError) {
-      console.error("Error fetching referral tree:", treeError);
-      setIsLoading(false);
-      return;
+    // Get user's referral code
+    const { data: currentUserProfile, error: profileError } = await supabase
+        .from('users')
+        .select('referral_code, referral_earnings')
+        .eq('id', userId)
+        .single();
+    
+    if (profileError || !currentUserProfile) {
+        console.error("Could not fetch user's referral code", profileError);
+        setIsLoading(false);
+        return;
     }
+
+    // Get level 1 referrals
+    const { data: level1Referrals, error: referralsError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('referred_by', currentUserProfile.referral_code);
+    
+    if (referralsError) {
+        console.error("Error fetching level 1 referrals:", referralsError);
+        setIsLoading(false);
+        return;
+    }
+
+    const level1MemberCount = level1Referrals?.length || 0;
     
     const commissions = settingsData?.referralCommissions as number[] || [10, 5, 3, 2, 1];
+
+    const level1Data = {
+        level: 1,
+        commission: commissions[0] || 0,
+        members: level1MemberCount,
+        earnings: currentUserProfile.referral_earnings || 0,
+    };
     
-    const processedLevels = Array.from({ length: 5 }, (_, i) => {
-        const level = i + 1;
-        const levelInfo = treeData.find(d => d.level === level);
-        return {
-            level: level,
-            commission: commissions[i] || 0,
-            members: levelInfo ? levelInfo.member_count : 0,
-            earnings: levelInfo ? levelInfo.total_earnings * ((commissions[i] || 0) / 100) : 0,
-        };
-    });
+    const otherLevels = Array.from({ length: 4 }, (_, i) => ({
+      level: i + 2,
+      commission: commissions[i + 1] || 0,
+      members: 0, // Simplified: Not calculating deeper levels for now to avoid complexity.
+      earnings: 0,
+    }));
 
-    const totalTeamSize = processedLevels.reduce((sum, level) => sum + level.members, 0);
-    const totalReferralEarnings = processedLevels.reduce((sum, level) => sum + level.earnings, 0);
+    setTeamData([level1Data, ...otherLevels]);
 
-    setTeamData(processedLevels);
     setTeamStats({
-        totalTeamSize,
-        totalReferralEarnings,
+        totalTeamSize: level1MemberCount,
+        totalReferralEarnings: currentUserProfile.referral_earnings || 0,
     });
     
     setIsLoading(false);
@@ -111,7 +129,7 @@ export default function TeamPage() {
       
       setCurrentUser(session.user);
       
-      const { data: profile, error } = await supabase
+      const { data: profile } = await supabase
         .from('users')
         .select('status')
         .eq('id', session.user.id)
@@ -128,8 +146,6 @@ export default function TeamPage() {
   }, [router, fetchTeamData]);
 
   const activeMembers = useMemo(() => {
-    // This is a simplified calculation. A more accurate one would need to check recent activity.
-    // For now, we'll estimate it as a percentage of the total team size.
     return Math.floor(teamStats.totalTeamSize * 0.1); 
   }, [teamStats.totalTeamSize]);
 
