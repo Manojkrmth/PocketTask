@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -19,63 +20,61 @@ import {
   ArrowRight,
   History,
 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
-// Mock data, replace with actual API calls
-const getTaskTypeDetails = (taskType: string) => {
-    const details: { [key: string]: { name: string, available: boolean } } = {
-        'gmail': { name: 'Gmail Task', available: true },
-        'instagram': { name: 'Instagram Task', available: true },
-        'facebook': { name: 'Facebook Task', available: true },
-        'used-mails': { name: 'Used Mails Task', available: true },
-        'hot-mail': { name: 'Hot Mail Task', available: true },
-        'outlook-mail': { name: 'Outlook Mail Task', available: true },
-        'visit-earn': { name: 'Visit & Earn Task', available: true },
-        'watch-earn': { name: 'Watch & Earn Task', available: true },
-        'niva-coin': { name: 'Niva Coin Task', available: true },
-        'top-coin': { name: 'Top Coin Task', available: true },
-    };
-    return details[taskType] || { name: 'Unknown Task', available: false };
-};
-
-
-export default function StartTaskPage() {
+const StartTaskPage = () => {
   const params = useParams();
   const router = useRouter();
+  const { toast } = useToast();
   const taskType = Array.isArray(params.taskType) ? params.taskType[0] : params.taskType;
 
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
-  const [settings, setSettings] = useState<any>({ tasksPaused: false, helpLinks: [] });
+  const [taskDetails, setTaskDetails] = useState<{ name: string; available: boolean } | null>(null);
+  const [settings, setSettings] = useState<any>({ helpLinks: [] });
 
-  const [profileLoading, setProfileLoading] = useState(true);
-  const [settingsLoading, setSettingsLoading] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
+      setIsLoading(true);
+
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setUser(session.user);
-        const { data: profile } = await supabase.from('users').select('*').eq('id', session.user.id).single();
+        const { data: profile } = await supabase.from('users').select('status').eq('id', session.user.id).single();
         setUserProfile(profile);
+      } else {
+        router.push('/login');
+        return;
       }
-      setProfileLoading(false);
+      
+      const { data: settingsData, error } = await supabase
+        .from('settings')
+        .select('task_settings')
+        .eq('id', 1)
+        .single();
+        
+      if (error || !settingsData || !settingsData.task_settings) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not load task configurations.' });
+        setTaskDetails({ name: 'Unknown Task', available: false });
+      } else {
+        const allTasks = settingsData.task_settings as any[];
+        const currentTaskConfig = allTasks.find(t => t.id === taskType);
+        setTaskDetails({
+          name: currentTaskConfig?.name || 'Unknown Task',
+          available: !!currentTaskConfig?.enabled,
+        });
+      }
 
-      // Mock settings
-      setSettings({
-        tasksPaused: false,
-        helpLinks: [
-            { text: 'How to create Gmail account?', link: '#' },
-            { text: 'How to submit task proof?', link: '#' }
-        ]
-      });
-      setSettingsLoading(false);
+      setSettings({ helpLinks: [] }); // Assuming help links are static for now or fetched elsewhere
+      setIsLoading(false);
     };
 
     fetchData();
-  }, []);
+  }, [taskType, router, toast]);
 
-  const { name: taskName, available: tasksAvailable } = getTaskTypeDetails(taskType);
+  const { name: taskName, available: tasksAvailable } = taskDetails || { name: 'Loading...', available: false };
 
   const assignTask = () => {
     setIsLoading(true);
@@ -104,7 +103,7 @@ export default function StartTaskPage() {
 
   const isUserBlocked = userProfile?.status === 'Blocked';
   const noTasksAvailable = !tasksAvailable;
-  const tasksPaused = settings.tasksPaused;
+  const tasksPaused = false; // Assuming tasks are not paused globally for now
   const howToButtons = settings.helpLinks || [];
 
 
@@ -114,7 +113,9 @@ export default function StartTaskPage() {
         title={taskName || "Start Task"}
        />
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-100px)] text-center p-4">
-        {noTasksAvailable || tasksPaused || isUserBlocked ? (
+        {isLoading ? (
+            <Loader2 className="h-16 w-16 animate-spin" />
+        ) : noTasksAvailable || tasksPaused || isUserBlocked ? (
             <div className="flex flex-col items-center text-center">
                 <XCircle className="h-16 w-16 text-muted-foreground mb-4" />
                 <h2 className="text-2xl font-bold text-gray-800 mb-2">
@@ -125,8 +126,9 @@ export default function StartTaskPage() {
                     ? 'Your account is blocked. You cannot start new tasks.'
                     : tasksPaused 
                         ? 'Our team is working on adding new tasks. Please check back later.' 
-                        : `You have completed all available tasks for ${taskName}! New tasks will be available soon.`}
+                        : `This task is currently not available.`}
                 </p>
+                 <Button onClick={() => router.push('/tasks')}>Back to Tasks</Button>
             </div>
         ) : (
             <>
@@ -139,36 +141,40 @@ export default function StartTaskPage() {
                 size="lg"
                 className="h-14 text-lg px-8 rounded-full shadow-lg bg-green-500 hover:bg-green-600"
                 onClick={assignTask}
-                disabled={isLoading || settingsLoading || profileLoading || isUserBlocked}
+                disabled={isLoading}
                 >
-                {isLoading || settingsLoading || profileLoading ? (
+                {isLoading ? (
                     <Loader2 className="mr-2 h-6 w-6 animate-spin" />
                 ) : (
                     <PlayCircle className="mr-2 h-6 w-6" />
                 )}
-                {isLoading ? 'Assigning...' : 'Start New Task'}
+                {isLoading ? 'Loading...' : 'Start New Task'}
                 </Button>
             </>
         )}
         
+       { !isLoading && (
         <Card className="mt-8 w-full max-w-sm">
             <CardHeader className="pb-4">
                 <CardTitle className="text-base flex items-center gap-2 justify-center"><HelpCircle className="h-5 w-5"/>How it Works?</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col space-y-2">
-                {settingsLoading ? <Loader2 className='mx-auto animate-spin' /> : howToButtons.map((button: any, index: number) => (
+                {howToButtons.length > 0 ? howToButtons.map((button: any, index: number) => (
                     <Button key={index} variant="outline" className="w-full justify-between" asChild>
                     <Link href={button.link || '#'}>
                         {button.text}
                         <ArrowRight className="h-4 w-4" />
                     </Link>
                     </Button>
-                ))}
-                {!settingsLoading && howToButtons.length === 0 && <p className="text-sm text-muted-foreground text-center">Admin has not added any help links yet.</p>}
+                )) : <p className="text-sm text-muted-foreground text-center">No help links available.</p>}
             </CardContent>
         </Card>
+       )}
         <BannerAd adId="tasks-start" />
       </div>
     </div>
   );
 }
+
+export default StartTaskPage;
+

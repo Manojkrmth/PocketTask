@@ -69,21 +69,18 @@ export default function ChooseTaskTypePage() {
   useEffect(() => {
     const fetchSettings = async () => {
       setIsLoading(true);
-      // This will be updated to fetch from the DB later.
-      // For now, it will fetch from a default config.
-      const DEFAULT_TASKS = [
-          { id: 'gmail', name: 'Gmail Task', description: 'Create a Gmail account following the rules.', badge: 'POPULAR', enabled: true },
-          { id: 'used-mails', name: 'Used Mails Task', description: 'Submit old, unused email accounts.', badge: 'EASY', enabled: true },
-          { id: 'hot-mail', name: 'Hot Mail Task', description: 'Create a Hotmail/Outlook account.', badge: '', enabled: true },
-          { id: 'outlook-mail', name: 'Outlook Mail Task', description: 'Create a new Outlook account.', badge: '', enabled: true },
-          { id: 'instagram', name: 'Instagram Task', description: 'Create a new Instagram account.', badge: 'NEW', enabled: true },
-          { id: 'facebook', name: 'Facebook Task', description: 'Create a new Facebook account.', badge: '', enabled: true },
-          { id: 'visit-earn', name: 'Visit & Earn Task', description: 'Visit a website and earn.', badge: '', enabled: true },
-          { id: 'watch-earn', name: 'Watch & Earn Task', description: 'Watch a video to earn rewards.', badge: '', enabled: true },
-          { id: 'niva-coin', name: 'Niva Coin Task', description: 'Complete tasks to earn Niva Coins.', badge: 'HIGH PAY', enabled: true },
-          { id: 'top-coin', name: 'Top Coin Task', description: 'Earn Top Coins by completing offers.', badge: 'HIGH PAY', enabled: true },
-      ];
-      setTaskSettings(DEFAULT_TASKS);
+      const { data, error } = await supabase
+        .from('settings')
+        .select('task_settings')
+        .eq('id', 1)
+        .single();
+      
+      if (error || !data || !data.task_settings) {
+        console.error("Could not fetch task settings", error);
+        setTaskSettings([]); // Set empty array on error
+      } else {
+        setTaskSettings(data.task_settings);
+      }
       setIsLoading(false);
     };
 
