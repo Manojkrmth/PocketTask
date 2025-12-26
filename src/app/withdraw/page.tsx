@@ -44,7 +44,7 @@ export default function WithdrawPage() {
   const [dataLoading, setDataLoading] = useState(true);
 
   const [isSubmitting, startTransition] = useTransition();
-  const { formatCurrency, currency } = useCurrency();
+  const { formatCurrency, currency, usdToInrRate } = useCurrency();
   
   const [userProfileData, setUserProfileData] = useState<any>(null);
 
@@ -92,11 +92,11 @@ export default function WithdrawPage() {
 
         setBalances({ available: availableBalance, hold: holdBalance });
         
-        const { data: appSettings } = await supabase.from('settings').select('*').single();
-        if (appSettings) {
-            setSettingsData(appSettings.settings_data);
+        const { data: appSettings, error: settingsError } = await supabase.from('settings').select('withdrawal_settings').eq('id', 1).single();
+        if (settingsError || !appSettings) {
+             toast({ variant: 'destructive', title: 'Error', description: 'Could not load withdrawal settings.'})
         } else {
-             setSettingsData({ withdrawal: { chargesPercent: 2, minAmount: 500, methods: [{id: 'upi', name: 'UPI', enabled: true}] } });
+            setSettingsData(appSettings.withdrawal_settings);
         }
         
         setDataLoading(false);
@@ -114,14 +114,14 @@ export default function WithdrawPage() {
     };
     
     getUser();
-  }, [router]);
+  }, [router, toast]);
 
 
   const [amount, setAmount] = useState('');
   const [paymentDetails, setPaymentDetails] = useState('');
   const [selectedMethod, setSelectedMethod] = useState('');
   
-  const withdrawalSettings = settingsData?.withdrawal || { chargesPercent: 2, minAmount: 500, methods: [{id: 'upi', name: 'UPI', enabled: true}] };
+  const withdrawalSettings = settingsData || { chargesPercent: 2, minAmount: 500, methods: [] };
   const availableMethods = (withdrawalSettings.methods || []).filter((m: any) => m.enabled);
 
 
@@ -151,13 +151,13 @@ export default function WithdrawPage() {
     const numAmount = parseFloat(amount);
     const minWithdrawalInr = withdrawalSettings.minAmount;
     
-    if (numAmount < (currency === 'USD' ? minWithdrawalInr / (settingsData?.usdToInrRate || 85) : minWithdrawalInr)) {
+    if (numAmount < (currency === 'USD' ? minWithdrawalInr / usdToInrRate : minWithdrawalInr)) {
       toast({ variant: 'destructive', title: 'Amount too low', description: `Minimum withdrawal is ${formatCurrency(minWithdrawalInr)}.`});
       return false;
     }
 
     const availableBalanceInr = balances.available;
-    const availableBalanceCurrentCurrency = currency === 'USD' ? availableBalanceInr / (settingsData?.usdToInrRate || 85) : availableBalanceInr;
+    const availableBalanceCurrentCurrency = currency === 'USD' ? availableBalanceInr / usdToInrRate : availableBalanceInr;
     
     if (numAmount > availableBalanceCurrentCurrency) {
         toast({ variant: 'destructive', title: 'Insufficient balance', description: 'You cannot withdraw more than your available balance.'});
@@ -170,7 +170,7 @@ export default function WithdrawPage() {
     if (!isRequestValid() || !user) return;
     
     const numAmount = parseFloat(amount);
-    const amountInr = currency === 'USD' ? numAmount * (settingsData?.usdToInrRate || 85) : numAmount;
+    const amountInr = currency === 'USD' ? numAmount * usdToInrRate : numAmount;
 
     startTransition(async () => {
         try {
@@ -228,11 +228,10 @@ export default function WithdrawPage() {
 
   const getUsdValue = () => {
     if (!selectedMethod.includes('USDT') || !amount) return null;
-    const usdRate = settingsData?.usdToInrRate || 85;
-    const amountInr = currency === 'USD' ? parseFloat(amount) * usdRate : parseFloat(amount);
+    const amountInr = currency === 'USD' ? parseFloat(amount) * usdToInrRate : parseFloat(amount);
     const chargeInr = amountInr * (withdrawalSettings.chargesPercent / 100);
     const finalAmountInr = amountInr - chargeInr;
-    const finalUsd = finalAmountInr / usdRate;
+    const finalUsd = finalAmountInr / usdToInrRate;
     return finalUsd.toFixed(4);
   }
   

@@ -24,6 +24,13 @@ interface WithdrawalSettings {
     methods: MethodSetting[];
 }
 
+const ALL_METHODS: MethodSetting[] = [
+    { id: 'upi', name: 'UPI', enabled: true },
+    { id: 'bank', name: 'Bank Transfer', enabled: true },
+    { id: 'usdt_bep20', name: 'USDT (BEP20)', enabled: true },
+    { id: 'binance', name: 'Binance Pay', enabled: true },
+];
+
 export default function WithdrawalSettingsPage() {
     const { toast } = useToast();
     const router = useRouter();
@@ -44,7 +51,21 @@ export default function WithdrawalSettingsPage() {
                 console.error('Error fetching settings:', error);
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch app settings.' });
             } else if (data) {
-                setWithdrawalSettings(data.withdrawal_settings || { minAmount: 0, chargesPercent: 0, methods: [] });
+                const savedSettings = data.withdrawal_settings || {};
+                
+                // Merge saved methods with all possible methods to ensure all are present
+                const savedMethodsMap = new Map((savedSettings.methods || []).map((m: MethodSetting) => [m.id, m]));
+                const mergedMethods = ALL_METHODS.map(defaultMethod => 
+                    savedMethodsMap.get(defaultMethod.id) || defaultMethod
+                );
+
+                const finalSettings = {
+                    minAmount: savedSettings.minAmount ?? 500,
+                    chargesPercent: savedSettings.chargesPercent ?? 5,
+                    methods: mergedMethods,
+                };
+                
+                setWithdrawalSettings(finalSettings);
             }
             setLoading(false);
         };
@@ -142,7 +163,7 @@ export default function WithdrawalSettingsPage() {
                     <CardDescription>Use the toggles to enable or disable payment methods for users.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {withdrawalSettings?.methods && withdrawalSettings.methods.length > 0 ? (
+                    {withdrawalSettings && withdrawalSettings.methods && withdrawalSettings.methods.length > 0 ? (
                         withdrawalSettings.methods.map(method => (
                              <div key={method.id} className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <div className="space-y-0.5">
