@@ -70,14 +70,6 @@ export function InstallPWAButton() {
   }, [toast]);
 
   const handleInstallClick = async () => {
-    if (isAppInstalled) {
-      toast({
-        title: "App Already Installed",
-        description: "You have already added the app to your device.",
-      });
-      return;
-    }
-
     if (deferredPrompt) {
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;

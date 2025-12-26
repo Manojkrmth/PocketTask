@@ -284,7 +284,7 @@ export default function HomePage() {
           </Card>
           <Card className="flex-1 bg-orange-400 text-white shadow-lg border-0">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2"><Lock /> Hold Balance</CardTitle>
+              <CardTitle className="text-sm font-medium flex items-center gap-2"><Lock /> On Hold Balance</CardTitle>
             </CardHeader>
             <CardContent>
               {isLoading ? <Loader2 className="h-6 w-6 animate-spin"/> : <div className="text-2xl font-bold">{formatCurrency(balances.hold)}</div>}
