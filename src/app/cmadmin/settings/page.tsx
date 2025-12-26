@@ -67,13 +67,17 @@ export default function SettingsPage() {
         startSavingConstruction(async () => {
             const { error: updateError } = await supabase
                 .from('maintenance_mode')
-                .update({ is_enabled: isUnderConstruction, updated_at: new Date().toISOString() })
-                .eq('id', 1);
+                .update({ is_enabled: isUnderConstruction })
+                .eq('id', 1)
+                .select()
+                .single();
 
             if (updateError) {
                 toast({ variant: 'destructive', title: 'Save Failed', description: updateError.message });
             } else {
                 toast({ title: 'Success', description: 'Construction mode has been updated.' });
+                 // Manually sync state to prevent UI reversion
+                setIsUnderConstruction(isUnderConstruction);
             }
         });
     }
@@ -111,7 +115,7 @@ export default function SettingsPage() {
 
             const { error } = await supabase
                 .from('settings')
-                .upsert({ id: 1, settings_data: newSettings })
+                .upsert({ id: 1, settings_data: newSettings }, { onConflict: 'id' })
                 .select()
                 .single();
 
@@ -250,7 +254,7 @@ export default function SettingsPage() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><LinkIcon className="h-5 w-5 text-primary" /> Social Media Links</CardTitle>
+                     <CardTitle className="flex items-center gap-2"><LinkIcon className="h-5 w-5 text-primary" /> Social Media Links</CardTitle>
                     <CardDescription>These links appear on the home and profile pages.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -346,3 +350,5 @@ export default function SettingsPage() {
             </div>
         </div>
     );
+}
+    
