@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Save, Link as LinkIcon, Settings, Image as ImageIcon, Text, Info, ToggleLeft, IndianRupee, Megaphone, ListTodo, Wallet, Gift, AlertTriangle, Users, HardHat } from 'lucide-react';
+import { Loader2, Save, Link as LinkIcon, Settings, Image as ImageIcon, Text, Info, ToggleLeft, IndianRupee, Megaphone, ListTodo, Wallet, Gift, AlertTriangle, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { InstagramIcon, TelegramIcon, WhatsAppIcon } from '@/components/icons';
 import { Switch } from '@/components/ui/switch';
@@ -20,17 +20,11 @@ export default function SettingsPage() {
     const [settings, setSettings] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [isSaving, startSaving] = useTransition();
-    
-    // Dedicated state for Construction Mode
-    const [isUnderConstruction, setIsUnderConstruction] = useState(false);
-    const [isSavingConstruction, startSavingConstruction] = useTransition();
-
 
     useEffect(() => {
         const fetchAllSettings = async () => {
             setLoading(true);
 
-            // Fetch main settings
             const { data, error } = await supabase
                 .from('settings')
                 .select('settings_data')
@@ -41,10 +35,7 @@ export default function SettingsPage() {
                 console.error('Error fetching settings:', error);
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch app settings.' });
             } else if (data) {
-                const fetchedSettings = data.settings_data || {};
-                setSettings(fetchedSettings);
-                // Initialize the switch state from the main settings object
-                setIsUnderConstruction(fetchedSettings.isUnderConstruction || false);
+                setSettings(data.settings_data || {});
             }
 
             setLoading(false);
@@ -52,28 +43,6 @@ export default function SettingsPage() {
         
         fetchAllSettings();
     }, [toast]);
-    
-    const handleSaveConstructionMode = () => {
-        startSavingConstruction(async () => {
-             const newSettings = { 
-                ...settings,
-                isUnderConstruction: isUnderConstruction 
-            };
-
-            const { error } = await supabase
-                .from('settings')
-                .update({ settings_data: newSettings })
-                .eq('id', 1);
-
-            if (error) {
-                toast({ variant: 'destructive', title: 'Save Failed', description: error.message });
-            } else {
-                toast({ title: 'Success', description: 'Construction mode has been updated.' });
-                // Update the main settings state to keep everything in sync
-                setSettings(newSettings);
-            }
-        });
-    }
 
     const handleInputChange = (category: string, key: string, value: any) => {
         setSettings((prev: any) => ({
@@ -91,18 +60,15 @@ export default function SettingsPage() {
 
     const handleSaveChanges = () => {
         startSaving(async () => {
-            const newSettings = { ...settings, isUnderConstruction };
-
             const { error } = await supabase
                 .from('settings')
-                .update({ settings_data: newSettings })
+                .update({ settings_data: settings })
                 .eq('id', 1);
 
             if (error) {
                 toast({ variant: 'destructive', title: 'Save Failed', description: error.message });
             } else {
                 toast({ title: 'Success', description: 'App settings have been updated.' });
-                setSettings(newSettings); // Ensure local state is up-to-date
             }
         });
     };
@@ -121,28 +87,6 @@ export default function SettingsPage() {
                 <h1 className="text-3xl font-bold">App Settings</h1>
                 <p className="text-muted-foreground">Manage global settings for your application.</p>
             </div>
-            
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><HardHat className="h-5 w-5 text-primary" /> Construction Mode</CardTitle>
-                    <CardDescription>If enabled, the entire app will show a "Under Construction" page to users.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                        <Label htmlFor="construction-mode" className="font-semibold">Enable Construction Mode</Label>
-                        <Switch
-                            id="construction-mode"
-                            checked={isUnderConstruction}
-                            onCheckedChange={setIsUnderConstruction}
-                            disabled={isSavingConstruction}
-                        />
-                    </div>
-                     <Button onClick={handleSaveConstructionMode} disabled={isSavingConstruction || loading}>
-                        {isSavingConstruction ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                        Save Construction Status
-                    </Button>
-                </CardContent>
-            </Card>
             
             <Card>
                 <CardHeader>
@@ -325,12 +269,9 @@ export default function SettingsPage() {
             <div className="flex justify-end gap-2">
                 <Button onClick={handleSaveChanges} disabled={isSaving || loading}>
                     {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                    Save All Other Settings
+                    Save All Settings
                 </Button>
             </div>
         </div>
     );
 }
-    
-
-    

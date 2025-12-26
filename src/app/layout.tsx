@@ -8,66 +8,13 @@ import { usePathname } from 'next/navigation';
 import { Suspense, useState, useEffect } from 'react';
 import { SplashScreen } from '@/components/splash-screen';
 import { AnnouncementPopup } from '@/components/announcement-popup';
-import { supabase } from '@/lib/supabase';
-import { LoadingScreen } from '@/components/loading-screen';
-import MaintenancePage from './maintenance/page';
 import { cn } from '@/lib/utils';
 
 
 function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [settings, setSettings] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
   const isAdminPage = pathname.startsWith('/cmadmin');
   const isAuthPage = ['/login', '/signup', '/forgot-password', '/update-password', '/blocked'].includes(pathname);
-  
-  useEffect(() => {
-    const fetchSettings = async () => {
-        // Only run this check for user-facing pages
-        if (isAdminPage) {
-            setLoading(false);
-            return;
-        }
-
-        try {
-            const { data, error } = await supabase
-                .from('settings')
-                .select('settings_data')
-                .eq('id', 1)
-                .single();
-            
-            if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
-                throw error;
-            }
-            
-            if (data && data.settings_data) {
-                setSettings(data.settings_data);
-            } else {
-                setSettings({}); // Set to empty object if no settings found
-            }
-        } catch (e) {
-            console.error("Could not fetch maintenance status, defaulting to off.", e);
-            setSettings({}); // Default to off on error
-        } finally {
-            setLoading(false);
-        }
-    };
-    
-    fetchSettings();
-  }, [isAdminPage, pathname]);
-  
-  if (loading && !isAdminPage) {
-    return <LoadingScreen />;
-  }
-  
-  if (settings?.isUnderConstruction && !isAdminPage) {
-      return (
-        <main className="max-w-md mx-auto bg-background min-h-screen relative shadow-2xl">
-            <MaintenancePage />
-        </main>
-      );
-  }
 
   return (
     <main className={cn(!isAdminPage && "max-w-md mx-auto bg-background min-h-screen relative pb-24 shadow-2xl")}>
@@ -120,5 +67,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-    
