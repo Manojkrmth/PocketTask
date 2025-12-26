@@ -64,18 +64,7 @@ export default function AdminsPage() {
 
   const fetchAdmins = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('admins')
-      .select(`
-        id,
-        user_id,
-        created_at,
-        users (
-          full_name,
-          email
-        )
-      `)
-      .order('created_at', { ascending: false });
+    const { data, error } = await supabase.rpc('get_all_admins');
 
     if (error) {
       console.error("Error fetching admins:", error);

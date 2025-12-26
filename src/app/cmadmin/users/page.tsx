@@ -70,14 +70,11 @@ export default function UsersPage() {
 
   const fetchUsers = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const { data, error } = await supabase.rpc('get_all_users');
 
     if (error) {
       console.error("Error fetching users:", error);
-      toast({ variant: "destructive", title: "Error", description: "Could not fetch users." });
+      toast({ variant: "destructive", title: "Error", description: "Could not fetch users. Please ensure the 'get_all_users' function is created in your database." });
     } else {
       setUsers(data as AppUser[]);
     }
@@ -126,157 +123,155 @@ export default function UsersPage() {
     user.mobile?.includes(filter)
   );
   
-  const sqlPolicyFix = `-- This script will drop and recreate the settings table with a better structure.
--- It will also create the featured_offers table.
--- WARNING: This will delete your current settings. Make sure to re-configure them in the admin panel.
+  const sqlPolicyFix = `-- =================================================================
+-- MASTER SQL SCRIPT FOR FIXING ALL ADMIN PANEL PERMISSIONS
+-- Version: 4.0
+-- Description: This script resets and correctly configures all RLS
+-- policies and creates necessary helper functions for the admin panel.
+-- =================================================================
 
 BEGIN;
 
--- Drop existing settings table if it exists
-DROP TABLE IF EXISTS public.settings;
+-- =============================================
+-- 1. ADMINS TABLE
+-- =============================================
+-- Allow any authenticated user to see who the admins are.
+-- Only admins can add/remove other admins.
+DROP POLICY IF EXISTS "Enable read access for authenticated users" ON public.admins;
+CREATE POLICY "Enable read access for authenticated users" ON public.admins
+FOR SELECT
+USING (auth.role() = 'authenticated');
 
--- Create a new, better-structured settings table
-CREATE TABLE public.settings (
-    id bigint NOT NULL DEFAULT 1,
-    usd_to_inr_rate double precision NOT NULL DEFAULT 85,
-    notice_board_text text,
-    whatsapp_link text,
-    telegram_link text,
-    instagram_link text,
-    popup_notice_is_enabled boolean NOT NULL DEFAULT false,
-    popup_notice_display_type text,
-    popup_notice_text text,
-    popup_notice_image_url text,
-    popup_notice_redirect_link text,
-    referral_commissions jsonb NOT NULL DEFAULT '[]'::jsonb,
-    task_settings jsonb NOT NULL DEFAULT '[]'::jsonb,
-    withdrawal_settings jsonb NOT NULL DEFAULT '{}'::jsonb,
-    are_ads_globally_enabled boolean NOT NULL DEFAULT true,
-    ad_configs jsonb NOT NULL DEFAULT '[]'::jsonb
-);
-
-ALTER TABLE public.settings ADD CONSTRAINT settings_pkey PRIMARY KEY (id);
+DROP POLICY IF EXISTS "Allow admins to manage the admins table" ON public.admins;
+CREATE POLICY "Allow admins to manage the admins table" ON public.admins
+FOR ALL
+USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 
 
--- Enable RLS for the new table
-ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
+-- =============================================
+-- 2. USERS TABLE
+-- =============================================
+-- Allow users to see their own data.
+-- Allow users to update their own data.
+-- Allow admins to see all users (important for the function below).
+DROP POLICY IF EXISTS "Allow individual users to view their own data" ON public.users;
+CREATE POLICY "Allow individual users to view their own data" ON public.users
+FOR SELECT USING (auth.uid() = id);
 
--- Create policies for settings table
+DROP POLICY IF EXISTS "Allow individual users to update their own data" ON public.users;
+CREATE POLICY "Allow individual users to update their own data" ON public.users
+FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Enable read access for admins" ON public.users;
+CREATE POLICY "Enable read access for admins" ON public.users
+FOR SELECT USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
+
+
+-- =============================================
+-- 3. NOTIFICATIONS TABLE
+-- =============================================
+-- Allow any logged-in user to read notifications.
+-- Only admins can create/delete notifications.
+DROP POLICY IF EXISTS "Allow read access to everyone" ON public.notifications;
+CREATE POLICY "Allow read access to everyone" ON public.notifications
+FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Allow admin to manage notifications" ON public.notifications;
+CREATE POLICY "Allow admin to manage notifications" ON public.notifications
+FOR ALL USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
+
+
+-- =============================================
+-- 4. SETTINGS TABLE
+-- =============================================
+-- Allow any logged-in user to read settings (they are not sensitive).
+-- Only admins can update settings.
 DROP POLICY IF EXISTS "Allow read access to everyone" ON public.settings;
 CREATE POLICY "Allow read access to everyone" ON public.settings
-FOR SELECT USING (true);
+FOR SELECT USING (auth.role() = 'authenticated');
 
 DROP POLICY IF EXISTS "Allow admin full access" ON public.settings;
 CREATE POLICY "Allow admin full access" ON public.settings
 FOR ALL USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 
--- Insert a default row so the app doesn't crash on first load.
-INSERT INTO public.settings(id) VALUES(1) ON CONFLICT (id) DO NOTHING;
 
+-- =============================================
+-- 5. RPC HELPER FUNCTIONS (THE MOST IMPORTANT PART!)
+-- These functions run with elevated privileges to bypass RLS issues safely.
+-- =============================================
 
--- 2. Create 'featured_offers' table
-DROP TABLE IF EXISTS public.featured_offers;
-CREATE TABLE public.featured_offers (
-    id bigint generated by default as identity primary key,
-    created_at timestamp with time zone not null default now(),
-    image_url text,
-    description text,
-    redirect_link text,
-    enabled boolean not null default true,
-    sort_order integer not null default 0
-);
--- Enable RLS for the new table
-ALTER TABLE public.featured_offers ENABLE ROW LEVEL SECURITY;
--- Drop old policies for featured_offers if they exist
-DROP POLICY IF EXISTS "Allow read access to everyone" ON public.featured_offers;
-DROP POLICY IF EXISTS "Allow admin full access" ON public.featured_offers;
-
--- Create policies for 'featured_offers'
-CREATE POLICY "Allow read access to everyone" ON public.featured_offers
-FOR SELECT USING (true);
-
-CREATE POLICY "Allow admin full access" ON public.featured_offers
-FOR ALL USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
-
--- 3. Fix Daily Tasks Policies
-DROP POLICY IF EXISTS "Allow all for admins" ON public.visit_earn_tasks;
-DROP POLICY IF EXISTS "Allow read for authenticated" ON public.visit_earn_tasks;
-DROP POLICY IF EXISTS "Allow all for admins" ON public.watch_earn_tasks;
-DROP POLICY IF EXISTS "Allow read for authenticated" ON public.watch_earn_tasks;
-
-CREATE POLICY "Allow all for admins" ON public.visit_earn_tasks
-FOR ALL USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()))
-WITH CHECK (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
-
-CREATE POLICY "Allow read for authenticated" ON public.visit_earn_tasks
-FOR SELECT
-USING (auth.role() = 'authenticated');
-
-CREATE POLICY "Allow all for admins" ON public.watch_earn_tasks
-FOR ALL USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()))
-WITH CHECK (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
-
-CREATE POLICY "Allow read for authenticated" ON public.watch_earn_tasks
-FOR SELECT
-USING (auth.role() = 'authenticated');
-
-
--- 4. Recreate other policies for consistency
-DROP POLICY IF EXISTS "Enable admins to manage users" ON public.users;
-DROP POLICY IF EXISTS "Allow individual users to view their own data" ON public.users;
-DROP POLICY IF EXISTS "Allow individual users to update their own data" ON public.users;
-DROP POLICY IF EXISTS "Allow admins to update users" ON public.users;
-DROP POLICY IF EXISTS "Enable read access for own records" ON public.wallet_history;
-DROP POLICY IF EXISTS "Allow admins to read all history" ON public.wallet_history;
-DROP POLICY IF EXISTS "Allow admins to insert records" ON public.wallet_history;
-DROP POLICY IF EXISTS "Enable insert for own withdrawal requests" ON public.wallet_history;
-DROP POLICY IF EXISTS "Allow admins to read all payments" ON public.payments;
-DROP POLICY IF EXISTS "Allow admins to update payments" ON public.payments;
-DROP POLICY IF EXISTS "Allow users to insert their own payment requests" ON public.payments;
-
-CREATE POLICY "Enable admins to manage users" ON public.users FOR SELECT USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
-CREATE POLICY "Allow individual users to view their own data" ON public.users FOR SELECT USING (auth.uid() = id);
-CREATE POLICY "Allow individual users to update their own data" ON public.users FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
-CREATE POLICY "Allow admins to update users" ON public.users FOR UPDATE USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
-CREATE POLICY "Enable read access for own records" ON public.wallet_history FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Allow admins to read all history" ON public.wallet_history FOR SELECT USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
-CREATE POLICY "Allow admins to insert records" ON public.wallet_history FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
-CREATE POLICY "Enable insert for own withdrawal requests" ON public.wallet_history FOR INSERT WITH CHECK (auth.uid() = user_id AND type = 'withdrawal_pending');
-
-DROP FUNCTION IF EXISTS get_all_payment_requests();
-CREATE OR REPLACE FUNCTION get_all_payment_requests()
-RETURNS TABLE(id int, created_at text, amount float, payment_method text, payment_details text, status text, user_id uuid, metadata jsonb, users json)
+-- Function to get all users for the admin panel
+DROP FUNCTION IF EXISTS public.get_all_users();
+CREATE OR REPLACE FUNCTION public.get_all_users()
+RETURNS TABLE (
+  id uuid,
+  full_name text,
+  email text,
+  mobile text,
+  status text,
+  created_at text,
+  referral_code text,
+  balance_available double precision
+)
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 BEGIN
+  -- This check ensures only admins can run this function.
+  IF NOT EXISTS (SELECT 1 FROM admins WHERE user_id = auth.uid()) THEN
+    RAISE EXCEPTION 'Permission denied to get_all_users. User is not an admin.';
+  END IF;
+
   RETURN QUERY
   SELECT
-    p.id,
-    p.created_at::text,
-    p.amount,
-    p.payment_method,
-    p.payment_details,
-    p.status,
-    p.user_id,
-    p.metadata,
-    json_build_object('full_name', u.full_name, 'email', u.email) as users
+    u.id,
+    u.full_name,
+    u.email,
+    u.mobile,
+    u.status,
+    u.created_at::text,
+    u.referral_code,
+    u.balance_available
   FROM
-    public.payments p
-  JOIN
-    public.users u ON p.user_id = u.id
+    users u
   ORDER BY
-    p.created_at DESC;
+    u.created_at DESC;
 END;
 $$;
 
-DROP POLICY IF EXISTS "Allow admins to read all payments" ON public.payments;
-CREATE POLICY "Allow admins to read all payments" ON public.payments FOR SELECT USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
-DROP POLICY IF EXISTS "Allow admins to update payments" ON public.payments;
-CREATE POLICY "Allow admins to update payments" ON public.payments FOR UPDATE USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
-DROP POLICY IF EXISTS "Allow users to insert their own payment requests" ON public.payments;
-CREATE POLICY "Allow users to insert their own payment requests" ON public.payments FOR INSERT WITH CHECK (auth.uid() = user_id);
+-- Function to get all admins with their details for the admin panel
+DROP FUNCTION IF EXISTS public.get_all_admins();
+CREATE OR REPLACE FUNCTION public.get_all_admins()
+RETURNS TABLE (
+    id bigint,
+    user_id uuid,
+    created_at text,
+    users json
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM admins WHERE user_id = auth.uid()) THEN
+        RAISE EXCEPTION 'Permission denied to get_all_admins. User is not an admin.';
+    END IF;
 
+    RETURN QUERY
+    SELECT
+        a.id,
+        a.user_id,
+        a.created_at::text,
+        json_build_object('full_name', u.full_name, 'email', u.email)
+    FROM
+        admins a
+    LEFT JOIN
+        users u ON a.user_id = u.id
+    ORDER BY
+        a.created_at DESC;
+END;
+$$;
 
 COMMIT;`;
 
@@ -303,7 +298,7 @@ COMMIT;`;
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Can't see or edit users/settings?</AlertTitle>
           <div className="space-y-2">
-            <p>If you are unable to view or manage users/settings, your database schema might be outdated. Please run the following SQL code in your Supabase SQL Editor. <strong>Warning:</strong> This will reset your app settings.</p>
+            <p>If you are unable to view or manage data, your database permissions might be incorrect. Please run the following SQL code in your Supabase SQL Editor to fix all security policies.</p>
             <Textarea className="font-mono bg-destructive/10 text-destructive-foreground h-48" readOnly value={sqlPolicyFix} />
             <Button variant="secondary" size="sm" onClick={() => navigator.clipboard.writeText(sqlPolicyFix)}>Copy SQL</Button>
           </div>
