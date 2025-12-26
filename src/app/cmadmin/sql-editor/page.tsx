@@ -1,10 +1,9 @@
 
-
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CopyButton } from '@/components/copy-button';
-import { Copy, AlertTriangle, AreaChart, BarChart, Users } from 'lucide-react';
+import { Copy, AlertTriangle, AreaChart, BarChart, Users, Wallet } from 'lucide-react';
 import { Alert, AlertTitle } from '@/components/ui/alert';
 
 const masterSqlScript = `
@@ -366,6 +365,59 @@ END;
 $$;
 `;
 
+const withdrawalRequestsSql = `
+-- =================================================================
+-- FIX: Withdrawal Requests
+-- =================================================================
+-- Creates the function to securely fetch all withdrawal requests
+-- for the admin panel. Run this if the Withdrawals page shows an error.
+-- =================================================================
+CREATE OR REPLACE FUNCTION is_admin(user_id uuid)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1
+    FROM public.admins
+    WHERE admins.user_id = is_admin.user_id
+  );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION get_all_payment_requests()
+RETURNS TABLE(id int, created_at timestamptz, amount numeric, payment_method varchar, payment_details text, status varchar, user_id uuid, metadata jsonb, users json)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    IF is_admin(auth.uid()) THEN
+        RETURN QUERY
+        SELECT
+            p.id,
+            p.created_at,
+            p.amount,
+            p.payment_method,
+            p.payment_details,
+            p.status,
+            p.user_id,
+            p.metadata,
+            json_build_object('full_name', u.full_name, 'email', u.email)
+        FROM
+            public.payments p
+        JOIN
+            public.users u ON p.user_id = u.id
+        ORDER BY
+            p.created_at DESC;
+    END IF;
+END;
+$$;
+`;
+
+
 export default function SqlEditorPage() {
 
   return (
@@ -376,6 +428,30 @@ export default function SqlEditorPage() {
           Run these SQL queries in your Supabase project to fix specific issues.
         </p>
       </div>
+
+      <Card className="border-green-500">
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Wallet className="text-green-500"/> Fix: Withdrawal Requests</CardTitle>
+            <CardDescription>
+                This command creates the necessary database functions to securely fetch all withdrawal requests for the admin panel. Run this if the Withdrawals page shows an error or is empty.
+            </CardDescription>
+        </CardHeader>
+        <CardContent>
+            <div className="relative rounded-md bg-muted/50 p-4">
+              <CopyButton 
+                value={withdrawalRequestsSql}
+                variant="ghost"
+                size="icon"
+                className="absolute top-2 right-2 h-7 w-7"
+              >
+                  <Copy className="h-4 w-4" />
+              </CopyButton>
+              <pre className="text-sm whitespace-pre-wrap font-mono">
+                <code>{withdrawalRequestsSql.trim()}</code>
+              </pre>
+            </div>
+        </CardContent>
+       </Card>
       
        <Card className="border-indigo-500">
         <CardHeader>
@@ -549,3 +625,4 @@ export default function SqlEditorPage() {
   );
 }
 
+    
