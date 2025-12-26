@@ -273,6 +273,47 @@ BEGIN
 END;
 $$;
 
+-- Function to get all payment requests for the admin panel
+DROP FUNCTION IF EXISTS public.get_all_payment_requests();
+CREATE OR REPLACE FUNCTION public.get_all_payment_requests()
+RETURNS TABLE(
+    id bigint,
+    created_at timestamp with time zone,
+    amount double precision,
+    payment_method text,
+    payment_details text,
+    status text,
+    user_id uuid,
+    metadata jsonb,
+    users json
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM admins WHERE user_id = auth.uid()) THEN
+    RAISE EXCEPTION 'Permission denied. User is not an admin.';
+  END IF;
+
+  RETURN QUERY
+  SELECT
+    p.id,
+    p.created_at,
+    p.amount,
+    p.payment_method,
+    p.payment_details,
+    p.status,
+    p.user_id,
+    p.metadata,
+    json_build_object('full_name', u.full_name, 'email', u.email)
+  FROM payments p
+  LEFT JOIN users u ON p.user_id = u.id
+  ORDER BY p.created_at DESC;
+END;
+$$;
+
+
 COMMIT;`;
 
 
