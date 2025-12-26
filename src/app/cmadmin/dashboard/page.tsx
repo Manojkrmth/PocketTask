@@ -27,7 +27,7 @@ interface TopUser {
     id: string;
     full_name: string;
     email: string;
-    balance_available?: number; // Changed from available_balance
+    balance_available?: number;
     referral_count?: number;
 }
 
@@ -77,7 +77,7 @@ export default function AdminDashboardPage() {
         supabase.from('payments').select('amount', { count: 'exact' }).eq('status', 'Approved'),
         supabase.from('payments').select('amount', { count: 'exact' }).eq('status', 'Pending'),
         supabase.from('coinsubmissions').select('*', { count: 'exact', head: true }).eq('status', 'Pending'),
-        supabase.from('users').select('id, full_name, email, balance_available').order('balance_available', { ascending: false }).limit(10), // Direct query
+        supabase.from('users').select('id, full_name, email, balance_available').order('balance_available', { ascending: false }).limit(10),
         supabase.rpc('get_top_referral_users', { limit_count: 10 }),
       ]);
       
@@ -275,9 +275,5 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
-
-    
-
-    
 
     
