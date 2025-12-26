@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -398,7 +399,7 @@ export default function HomePage() {
                         {featuredOffers.map((offer) => (
                             <CarouselItem key={offer.id}>
                                 <Link href={offer.redirectLink || '#'} target="_blank" rel="noopener noreferrer">
-                                    <Card className="overflow-hidden rounded-xl relative aspect-[21/9] block hover:opacity-90 transition-opacity">
+                                    <Card className="overflow-hidden rounded-xl relative aspect-[21/9] block hover:opacity-90 transition-opacity bg-muted">
                                         <div className="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-md z-10">
                                             Ad
                                         </div>
@@ -406,7 +407,7 @@ export default function HomePage() {
                                             src={offer.imageUrl}
                                             alt={offer.description || 'Featured offer'}
                                             fill
-                                            className="object-cover"
+                                            className="object-contain"
                                             data-ai-hint="advertisement offer"
                                         />
                                     </Card>
