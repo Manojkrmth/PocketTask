@@ -43,7 +43,7 @@ export default function WithdrawalSettingsPage() {
             if (error) {
                 console.error('Error fetching settings:', error);
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch app settings.' });
-            } else {
+            } else if (data) {
                 setWithdrawalSettings(data.withdrawal_settings || { minAmount: 0, chargesPercent: 0, methods: [] });
             }
             setLoading(false);
