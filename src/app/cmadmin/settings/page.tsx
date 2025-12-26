@@ -23,7 +23,6 @@ export default function SettingsPage() {
     const [isSaving, startSaving] = useTransition();
     
     // Dedicated state for Construction Mode
-    const [isUnderConstruction, setIsUnderConstruction] = useState(false);
     const [isSavingConstruction, startSavingConstruction] = useTransition();
 
 
@@ -40,9 +39,12 @@ export default function SettingsPage() {
                 console.error('Error fetching settings:', error);
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch app settings.' });
             } else {
-                setSettings(data.settings_data);
-                // Set the dedicated state for construction mode
-                setIsUnderConstruction(data.settings_data?.isUnderConstruction === true);
+                // Ensure isUnderConstruction has a boolean value
+                const fetchedSettings = data.settings_data || {};
+                if (typeof fetchedSettings.isUnderConstruction === 'undefined') {
+                    fetchedSettings.isUnderConstruction = false;
+                }
+                setSettings(fetchedSettings);
             }
             setLoading(false);
         };
@@ -53,12 +55,7 @@ export default function SettingsPage() {
         startSavingConstruction(async () => {
              const { error } = await supabase
                 .from('settings')
-                .update({ 
-                    settings_data: { 
-                        ...settings, // keep other settings
-                        isUnderConstruction: isUnderConstruction 
-                    } 
-                })
+                .update({ settings_data: settings })
                 .eq('id', 1);
 
             if (error) {
@@ -123,8 +120,8 @@ export default function SettingsPage() {
                         <Label htmlFor="construction-mode" className="font-semibold">Enable Construction Mode</Label>
                         <Switch
                             id="construction-mode"
-                            checked={isUnderConstruction}
-                            onCheckedChange={setIsUnderConstruction}
+                            checked={settings.isUnderConstruction}
+                            onCheckedChange={(checked) => handleTopLevelChange('isUnderConstruction', checked)}
                             disabled={isSavingConstruction}
                         />
                     </div>
