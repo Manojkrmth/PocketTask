@@ -137,7 +137,7 @@ DROP TABLE IF EXISTS public.settings;
 
 -- Create a new, better-structured settings table
 CREATE TABLE public.settings (
-    id bigint PRIMARY KEY DEFAULT 1,
+    id bigint NOT NULL DEFAULT 1,
     usd_to_inr_rate double precision NOT NULL DEFAULT 85,
     notice_board_text text,
     whatsapp_link text,
@@ -161,9 +161,11 @@ CREATE TABLE public.settings (
 ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for settings table
+DROP POLICY IF EXISTS "Allow read access to everyone" ON public.settings;
 CREATE POLICY "Allow read access to everyone" ON public.settings
 FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Allow admin full access" ON public.settings;
 CREATE POLICY "Allow admin full access" ON public.settings
 FOR ALL USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 
@@ -194,7 +196,28 @@ FOR SELECT USING (true);
 CREATE POLICY "Allow admin full access" ON public.featured_offers
 FOR ALL USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 
--- Drop and Recreate other policies for consistency
+-- 3. Fix Daily Tasks Policies
+DROP POLICY IF EXISTS "Allow all for admins" ON public.visit_earn_tasks;
+DROP POLICY IF EXISTS "Allow read for authenticated" ON public.visit_earn_tasks;
+DROP POLICY IF EXISTS "Allow all for admins" ON public.watch_earn_tasks;
+DROP POLICY IF EXISTS "Allow read for authenticated" ON public.watch_earn_tasks;
+
+CREATE POLICY "Allow all for admins" ON public.visit_earn_tasks
+FOR ALL USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()))
+WITH CHECK (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
+
+CREATE POLICY "Allow read for authenticated" ON public.visit_earn_tasks
+FOR SELECT USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow all for admins" ON public.watch_earn_tasks
+FOR ALL USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()))
+WITH CHECK (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
+
+CREATE POLICY "Allow read for authenticated" ON public.watch_earn_tasks
+FOR SELECT USING (auth.role() = 'authenticated');
+
+
+-- 4. Recreate other policies for consistency
 DROP POLICY IF EXISTS "Enable admins to manage users" ON public.users;
 DROP POLICY IF EXISTS "Allow individual users to view their own data" ON public.users;
 DROP POLICY IF EXISTS "Allow individual users to update their own data" ON public.users;
@@ -215,13 +238,42 @@ CREATE POLICY "Enable read access for own records" ON public.wallet_history FOR 
 CREATE POLICY "Allow admins to read all history" ON public.wallet_history FOR SELECT USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 CREATE POLICY "Allow admins to insert records" ON public.wallet_history FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 CREATE POLICY "Enable insert for own withdrawal requests" ON public.wallet_history FOR INSERT WITH CHECK (auth.uid() = user_id AND type = 'withdrawal_pending');
+
+CREATE OR REPLACE FUNCTION get_all_payment_requests()
+RETURNS TABLE(id int, created_at text, amount float, payment_method text, payment_details text, status text, user_id uuid, metadata jsonb, users json)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    p.id,
+    p.created_at::text,
+    p.amount,
+    p.payment_method,
+    p.payment_details,
+    p.status,
+    p.user_id,
+    p.metadata,
+    json_build_object('full_name', u.full_name, 'email', u.email) as users
+  FROM
+    public.payments p
+  JOIN
+    public.users u ON p.user_id = u.id
+  ORDER BY
+    p.created_at DESC;
+END;
+$$;
+
+DROP POLICY IF EXISTS "Allow admins to read all payments" ON public.payments;
 CREATE POLICY "Allow admins to read all payments" ON public.payments FOR SELECT USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
+DROP POLICY IF EXISTS "Allow admins to update payments" ON public.payments;
 CREATE POLICY "Allow admins to update payments" ON public.payments FOR UPDATE USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
+DROP POLICY IF EXISTS "Allow users to insert their own payment requests" ON public.payments;
 CREATE POLICY "Allow users to insert their own payment requests" ON public.payments FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 
-COMMIT;
-`;
+COMMIT;`;
 
 
   return (

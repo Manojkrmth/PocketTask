@@ -138,7 +138,7 @@ export default function DailyTasksAdminPage() {
       const { type, ...taskData } = newTask;
       const tableName = type === 'visit-earn' ? 'visit_earn_tasks' : 'watch_earn_tasks';
       
-      const { error } = await supabase.from(tableName).insert(taskData);
+      const { error } = await supabase.from(tableName).insert([taskData]);
       
       if(error){
           toast({ variant: 'destructive', title: 'Creation Failed', description: error.message });
@@ -169,45 +169,34 @@ export default function DailyTasksAdminPage() {
      });
   };
 
-  const sqlPolicyFix = `-- 1. पुरानी सभी नीतियों को हटाएं ताकि कोई टकराव न हो
+  const sqlPolicyFix = `-- This script simplifies and corrects the security policies for daily tasks.
+-- 1. Drop all potentially conflicting old policies
 DROP POLICY IF EXISTS "Allow all for admins" ON public.visit_earn_tasks;
 DROP POLICY IF EXISTS "Allow read for authenticated" ON public.visit_earn_tasks;
 DROP POLICY IF EXISTS "Allow all for admins" ON public.watch_earn_tasks;
 DROP POLICY IF EXISTS "Allow read for authenticated" ON public.watch_earn_tasks;
--- पुरानी नीतियों के अन्य संभावित नामों को भी हटा दें
+-- Also drop other possible old names
 DROP POLICY IF EXISTS "Allow admin full access" ON public.visit_earn_tasks;
 DROP POLICY IF EXISTS "Allow read access to authenticated users" ON public.visit_earn_tasks;
-DROP POLICY IF EXISTS "Allow admins to do everything" ON public.visit_earn_tasks;
 DROP POLICY IF EXISTS "Allow admin full access" ON public.watch_earn_tasks;
 DROP POLICY IF EXISTS "Allow read access to authenticated users" ON public.watch_earn_tasks;
-DROP POLICY IF EXISTS "Allow admins to do everything" ON public.watch_earn_tasks;
 
--- 2. visit_earn_tasks टेबल के लिए नई, सरल नीतियां बनाएं
+-- 2. Create new, correct policies for visit_earn_tasks
 CREATE POLICY "Allow all for admins"
 ON public.visit_earn_tasks
-FOR ALL
-USING (
-  EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid())
-)
-WITH CHECK (
-  EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid())
-);
+FOR ALL USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()))
+WITH CHECK (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 
 CREATE POLICY "Allow read for authenticated"
 ON public.visit_earn_tasks
 FOR SELECT
 USING (auth.role() = 'authenticated');
 
--- 3. watch_earn_tasks टेबल के लिए नई, सरल नीतियां बनाएं
+-- 3. Create new, correct policies for watch_earn_tasks
 CREATE POLICY "Allow all for admins"
 ON public.watch_earn_tasks
-FOR ALL
-USING (
-  EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid())
-)
-WITH CHECK (
-  EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid())
-);
+FOR ALL USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()))
+WITH CHECK (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 
 CREATE POLICY "Allow read for authenticated"
 ON public.watch_earn_tasks
