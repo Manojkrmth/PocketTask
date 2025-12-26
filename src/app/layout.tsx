@@ -32,8 +32,8 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
 
         try {
             const { data, error } = await supabase
-                .from('settings')
-                .select('settings_data->isUnderConstruction')
+                .from('maintenance_mode')
+                .select('is_enabled')
                 .eq('id', 1)
                 .single();
             
@@ -41,7 +41,7 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
                 throw error;
             }
             
-            if (data && data.isUnderConstruction === true) {
+            if (data && data.is_enabled === true) {
                 setIsUnderConstruction(true);
             } else {
                 setIsUnderConstruction(false);

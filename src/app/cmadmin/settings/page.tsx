@@ -41,11 +41,22 @@ export default function SettingsPage() {
                 console.error('Error fetching settings:', error);
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch app settings.' });
             } else {
-                const fetchedSettings = data?.settings_data || {};
-                setSettings(fetchedSettings);
-                // Set the separate state for construction mode from the main settings object
-                setIsUnderConstruction(fetchedSettings.isUnderConstruction || false);
+                setSettings(data?.settings_data || {});
             }
+
+            // Fetch maintenance mode separately
+            const { data: maintenanceData, error: maintenanceError } = await supabase
+                .from('maintenance_mode')
+                .select('is_enabled')
+                .eq('id', 1)
+                .single();
+            
+            if (maintenanceError && maintenanceError.code !== 'PGRST116') {
+                console.error('Error fetching maintenance mode:', maintenanceError);
+            } else {
+                setIsUnderConstruction(maintenanceData?.is_enabled || false);
+            }
+
             setLoading(false);
         };
         
@@ -54,19 +65,9 @@ export default function SettingsPage() {
     
     const handleSaveConstructionMode = () => {
         startSavingConstruction(async () => {
-            const { data, error } = await supabase
-                .from('settings')
-                .select('settings_data')
-                .eq('id', 1)
-                .single();
-
-            const currentSettings = data?.settings_data || {};
-            // Explicitly set the value based on the switch state
-            const updatedSettings = { ...currentSettings, isUnderConstruction: isUnderConstruction };
-            
             const { error: updateError } = await supabase
-                .from('settings')
-                .update({ settings_data: updatedSettings })
+                .from('maintenance_mode')
+                .update({ is_enabled: isUnderConstruction, updated_at: new Date().toISOString() })
                 .eq('id', 1);
 
             if (updateError) {
@@ -345,5 +346,3 @@ export default function SettingsPage() {
             </div>
         </div>
     );
-
-    
