@@ -129,14 +129,14 @@ export default function AdminDashboardPage() {
         setDailyStats(dailyStatsRes.data);
 
         // Calculate Growth Stats
-        if (dailyStatsRes.data.length === 14) {
+        if (dailyStatsRes.data.length >= 14) {
             const last7Days = dailyStatsRes.data.slice(7);
             const previous7Days = dailyStatsRes.data.slice(0, 7);
 
             const calculateTotals = (period: any[]) => ({
-                revenue: period.reduce((sum, day) => sum + day.total_revenue, 0),
-                withdrawals: period.reduce((sum, day) => sum + day.total_withdrawals, 0),
-                users: period.reduce((sum, day) => sum + day.new_users_count, 0)
+                revenue: period.reduce((sum, day) => sum + (day.total_revenue || 0), 0),
+                withdrawals: period.reduce((sum, day) => sum + (day.total_withdrawals || 0), 0),
+                users: period.reduce((sum, day) => sum + (day.new_users_count || 0), 0)
             });
 
             const last7Totals = calculateTotals(last7Days);
@@ -160,14 +160,19 @@ export default function AdminDashboardPage() {
     fetchData();
   }, []);
 
-  const GrowthIndicator = ({ value }: { value: number | null }) => {
-    if (value === null) return null;
+  const GrowthCard = ({ title, value }: { title: string, value: number | null }) => {
+    if (value === null) return <div className="p-4 rounded-lg bg-muted flex items-center justify-center h-full"><Loader2 className="h-5 w-5 animate-spin" /></div>;
+
     const isPositive = value >= 0;
+    
     return (
-        <p className={cn("text-xs text-muted-foreground flex items-center", isPositive ? 'text-green-600' : 'text-red-600')}>
-            {isPositive ? <ArrowUp className="h-4 w-4"/> : <ArrowDown className="h-4 w-4"/>}
-            {value.toFixed(1)}% vs last week
-        </p>
+        <div className="p-3 rounded-lg bg-muted">
+            <p className="text-xs text-muted-foreground">{title}</p>
+            <div className={cn("flex items-center gap-1 font-bold text-lg", isPositive ? 'text-green-600' : 'text-red-600')}>
+                {isPositive ? <ArrowUp className="h-5 w-5"/> : <ArrowDown className="h-5 w-5"/>}
+                <span>{value.toFixed(1)}%</span>
+            </div>
+        </div>
     );
   }
   
@@ -199,8 +204,7 @@ export default function AdminDashboardPage() {
                 </CardHeader>
                 <CardContent>
                     {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : <div className="text-2xl font-bold text-blue-900">{totalUsers}</div>}
-                    <GrowthIndicator value={growthStats.usersChange} />
-                     <ExternalLink className="absolute top-2 right-2 h-4 w-4 text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"/>
+                    <ExternalLink className="absolute top-2 right-2 h-4 w-4 text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"/>
                 </CardContent>
             </Card>
         </Link>
@@ -212,7 +216,6 @@ export default function AdminDashboardPage() {
             </CardHeader>
             <CardContent>
                 {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : <div className="text-2xl font-bold text-cyan-900">{formatCurrency(totalUsersBalance || 0)}</div>}
-                 <p className="text-xs text-muted-foreground">&nbsp;</p>
             </CardContent>
         </Card>
         
@@ -223,7 +226,6 @@ export default function AdminDashboardPage() {
             </CardHeader>
             <CardContent>
                 {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : <div className="text-2xl font-bold text-emerald-900">{formatCurrency(totalRevenue || 0)}</div>}
-                 <GrowthIndicator value={growthStats.revenueChange} />
             </CardContent>
         </Card>
 
@@ -234,7 +236,6 @@ export default function AdminDashboardPage() {
             </CardHeader>
             <CardContent>
                 {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : <div className="text-2xl font-bold text-green-900">{formatCurrency(totalWithdrawals || 0)}</div>}
-                 <GrowthIndicator value={growthStats.withdrawalsChange} />
             </CardContent>
         </Card>
 
@@ -300,9 +301,14 @@ export default function AdminDashboardPage() {
        <Card>
         <CardHeader>
           <CardTitle>Business Analytics</CardTitle>
-          <CardDescription>A 14-day overview of key business metrics.</CardDescription>
+          <CardDescription>A 14-day overview of key business metrics. Growth is compared to the prior 7 days.</CardDescription>
         </CardHeader>
         <CardContent>
+            <div className="grid grid-cols-3 gap-4 mb-6">
+                <GrowthCard title="Revenue Growth" value={growthStats.revenueChange} />
+                <GrowthCard title="Withdrawals Growth" value={growthStats.withdrawalsChange} />
+                <GrowthCard title="New Users Growth" value={growthStats.usersChange} />
+            </div>
            {isLoading ? (
              <div className="flex justify-center items-center h-80"><Loader2 className="h-8 w-8 animate-spin"/></div>
            ) : dailyStats.length > 0 ? (
