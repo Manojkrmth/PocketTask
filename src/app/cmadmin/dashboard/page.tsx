@@ -27,7 +27,7 @@ interface TopUser {
     id: string;
     full_name: string;
     email: string;
-    available_balance?: number;
+    balance_available?: number; // Changed from available_balance
     referral_count?: number;
 }
 
@@ -77,7 +77,7 @@ export default function AdminDashboardPage() {
         supabase.from('payments').select('amount', { count: 'exact' }).eq('status', 'Approved'),
         supabase.from('payments').select('amount', { count: 'exact' }).eq('status', 'Pending'),
         supabase.from('coinsubmissions').select('*', { count: 'exact', head: true }).eq('status', 'Pending'),
-        supabase.rpc('get_top_users_by_balance', { limit_count: 10 }),
+        supabase.from('users').select('id, full_name, email, balance_available').order('balance_available', { ascending: false }).limit(10), // Direct query
         supabase.rpc('get_top_referral_users', { limit_count: 10 }),
       ]);
       
@@ -220,7 +220,7 @@ export default function AdminDashboardPage() {
                                     <p className="text-xs text-muted-foreground truncate">{u.email}</p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="font-bold text-green-600">{formatCurrency(u.available_balance || 0)}</p>
+                                    <p className="font-bold text-green-600">{formatCurrency(u.balance_available || 0)}</p>
                                 </div>
                             </div>
                         ))
@@ -275,6 +275,8 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
+    
 
     
 

@@ -126,14 +126,13 @@ export default function UsersPage() {
     user.mobile?.includes(filter)
   );
   
-  const sqlPolicyFix = `-- POLICY FIX SCRIPT V12
+  const sqlPolicyFix = `-- POLICY FIX SCRIPT V15
 -- This script will:
 -- 1. Ensure the primary super admin exists in the 'admins' table.
 -- 2. Drop all potentially conflicting policies on relevant tables.
 -- 3. Create correct RLS policies for admins and users.
 -- 4. Create/Replace helper functions for balance calculations.
--- 5. Give UPDATE permissions on 'users' table to Admins.
--- 6. Give INSERT permissions on 'wallet_history' table to Admins.
+-- 5. Grant necessary permissions to the 'authenticated' role.
 
 BEGIN;
 
@@ -146,7 +145,6 @@ WHERE NOT EXISTS (
     SELECT 1 FROM auth.users WHERE id = '98cda2fc-f09d-4840-9f47-ec0c749a6bbd'
 );
 
-
 -- 2. Drop potentially conflicting policies on the 'users' table.
 DROP POLICY IF EXISTS "Enable admins to manage users" ON public.users;
 DROP POLICY IF EXISTS "Allow individual users to view their own data" ON public.users;
@@ -155,33 +153,27 @@ DROP POLICY IF EXISTS "Allow admin to read specific user" ON public.users;
 DROP POLICY IF EXISTS "Allow admins to update users" ON public.users;
 
 -- 3. Create policies for the 'users' table.
--- Admins can SELECT (read) all users.
 CREATE POLICY "Enable admins to manage users"
 ON public.users FOR SELECT
 USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 
--- Users can SELECT (read) their own data.
 CREATE POLICY "Allow individual users to view their own data"
 ON public.users FOR SELECT
 USING (auth.uid() = id);
 
--- Users can UPDATE their own data.
 CREATE POLICY "Allow individual users to update their own data"
 ON public.users FOR UPDATE
 USING (auth.uid() = id)
 WITH CHECK (auth.uid() = id);
 
--- Admins can UPDATE any user's data.
 CREATE POLICY "Allow admins to update users"
 ON public.users FOR UPDATE
 USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
-
 
 -- 4. Drop and Create policies for 'wallet_history'
 DROP POLICY IF EXISTS "Enable read access for own records" ON public.wallet_history;
 DROP POLICY IF EXISTS "Allow admins to read all history" ON public.wallet_history;
 DROP POLICY IF EXISTS "Allow admins to insert records" ON public.wallet_history;
-
 
 CREATE POLICY "Enable read access for own records"
 ON public.wallet_history FOR SELECT
@@ -195,14 +187,13 @@ CREATE POLICY "Allow admins to insert records"
 ON public.wallet_history FOR INSERT
 WITH CHECK (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 
-
 -- 5. Create or replace the RPC functions needed for dashboard stats.
 CREATE OR REPLACE FUNCTION get_total_users_count()
 RETURNS integer
 LANGUAGE sql
 SECURITY DEFINER
 AS $$
-    SELECT COUNT(*)::integer FROM auth.users;
+    SELECT COUNT(*)::integer FROM public.users;
 $$;
 
 CREATE OR REPLACE FUNCTION get_total_users_balance()
@@ -212,6 +203,35 @@ SECURITY DEFINER
 AS $$
     SELECT COALESCE(SUM(balance_available), 0) FROM public.users;
 $$;
+
+CREATE OR REPLACE FUNCTION get_top_referral_users(limit_count integer)
+RETURNS TABLE(id uuid, full_name text, email text, referral_count bigint)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        u.id,
+        u.full_name,
+        u.email,
+        COUNT(r.id) as referral_count
+    FROM
+        public.users u
+    LEFT JOIN
+        public.users r ON u.referral_code = r.referred_by
+    GROUP BY
+        u.id, u.full_name, u.email
+    ORDER BY
+        referral_count DESC
+    LIMIT
+        limit_count;
+END;
+$$;
+
+-- Grant execute permissions to the authenticated role for the RPCs
+GRANT EXECUTE ON FUNCTION public.get_total_users_count() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_total_users_balance() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_top_referral_users(integer) TO authenticated;
 
 COMMIT;
 `;
@@ -360,3 +380,5 @@ COMMIT;
     </>
   );
 }
+
+    
