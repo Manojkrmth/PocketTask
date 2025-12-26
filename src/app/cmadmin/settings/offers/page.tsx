@@ -144,7 +144,13 @@ export default function OffersSettingsPage() {
                         {offers.length > 0 ? (
                             offers.map(offer => (
                                 <div key={offer.id} className="flex items-center gap-4 border p-2 rounded-lg">
-                                    <Image src={offer.image_url} alt={offer.description || ''} width={105} height={45} className="rounded-md object-cover aspect-[21/9] bg-muted" />
+                                    {offer.image_url ? (
+                                        <Image src={offer.image_url} alt={offer.description || ''} width={105} height={45} className="rounded-md object-cover aspect-[21/9] bg-muted" />
+                                    ) : (
+                                        <div className="w-[105px] h-[45px] flex items-center justify-center bg-muted rounded-md text-muted-foreground">
+                                            <ImageIcon className="h-6 w-6" />
+                                        </div>
+                                    )}
                                     <div className="flex-1">
                                         <p className="font-semibold">{offer.description || 'No description'}</p>
                                         <p className="text-xs text-muted-foreground truncate">{offer.redirect_link || 'No link'}</p>
