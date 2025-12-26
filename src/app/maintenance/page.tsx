@@ -9,7 +9,7 @@ export default function MaintenancePage() {
       <div className="relative mb-8">
         <div className="absolute -inset-4 rounded-full bg-primary/20 blur-2xl animate-pulse"></div>
         <div className="relative p-6 bg-slate-700/50 rounded-full shadow-lg border border-slate-600">
-          <Wrench className="w-16 h-16 text-primary" />
+          <Wrench className="w-16 h-16 text-primary animate-spin" style={{ animationDuration: '3s' }} />
         </div>
       </div>
       <h1 className="text-4xl font-bold mb-3 tracking-tight">Under Maintenance</h1>
