@@ -48,6 +48,9 @@ interface AdminUser {
   } | null;
 }
 
+// This is the user ID for manojmukhiyamth@gmail.com, which should not be deletable.
+const nonDeletableAdminId = '98cda2fc-f09d-4840-9f47-ec0c749a6bbd';
+
 export default function AdminsPage() {
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,6 +85,12 @@ export default function AdminsPage() {
 
   const handleDeleteAdmin = () => {
     if (!selectedAdmin) return;
+    
+    if(selectedAdmin.user_id === nonDeletableAdminId){
+        toast({ variant: 'destructive', title: 'Action Not Allowed', description: 'This super admin cannot be removed.' });
+        setDeleteDialogOpen(false);
+        return;
+    }
 
     startDelete(async () => {
       const { error } = await supabase
@@ -219,7 +228,8 @@ export default function AdminsPage() {
                             size="icon" 
                             className="h-8 w-8 text-destructive hover:bg-destructive/10"
                             onClick={() => openDeleteDialog(admin)}
-                            disabled={isDeleting && selectedAdmin?.id === admin.id}
+                            disabled={isDeleting && selectedAdmin?.id === admin.id || admin.user_id === nonDeletableAdminId}
+                            title={admin.user_id === nonDeletableAdminId ? "This admin cannot be deleted" : "Remove admin"}
                         >
                             {isDeleting && selectedAdmin?.id === admin.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4"/>}
                         </Button>
@@ -258,5 +268,4 @@ export default function AdminsPage() {
     </>
   );
 }
-
     
