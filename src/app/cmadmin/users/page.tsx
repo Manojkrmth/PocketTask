@@ -126,7 +126,7 @@ export default function UsersPage() {
     user.mobile?.includes(filter)
   );
   
-  const sqlPolicyFix = `-- POLICY FIX SCRIPT V14
+  const sqlPolicyFix = `-- POLICY FIX SCRIPT V15
 -- This script will:
 -- 1. Ensure the primary super admin exists in the 'admins' table.
 -- 2. Drop all potentially conflicting policies on relevant tables.
@@ -138,7 +138,7 @@ BEGIN;
 
 -- 1. Insert the super admin into the 'admins' table if they don't already exist.
 INSERT INTO public.admins (user_id, role)
-SELECT '98cda2fc-f09d-4840-9f47-ec0c749a6bbd'
+SELECT '98cda2fc-f09d-4840-9f47-ec0c749a6bbd', 'admin'
 WHERE NOT EXISTS (
     SELECT 1 FROM public.admins WHERE user_id = '98cda2fc-f09d-4840-9f47-ec0c749a6bbd'
 ) AND EXISTS (
