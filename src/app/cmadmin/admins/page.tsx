@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
@@ -68,7 +69,7 @@ export default function AdminsPage() {
 
     if (error) {
       console.error("Error fetching admins:", error);
-      toast({ variant: "destructive", title: "Error", description: "Could not fetch admins." });
+      toast({ variant: "destructive", title: "Error", description: "Could not fetch admins. Please run the latest SQL script from the Users page." });
     } else {
       setAdmins(data as AdminUser[]);
     }

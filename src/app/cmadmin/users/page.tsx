@@ -125,7 +125,7 @@ export default function UsersPage() {
   
   const sqlPolicyFix = `-- =================================================================
 -- MASTER SQL SCRIPT FOR FIXING ALL ADMIN PANEL PERMISSIONS
--- Version: 4.0
+-- Version: 5.0
 -- Description: This script resets and correctly configures all RLS
 -- policies and creates necessary helper functions for the admin panel.
 -- =================================================================
@@ -135,14 +135,21 @@ BEGIN;
 -- =============================================
 -- 1. ADMINS TABLE
 -- =============================================
--- Allow any authenticated user to see who the admins are.
--- Only admins can add/remove other admins.
+-- Drop all existing policies to avoid conflicts
 DROP POLICY IF EXISTS "Enable read access for authenticated users" ON public.admins;
+DROP POLICY IF EXISTS "Allow admins to manage the admins table" ON public.admins;
+DROP POLICY IF EXISTS "Allow admin management by existing admins" ON public.admins;
+DROP POLICY IF EXISTS "Allow admins to add/remove admins" ON public.admins;
+DROP POLICY IF EXISTS "Allow admins to see other admins" ON public.admins;
+DROP POLICY IF EXISTS "Allow authenticated users to read admins" ON public.admins;
+DROP POLICY IF EXISTS "Allow super admin to manage admins" ON public.admins;
+
+-- Allow any authenticated user to see who the admins are.
 CREATE POLICY "Enable read access for authenticated users" ON public.admins
 FOR SELECT
 USING (auth.role() = 'authenticated');
 
-DROP POLICY IF EXISTS "Allow admins to manage the admins table" ON public.admins;
+-- Only admins can add/remove other admins.
 CREATE POLICY "Allow admins to manage the admins table" ON public.admins
 FOR ALL
 USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
@@ -151,32 +158,54 @@ USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 -- =============================================
 -- 2. USERS TABLE
 -- =============================================
--- Allow users to see their own data.
--- Allow users to update their own data.
--- Allow admins to see all users (important for the function below).
+-- Drop all existing policies
 DROP POLICY IF EXISTS "Allow individual users to view their own data" ON public.users;
+DROP POLICY IF EXISTS "Allow individual users to update their own data" ON public.users;
+DROP POLICY IF EXISTS "Enable read access for admins" ON public.users;
+DROP POLICY IF EXISTS "Enable full access for admins" ON public.users;
+DROP POLICY IF EXISTS "Allow admin full access to users" ON public.users;
+DROP POLICY IF EXISTS "Allow admin to read all users" ON public.users;
+DROP POLICY IF EXISTS "Allow admins to update users" ON public.users;
+DROP POLICY IF EXISTS "Enable admins to manage users" ON public.users;
+DROP POLICY IF EXISTS "Users can insert their own profile" ON public.users;
+DROP POLICY IF EXISTS "Users can manage their own profile" ON public.users;
+DROP POLICY IF EXISTS "Users can read their own profile" ON public.users;
+DROP POLICY IF EXISTS "Users can update their own data" ON public.users;
+DROP POLICY IF EXISTS "Users can update their own profile" ON public.users;
+DROP POLICY IF EXISTS "Users can view their own data" ON public.users;
+
+
+-- Allow users to see and update their own data.
 CREATE POLICY "Allow individual users to view their own data" ON public.users
 FOR SELECT USING (auth.uid() = id);
 
-DROP POLICY IF EXISTS "Allow individual users to update their own data" ON public.users;
 CREATE POLICY "Allow individual users to update their own data" ON public.users
 FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
 
-DROP POLICY IF EXISTS "Enable read access for admins" ON public.users;
+-- Allow admins to see/update all users
 CREATE POLICY "Enable read access for admins" ON public.users
 FOR SELECT USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
+
+CREATE POLICY "Allow admins to update users" ON public.users
+FOR UPDATE USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 
 
 -- =============================================
 -- 3. NOTIFICATIONS TABLE
 -- =============================================
--- Allow any logged-in user to read notifications.
--- Only admins can create/delete notifications.
+-- Drop all existing policies
 DROP POLICY IF EXISTS "Allow read access to everyone" ON public.notifications;
+DROP POLICY IF EXISTS "Allow admin to manage notifications" ON public.notifications;
+DROP POLICY IF EXISTS "Allow authenticated users to read notifications" ON public.notifications;
+DROP POLICY IF EXISTS "Allow admin full access to notifications" ON public.notifications;
+DROP POLICY IF EXISTS "Allow admins to manage all tables" ON public.notifications;
+
+
+-- Allow any logged-in user to read notifications.
 CREATE POLICY "Allow read access to everyone" ON public.notifications
 FOR SELECT USING (auth.role() = 'authenticated');
 
-DROP POLICY IF EXISTS "Allow admin to manage notifications" ON public.notifications;
+-- Only admins can create/delete notifications.
 CREATE POLICY "Allow admin to manage notifications" ON public.notifications
 FOR ALL USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 
@@ -184,19 +213,46 @@ FOR ALL USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 -- =============================================
 -- 4. SETTINGS TABLE
 -- =============================================
--- Allow any logged-in user to read settings (they are not sensitive).
--- Only admins can update settings.
+-- Drop all existing policies
 DROP POLICY IF EXISTS "Allow read access to everyone" ON public.settings;
+DROP POLICY IF EXISTS "Allow admin full access" ON public.settings;
+DROP POLICY IF EXISTS "Allow admins to manage settings" ON public.settings;
+DROP POLICY IF EXISTS "Enable read access for all users" ON public.settings;
+
+
+-- Allow any logged-in user to read settings (they are not sensitive).
 CREATE POLICY "Allow read access to everyone" ON public.settings
 FOR SELECT USING (auth.role() = 'authenticated');
 
-DROP POLICY IF EXISTS "Allow admin full access" ON public.settings;
+-- Only admins can update settings.
 CREATE POLICY "Allow admin full access" ON public.settings
+FOR ALL USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
+
+-- =============================================
+-- 5. PAYMENTS TABLE (WITHDRAWALS)
+-- =============================================
+-- Drop all existing policies
+DROP POLICY IF EXISTS "Allow admins to manage all tables" ON public.payments;
+DROP POLICY IF EXISTS "Allow admins to read all payments" ON public.payments;
+DROP POLICY IF EXISTS "Allow admins to update payments" ON public.payments;
+DROP POLICY IF EXISTS "Allow admins to view and update all payment requests" ON public.payments;
+DROP POLICY IF EXISTS "Allow users to insert their own payment requests" ON public.payments;
+DROP POLICY IF EXISTS "Allow users to view their own payment requests" ON public.payments;
+
+-- Allow users to create and see their own requests
+CREATE POLICY "Allow users to view their own payment requests" ON public.payments
+FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Allow users to insert their own payment requests" ON public.payments
+FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Allow admins to do anything
+CREATE POLICY "Allow admins to manage all payments" ON public.payments
 FOR ALL USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 
 
 -- =============================================
--- 5. RPC HELPER FUNCTIONS (THE MOST IMPORTANT PART!)
+-- 6. RPC HELPER FUNCTIONS (THE MOST IMPORTANT PART!)
 -- These functions run with elevated privileges to bypass RLS issues safely.
 -- =============================================
 
@@ -339,7 +395,7 @@ COMMIT;`;
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Can't see or edit users/settings?</AlertTitle>
           <div className="space-y-2">
-            <p>If you are unable to view or manage data, your database permissions might be incorrect. Please run the following SQL code in your Supabase SQL Editor to fix all security policies.</p>
+            <p>If you are unable to view or manage data, your database permissions are likely incorrect. Please run the following SQL code in your Supabase SQL Editor to fix all security policies.</p>
             <Textarea className="font-mono bg-destructive/10 text-destructive-foreground h-48" readOnly value={sqlPolicyFix} />
             <Button variant="secondary" size="sm" onClick={() => navigator.clipboard.writeText(sqlPolicyFix)}>Copy SQL</Button>
           </div>

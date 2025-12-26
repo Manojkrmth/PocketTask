@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useMemo, useTransition } from 'react';
@@ -80,7 +81,7 @@ export default function WithdrawalsPage() {
 
       if (error) {
         console.error("Error fetching payment requests:", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch requests. Make sure you have admin rights.' });
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch requests. Make sure you have run the latest SQL script.' });
       } else {
         setRequests(data as PaymentRequest[]);
       }
