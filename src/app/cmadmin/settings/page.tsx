@@ -41,8 +41,10 @@ export default function SettingsPage() {
                 console.error('Error fetching settings:', error);
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch app settings.' });
             } else if (data) {
-                setSettings(data.settings_data || {});
-                setIsUnderConstruction(data.settings_data.isUnderConstruction || false);
+                const fetchedSettings = data.settings_data || {};
+                setSettings(fetchedSettings);
+                // Initialize the switch state from the main settings object
+                setIsUnderConstruction(fetchedSettings.isUnderConstruction || false);
             }
 
             setLoading(false);
@@ -53,33 +55,21 @@ export default function SettingsPage() {
     
     const handleSaveConstructionMode = () => {
         startSavingConstruction(async () => {
-            const { data: currentData, error: fetchError } = await supabase
-                .from('settings')
-                .select('settings_data')
-                .eq('id', 1);
-
-            if (fetchError && fetchError.code !== 'PGRST116') {
-                toast({ variant: 'destructive', title: 'Save Failed', description: 'Could not get latest settings. Please refresh.' });
-                return;
-            }
-            
-            // If there are multiple rows, we take the first one. Best practice is to clean up the DB.
-            const currentSettings = currentData && currentData.length > 0 ? currentData[0].settings_data : {};
-
-            const newSettings = { 
-                ...currentSettings,
+             const newSettings = { 
+                ...settings,
                 isUnderConstruction: isUnderConstruction 
             };
 
-            const { error: updateError } = await supabase
+            const { error } = await supabase
                 .from('settings')
                 .update({ settings_data: newSettings })
                 .eq('id', 1);
 
-            if (updateError) {
-                toast({ variant: 'destructive', title: 'Save Failed', description: updateError.message });
+            if (error) {
+                toast({ variant: 'destructive', title: 'Save Failed', description: error.message });
             } else {
                 toast({ title: 'Success', description: 'Construction mode has been updated.' });
+                // Update the main settings state to keep everything in sync
                 setSettings(newSettings);
             }
         });
@@ -101,21 +91,7 @@ export default function SettingsPage() {
 
     const handleSaveChanges = () => {
         startSaving(async () => {
-             // Fetch latest settings, merge our changes, then update.
-            const { data: currentData, error: fetchError } = await supabase
-                .from('settings')
-                .select('settings_data')
-                .eq('id', 1);
-
-            if (fetchError && fetchError.code !== 'PGRST116') {
-                toast({ variant: 'destructive', title: 'Save Failed', description: 'Could not get latest settings. Please refresh.' });
-                return;
-            }
-            
-            const currentSettings = currentData && currentData.length > 0 ? currentData[0].settings_data : {};
-
-            // Merge our local changes on top of the latest settings from DB.
-            const newSettings = { ...currentSettings, ...settings };
+            const newSettings = { ...settings, isUnderConstruction };
 
             const { error } = await supabase
                 .from('settings')
@@ -126,7 +102,7 @@ export default function SettingsPage() {
                 toast({ variant: 'destructive', title: 'Save Failed', description: error.message });
             } else {
                 toast({ title: 'Success', description: 'App settings have been updated.' });
-                setSettings(newSettings); // update local state with merged settings
+                setSettings(newSettings); // Ensure local state is up-to-date
             }
         });
     };
@@ -355,4 +331,6 @@ export default function SettingsPage() {
         </div>
     );
 }
+    
+
     

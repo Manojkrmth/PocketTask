@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils';
 
 function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [isUnderConstruction, setIsUnderConstruction] = useState(false);
+  const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   const isAdminPage = pathname.startsWith('/cmadmin');
@@ -32,8 +32,8 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
 
         try {
             const { data, error } = await supabase
-                .from('maintenance_mode')
-                .select('is_enabled')
+                .from('settings')
+                .select('settings_data')
                 .eq('id', 1)
                 .single();
             
@@ -41,14 +41,14 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
                 throw error;
             }
             
-            if (data && data.is_enabled === true) {
-                setIsUnderConstruction(true);
+            if (data && data.settings_data) {
+                setSettings(data.settings_data);
             } else {
-                setIsUnderConstruction(false);
+                setSettings({}); // Set to empty object if no settings found
             }
         } catch (e) {
             console.error("Could not fetch maintenance status, defaulting to off.", e);
-            setIsUnderConstruction(false);
+            setSettings({}); // Default to off on error
         } finally {
             setLoading(false);
         }
@@ -61,7 +61,7 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
     return <LoadingScreen />;
   }
   
-  if (isUnderConstruction && !isAdminPage) {
+  if (settings?.isUnderConstruction && !isAdminPage) {
       return (
         <main className="max-w-md mx-auto bg-background min-h-screen relative shadow-2xl">
             <MaintenancePage />
@@ -120,3 +120,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+    
