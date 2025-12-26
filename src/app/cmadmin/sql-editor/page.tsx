@@ -132,6 +132,7 @@ DROP POLICY IF EXISTS "Allow admins to see all wallet history" ON public.wallet_
 DROP POLICY IF EXISTS "Allow users to see their own wallet history" ON public.wallet_history;
 CREATE POLICY "Allow admins to see all wallet history" ON public.wallet_history FOR SELECT USING (is_admin(auth.uid()));
 CREATE POLICY "Allow users to see their own wallet history" ON public.wallet_history FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Allow admins to create wallet history" ON public.wallet_history FOR INSERT WITH CHECK (is_admin(auth.uid()));
 
 -- USER_TASKS Table
 ALTER TABLE public.usertasks ENABLE ROW LEVEL SECURITY;
@@ -242,7 +243,7 @@ RETURNS TABLE(
     date timestamptz,
     total_revenue numeric,
     total_withdrawals numeric,
-    new_users_count integer
+    new_users_count bigint
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -262,29 +263,32 @@ BEGIN
             ds.date::timestamptz,
             COALESCE(daily_revenue.total, 0) AS total_revenue,
             COALESCE(daily_withdrawals.total, 0) AS total_withdrawals,
-            COALESCE(daily_users.count, 0)::integer AS new_users_count
+            COALESCE(daily_users.count, 0) AS new_users_count
         FROM date_series ds
         LEFT JOIN (
+            -- Calculate total revenue from completed, positive transactions
             SELECT
-                created_at::date AS date,
-                SUM(amount) AS total
-            FROM wallet_history
-            WHERE type IN ('task_reward', 'coin_credit', 'spin_win', 'referral_bonus') AND status = 'Completed'
+                wh.created_at::date AS date,
+                SUM(wh.amount) AS total
+            FROM wallet_history wh
+            WHERE wh.type IN ('task_reward', 'coin_credit', 'spin_win', 'referral_bonus') AND wh.status = 'Completed' AND wh.amount > 0
             GROUP BY date
         ) daily_revenue ON ds.date = daily_revenue.date
         LEFT JOIN (
+            -- Calculate total withdrawals from approved payments
             SELECT
-                created_at::date AS date,
-                SUM(amount) AS total
-            FROM payments
-            WHERE status = 'Approved'
+                p.created_at::date AS date,
+                SUM(p.amount) AS total
+            FROM payments p
+            WHERE p.status = 'Approved'
             GROUP BY date
         ) daily_withdrawals ON ds.date = daily_withdrawals.date
         LEFT JOIN (
+            -- Count new users per day
             SELECT
-                created_at::date AS date,
-                COUNT(id) AS count
-            FROM users
+                u.created_at::date AS date,
+                COUNT(u.id) AS count
+            FROM users u
             GROUP BY date
         ) daily_users ON ds.date = daily_users.date
         ORDER BY ds.date ASC;

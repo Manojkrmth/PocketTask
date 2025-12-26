@@ -1,6 +1,7 @@
 "use client"
 
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend } from "recharts"
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from "recharts"
+import { format } from "date-fns"
 
 import {
   Card,
@@ -11,35 +12,38 @@ import {
 } from "@/components/ui/card"
 import {
   ChartContainer,
+  ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
 import { useState } from "react"
 import { Button } from "../ui/button"
-import { format } from "date-fns"
+import { cn } from "@/lib/utils"
 
 const chartConfig = {
   revenue: {
     label: "Revenue (INR)",
-    color: "#2563eb",
+    color: "hsl(var(--chart-2))",
   },
   withdrawals: {
     label: "Withdrawals (INR)",
-    color: "#60a5fa",
+    color: "hsl(var(--chart-5))",
   },
   newUsers: {
     label: "New Users",
-    color: "#93c5fd",
+    color: "hsl(var(--chart-1))",
   },
-}
+} satisfies ChartConfig
+
+type ChartConfig = typeof chartConfig
 
 export function DailyStatsChart({ data }: { data: any[] }) {
-  const [activeCharts, setActiveCharts] = useState({
+  const [activeCharts, setActiveCharts] = useState<Record<keyof ChartConfig, boolean>>({
     revenue: true,
     withdrawals: true,
-    newUsers: true,
+    newUsers: false,
   })
 
-  const toggleChart = (key: keyof typeof activeCharts) => {
+  const toggleChart = (key: keyof ChartConfig) => {
     setActiveCharts(prev => ({ ...prev, [key]: !prev[key] }))
   }
 
@@ -56,44 +60,105 @@ export function DailyStatsChart({ data }: { data: any[] }) {
             {Object.entries(chartConfig).map(([key, config]) => (
                 <Button 
                     key={key} 
-                    variant={activeCharts[key as keyof typeof activeCharts] ? 'default' : 'outline'}
+                    variant={activeCharts[key as keyof ChartConfig] ? 'default' : 'outline'}
                     size="sm"
-                    onClick={() => toggleChart(key as keyof typeof activeCharts)}
+                    onClick={() => toggleChart(key as keyof ChartConfig)}
+                    className={cn(
+                        "transition-all",
+                        activeCharts[key as keyof ChartConfig] 
+                          ? `bg-[${config.color}] text-white` 
+                          : `text-[${config.color}] border-[${config.color}]`
+                    )}
                     style={{
-                        backgroundColor: activeCharts[key as keyof typeof activeCharts] ? config.color : undefined,
-                        borderColor: config.color,
-                        color: activeCharts[key as keyof typeof activeCharts] ? 'white' : config.color
-                    }}
+                        '--chart-color': config.color,
+                        backgroundColor: activeCharts[key as keyof ChartConfig] ? 'var(--chart-color)' : 'transparent',
+                        borderColor: 'var(--chart-color)',
+                        color: activeCharts[key as keyof ChartConfig] ? 'white' : 'var(--chart-color)',
+                    } as React.CSSProperties}
                 >
                     {config.label}
                 </Button>
             ))}
         </div>
-        <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
-          <BarChart accessibilityLayer data={chartData}>
+        <ChartContainer config={chartConfig} className="h-[300px] w-full">
+          <AreaChart
+            accessibilityLayer
+            data={chartData}
+            margin={{
+              left: 12,
+              right: 12,
+            }}
+          >
             <CartesianGrid vertical={false} />
             <XAxis
               dataKey="date"
               tickLine={false}
-              tickMargin={10}
               axisLine={false}
+              tickMargin={8}
               tickFormatter={(value) => value}
             />
-            <YAxis />
-            <Tooltip 
-                cursor={false}
-                content={<ChartTooltipContent 
-                    formatter={(value, name) => {
-                        if (name === 'newUsers') return `${value} users`
-                        return `₹${Number(value).toFixed(2)}`
-                    }}
-                />} 
+            <YAxis 
+               tickLine={false}
+               axisLine={false}
+               tickMargin={8}
+               tickFormatter={(value) => `₹${Number(value) / 1000}k`}
             />
-            <Legend />
-            {activeCharts.revenue && <Bar dataKey="revenue" fill="var(--color-revenue)" radius={4} />}
-            {activeCharts.withdrawals && <Bar dataKey="withdrawals" fill="var(--color-withdrawals)" radius={4} />}
-            {activeCharts.newUsers && <Bar dataKey="newUsers" fill="var(--color-newUsers)" radius={4} />}
-          </BarChart>
+            <ChartTooltip
+              cursor={false}
+              content={
+                <ChartTooltipContent
+                  indicator="dot"
+                  formatter={(value, name) => {
+                    if (name === "newUsers") return `${value} users`
+                    return `₹${Number(value).toFixed(2)}`
+                  }}
+                />
+              }
+            />
+            <defs>
+                <linearGradient id="fillRevenue" x1="0" y1="0" x2="0" y2="1">
+                    <stop
+                    offset="5%"
+                    stopColor="var(--color-revenue)"
+                    stopOpacity={0.8}
+                    />
+                    <stop
+                    offset="95%"
+                    stopColor="var(--color-revenue)"
+                    stopOpacity={0.1}
+                    />
+                </linearGradient>
+            </defs>
+            {activeCharts.revenue && (
+                <Area
+                    dataKey="revenue"
+                    type="natural"
+                    fill="url(#fillRevenue)"
+                    fillOpacity={0.4}
+                    stroke="var(--color-revenue)"
+                    stackId="a"
+                />
+            )}
+             {activeCharts.withdrawals && (
+                <Line
+                    dataKey="withdrawals"
+                    type="natural"
+                    stroke="var(--color-withdrawals)"
+                    strokeWidth={2}
+                    dot={false}
+                />
+             )}
+              {activeCharts.newUsers && (
+                <Line
+                    dataKey="newUsers"
+                    type="natural"
+                    stroke="var(--color-newUsers)"
+                    strokeWidth={2}
+                    dot={false}
+                    yAxisId="right"
+                />
+             )}
+          </AreaChart>
         </ChartContainer>
     </div>
   )
