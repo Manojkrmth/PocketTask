@@ -150,6 +150,7 @@ export default function WithdrawalsPage() {
                     .update({ 
                         status: 'Completed', 
                         description: `Withdrawal to ${selectedRequest.payment_method}. UTR: ${actionDetail}`,
+                        type: 'withdrawal',
                         metadata: { utr: actionDetail }
                     })
                     .eq('user_id', selectedRequest.user_id)
