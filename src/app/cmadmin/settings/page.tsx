@@ -40,21 +40,9 @@ export default function SettingsPage() {
             if (error && error.code !== 'PGRST116') {
                 console.error('Error fetching settings:', error);
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch app settings.' });
-            } else {
-                setSettings(data?.settings_data || {});
-            }
-
-            // Fetch maintenance mode separately
-            const { data: maintenanceData, error: maintenanceError } = await supabase
-                .from('maintenance_mode')
-                .select('is_enabled')
-                .eq('id', 1)
-                .single();
-            
-            if (maintenanceError && maintenanceError.code !== 'PGRST116') {
-                console.error('Error fetching maintenance mode:', maintenanceError);
-            } else {
-                setIsUnderConstruction(maintenanceData?.is_enabled || false);
+            } else if (data) {
+                setSettings(data.settings_data || {});
+                setIsUnderConstruction(data.settings_data.isUnderConstruction || false);
             }
 
             setLoading(false);
@@ -65,19 +53,34 @@ export default function SettingsPage() {
     
     const handleSaveConstructionMode = () => {
         startSavingConstruction(async () => {
+            const { data: currentData, error: fetchError } = await supabase
+                .from('settings')
+                .select('settings_data')
+                .eq('id', 1);
+
+            if (fetchError && fetchError.code !== 'PGRST116') {
+                toast({ variant: 'destructive', title: 'Save Failed', description: 'Could not get latest settings. Please refresh.' });
+                return;
+            }
+            
+            // If there are multiple rows, we take the first one. Best practice is to clean up the DB.
+            const currentSettings = currentData && currentData.length > 0 ? currentData[0].settings_data : {};
+
+            const newSettings = { 
+                ...currentSettings,
+                isUnderConstruction: isUnderConstruction 
+            };
+
             const { error: updateError } = await supabase
-                .from('maintenance_mode')
-                .update({ is_enabled: isUnderConstruction })
-                .eq('id', 1)
-                .select()
-                .single();
+                .from('settings')
+                .update({ settings_data: newSettings })
+                .eq('id', 1);
 
             if (updateError) {
                 toast({ variant: 'destructive', title: 'Save Failed', description: updateError.message });
             } else {
                 toast({ title: 'Success', description: 'Construction mode has been updated.' });
-                 // Manually sync state to prevent UI reversion
-                setIsUnderConstruction(isUnderConstruction);
+                setSettings(newSettings);
             }
         });
     }
@@ -102,27 +105,28 @@ export default function SettingsPage() {
             const { data: currentData, error: fetchError } = await supabase
                 .from('settings')
                 .select('settings_data')
-                .eq('id', 1)
-                .single();
+                .eq('id', 1);
 
             if (fetchError && fetchError.code !== 'PGRST116') {
                 toast({ variant: 'destructive', title: 'Save Failed', description: 'Could not get latest settings. Please refresh.' });
                 return;
             }
+            
+            const currentSettings = currentData && currentData.length > 0 ? currentData[0].settings_data : {};
 
             // Merge our local changes on top of the latest settings from DB.
-            const newSettings = { ...(currentData?.settings_data || {}), ...settings };
+            const newSettings = { ...currentSettings, ...settings };
 
             const { error } = await supabase
                 .from('settings')
-                .upsert({ id: 1, settings_data: newSettings }, { onConflict: 'id' })
-                .select()
-                .single();
+                .update({ settings_data: newSettings })
+                .eq('id', 1);
 
             if (error) {
                 toast({ variant: 'destructive', title: 'Save Failed', description: error.message });
             } else {
                 toast({ title: 'Success', description: 'App settings have been updated.' });
+                setSettings(newSettings); // update local state with merged settings
             }
         });
     };
