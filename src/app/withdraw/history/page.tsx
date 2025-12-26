@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -36,7 +37,8 @@ import {
     RotateCw,
     Gift,
     FileText,
-    HelpCircle
+    HelpCircle,
+    Hash
 } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/page-header';
@@ -46,13 +48,14 @@ import type { User } from '@supabase/supabase-js';
 import BannerAd from '@/components/ads/banner-ad';
 
 const ITEMS_PER_PAGE = 10;
-type Status = 'Completed' | 'Pending' | 'Rejected';
+type Status = 'Completed' | 'Pending' | 'Rejected' | 'Cancelled';
 
 const transactionIcons: { [key: string]: React.ReactElement } = {
     'task_reward': <FileText className="h-5 w-5 text-blue-500" />,
     'coin_credit': <IndianRupee className="h-5 w-5 text-yellow-500" />,
     'spin_win': <RotateCw className="h-5 w-5 text-purple-500" />,
-    'withdrawal': <Wallet className="h-5 w-5 text-red-500" />,
+    'withdrawal_pending': <Wallet className="h-5 w-5 text-red-500" />,
+    'withdrawal_refund': <Wallet className="h-5 w-5 text-green-500" />,
     'referral_bonus': <Gift className="h-5 w-5 text-green-500" />,
     'manual_credit': <Gift className="h-5 w-5 text-green-500" />,
     'manual_debit': <Wallet className="h-5 w-5 text-red-500" />,
@@ -158,6 +161,9 @@ export default function WalletHistoryPage() {
   }
   
   const getTransactionIcon = (type: string) => {
+    if (type === 'withdrawal_pending' && history.find(h => h.type === 'withdrawal_refund' && h.metadata?.payment_id === h.metadata?.payment_id)) {
+        return transactionIcons['withdrawal_refund'];
+    }
     return transactionIcons[type] || transactionIcons['default'];
   }
 
@@ -224,6 +230,12 @@ export default function WalletHistoryPage() {
                 >
                   Rejected
                 </DropdownMenuCheckboxItem>
+                 <DropdownMenuCheckboxItem
+                  checked={statusFilters.includes('Cancelled')}
+                  onCheckedChange={() => toggleFilter('Cancelled')}
+                >
+                  Cancelled
+                </DropdownMenuCheckboxItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </CardHeader>
@@ -257,7 +269,8 @@ export default function WalletHistoryPage() {
                                 "whitespace-nowrap",
                                 item.status === "Completed" && "bg-green-100 text-green-800 border-green-200",
                                 item.status === "Pending" && "bg-yellow-100 text-yellow-800 border-yellow-200",
-                                item.status === "Rejected" && "bg-red-100 text-red-800 border-red-200"
+                                item.status === "Rejected" && "bg-red-100 text-red-800 border-red-200",
+                                item.status === "Cancelled" && "bg-gray-100 text-gray-800 border-gray-200"
                               )}
                             >
                               {item.status}
@@ -265,10 +278,13 @@ export default function WalletHistoryPage() {
                             <span className="text-muted-foreground">{formatDate(item.created_at)}</span>
                         </div>
 
+                        {item.metadata?.payment_id && (
+                             <p className="text-xs text-blue-600 mt-1 flex items-center gap-1"><Hash className="h-3 w-3"/> Request #{item.metadata.payment_id}</p>
+                        )}
                         {item.metadata?.utr && (
                             <p className="text-xs text-blue-600 mt-1">UTR: {item.metadata.utr}</p>
                         )}
-                        {item.metadata?.reason && item.status === 'Rejected' && (
+                        {item.metadata?.reason && (item.status === 'Rejected' || item.status === 'Cancelled') && (
                              <p className="text-xs text-destructive mt-1">Reason: {item.metadata.reason}</p>
                         )}
                     </div>
