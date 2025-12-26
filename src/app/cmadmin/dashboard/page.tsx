@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -17,7 +18,9 @@ import {
     Coins,
     Banknote,
     DollarSign,
-    ExternalLink
+    ExternalLink,
+    ArrowUp,
+    ArrowDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -35,6 +38,12 @@ interface TopUser {
     referral_count?: number;
 }
 
+interface GrowthStats {
+    revenueChange: number | null;
+    withdrawalsChange: number | null;
+    usersChange: number | null;
+}
+
 export default function AdminDashboardPage() {
   const [user, setUser] = useState<User | null>(null);
   const [totalUsers, setTotalUsers] = useState<number | null>(null);
@@ -49,6 +58,7 @@ export default function AdminDashboardPage() {
   const [topBalanceUsers, setTopBalanceUsers] = useState<TopUser[]>([]);
   const [topReferralUsers, setTopReferralUsers] = useState<TopUser[]>([]);
   const [dailyStats, setDailyStats] = useState<any[]>([]);
+  const [growthStats, setGrowthStats] = useState<GrowthStats>({ revenueChange: null, withdrawalsChange: null, usersChange: null });
 
   const [isLoading, setIsLoading] = useState(true);
   const { formatCurrency } = useCurrency();
@@ -95,7 +105,9 @@ export default function AdminDashboardPage() {
       
       const { data: totalBalanceData, error: totalBalanceError } = await supabase.rpc('get_total_users_balance');
       
-      setTotalUsers(usersRes.data || 0);
+      const totalUsersCount = usersRes.data || 0;
+      setTotalUsers(totalUsersCount);
+
       setTotalUsersBalance(totalBalanceData || 0);
       setPendingTasks(tasksCountRes.count);
       setPendingTickets(ticketsCountRes.count);
@@ -113,12 +125,51 @@ export default function AdminDashboardPage() {
 
       if (topBalanceRes.data) setTopBalanceUsers(topBalanceRes.data);
       if (topReferralRes.data) setTopReferralUsers(topReferralRes.data);
-      if (dailyStatsRes.data) setDailyStats(dailyStatsRes.data);
+      if (dailyStatsRes.data) {
+        setDailyStats(dailyStatsRes.data);
+
+        // Calculate Growth Stats
+        if (dailyStatsRes.data.length === 14) {
+            const last7Days = dailyStatsRes.data.slice(7);
+            const previous7Days = dailyStatsRes.data.slice(0, 7);
+
+            const calculateTotals = (period: any[]) => ({
+                revenue: period.reduce((sum, day) => sum + day.total_revenue, 0),
+                withdrawals: period.reduce((sum, day) => sum + day.total_withdrawals, 0),
+                users: period.reduce((sum, day) => sum + day.new_users_count, 0)
+            });
+
+            const last7Totals = calculateTotals(last7Days);
+            const previous7Totals = calculateTotals(previous7Days);
+            
+            const calculateChange = (current: number, previous: number) => {
+                if (previous === 0) return current > 0 ? 100 : 0;
+                return ((current - previous) / previous) * 100;
+            };
+
+            setGrowthStats({
+                revenueChange: calculateChange(last7Totals.revenue, previous7Totals.revenue),
+                withdrawalsChange: calculateChange(last7Totals.withdrawals, previous7Totals.withdrawals),
+                usersChange: calculateChange(last7Totals.users, previous7Totals.users),
+            });
+        }
+      }
       
       setIsLoading(false);
     };
     fetchData();
   }, []);
+
+  const GrowthIndicator = ({ value }: { value: number | null }) => {
+    if (value === null) return null;
+    const isPositive = value >= 0;
+    return (
+        <p className={cn("text-xs text-muted-foreground flex items-center", isPositive ? 'text-green-600' : 'text-red-600')}>
+            {isPositive ? <ArrowUp className="h-4 w-4"/> : <ArrowDown className="h-4 w-4"/>}
+            {value.toFixed(1)}% vs last week
+        </p>
+    );
+  }
   
   const getInitials = (name?: string) => {
     if (!name) return 'U';
@@ -148,6 +199,7 @@ export default function AdminDashboardPage() {
                 </CardHeader>
                 <CardContent>
                     {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : <div className="text-2xl font-bold text-blue-900">{totalUsers}</div>}
+                    <GrowthIndicator value={growthStats.usersChange} />
                      <ExternalLink className="absolute top-2 right-2 h-4 w-4 text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"/>
                 </CardContent>
             </Card>
@@ -160,6 +212,7 @@ export default function AdminDashboardPage() {
             </CardHeader>
             <CardContent>
                 {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : <div className="text-2xl font-bold text-cyan-900">{formatCurrency(totalUsersBalance || 0)}</div>}
+                 <p className="text-xs text-muted-foreground">&nbsp;</p>
             </CardContent>
         </Card>
         
@@ -170,6 +223,7 @@ export default function AdminDashboardPage() {
             </CardHeader>
             <CardContent>
                 {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : <div className="text-2xl font-bold text-emerald-900">{formatCurrency(totalRevenue || 0)}</div>}
+                 <GrowthIndicator value={growthStats.revenueChange} />
             </CardContent>
         </Card>
 
@@ -180,6 +234,7 @@ export default function AdminDashboardPage() {
             </CardHeader>
             <CardContent>
                 {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : <div className="text-2xl font-bold text-green-900">{formatCurrency(totalWithdrawals || 0)}</div>}
+                 <GrowthIndicator value={growthStats.withdrawalsChange} />
             </CardContent>
         </Card>
 
@@ -335,3 +390,5 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
+    
