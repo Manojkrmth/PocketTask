@@ -100,18 +100,19 @@ export default function SettingsPage() {
                 .eq('id', 1)
                 .single();
 
-            if (fetchError) {
+            if (fetchError && fetchError.code !== 'PGRST116') {
                 toast({ variant: 'destructive', title: 'Save Failed', description: 'Could not get latest settings. Please refresh.' });
                 return;
             }
 
             // Merge our local changes on top of the latest settings from DB.
-            const newSettings = { ...currentData.settings_data, ...settings };
+            const newSettings = { ...(currentData?.settings_data || {}), ...settings };
 
             const { error } = await supabase
                 .from('settings')
-                .update({ settings_data: newSettings })
-                .eq('id', 1);
+                .upsert({ id: 1, settings_data: newSettings })
+                .select()
+                .single();
 
             if (error) {
                 toast({ variant: 'destructive', title: 'Save Failed', description: error.message });
@@ -249,7 +250,7 @@ export default function SettingsPage() {
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><LinkIcon className="h-5 w-5 text-primary" /> Social Media Links</CardTitle>
-                    <CardDescription>These links appear on the home and profile pages.</Description>
+                    <CardDescription>These links appear on the home and profile pages.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
