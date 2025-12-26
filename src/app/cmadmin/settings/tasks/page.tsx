@@ -43,21 +43,39 @@ const DEFAULT_TASKS: TaskSetting[] = [
 export default function TaskSettingsPage() {
     const { toast } = useToast();
     const router = useRouter();
-    const [taskSettings, setTaskSettings] = useState<TaskSetting[]>(DEFAULT_TASKS);
-    const [loading, setLoading] = useState(false); // No DB fetching yet, so start with false
+    const [taskSettings, setTaskSettings] = useState<TaskSetting[]>([]);
+    const [loading, setLoading] = useState(true);
     const [isSaving, startSaving] = useTransition();
 
-    // In a real scenario, you'd fetch this from the DB.
-    // For now, we just use the default state.
-    
-    // useEffect(() => {
-    //     const fetchSettings = async () => {
-    //         setLoading(true);
-    //         // Supabase fetch logic will go here
-    //         setLoading(false);
-    //     };
-    //     fetchSettings();
-    // }, []);
+    useEffect(() => {
+        const fetchSettings = async () => {
+            setLoading(true);
+            const { data, error } = await supabase
+                .from('settings')
+                .select('task_settings')
+                .eq('id', 1)
+                .single();
+            
+            if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
+                 toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch task settings.' });
+                 setTaskSettings(DEFAULT_TASKS);
+            } else if (data && data.task_settings) {
+                // Merge saved settings with default tasks to handle new tasks being added
+                const savedSettings = data.task_settings as TaskSetting[];
+                const savedMap = new Map(savedSettings.map(item => [item.id, item]));
+                const mergedSettings = DEFAULT_TASKS.map(defaultTask => 
+                    savedMap.has(defaultTask.id) ? { ...defaultTask, ...savedMap.get(defaultTask.id) } : defaultTask
+                );
+                setTaskSettings(mergedSettings);
+            } else {
+                // No settings found in DB, use defaults
+                setTaskSettings(DEFAULT_TASKS);
+            }
+
+            setLoading(false);
+        };
+        fetchSettings();
+    }, [toast]);
 
     const handleFieldChange = (taskId: string, field: keyof TaskSetting, value: any) => {
         setTaskSettings(prev => 
@@ -69,19 +87,16 @@ export default function TaskSettingsPage() {
 
     const handleSaveChanges = () => {
         startSaving(async () => {
-            // This is where you would save to Supabase
-            console.log("Saving task settings:", taskSettings);
-            toast({ title: 'UI Only', description: 'This is a UI demonstration. No data was saved.' });
-            // const { error } = await supabase
-            //     .from('settings')
-            //     .update({ task_settings: taskSettings })
-            //     .eq('id', 1);
+            const { error } = await supabase
+                .from('settings')
+                .update({ task_settings: taskSettings })
+                .eq('id', 1);
 
-            // if (error) {
-            //     toast({ variant: 'destructive', title: 'Save Failed', description: error.message });
-            // } else {
-            //     toast({ title: 'Success', description: 'Task settings have been updated.' });
-            // }
+            if (error) {
+                toast({ variant: 'destructive', title: 'Save Failed', description: error.message });
+            } else {
+                toast({ title: 'Success', description: 'Task settings have been updated.' });
+            }
         });
     };
 
