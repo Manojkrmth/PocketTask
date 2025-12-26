@@ -145,7 +145,7 @@ export default function AdminDashboardPage() {
 
         <Card className="bg-cyan-50 border-cyan-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-cyan-800">Total Users Balance</CardTitle>
+                <CardTitle className="text-sm font-medium text-cyan-800">Total Users Available Balance</CardTitle>
                 <Banknote className="h-4 w-4 text-cyan-600" />
             </CardHeader>
             <CardContent>
@@ -295,5 +295,3 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
-
-    
