@@ -126,7 +126,7 @@ export default function UsersPage() {
     user.mobile?.includes(filter)
   );
   
-  const sqlPolicyFix = `-- POLICY FIX SCRIPT V15
+  const sqlPolicyFix = `-- POLICY FIX SCRIPT V14
 -- This script will:
 -- 1. Ensure the primary super admin exists in the 'admins' table.
 -- 2. Drop all potentially conflicting policies on relevant tables.
@@ -138,7 +138,7 @@ BEGIN;
 
 -- 1. Insert the super admin into the 'admins' table if they don't already exist.
 INSERT INTO public.admins (user_id, role)
-SELECT '98cda2fc-f09d-4840-9f47-ec0c749a6bbd', 'admin'
+SELECT '98cda2fc-f09d-4840-9f47-ec0c749a6bbd'
 WHERE NOT EXISTS (
     SELECT 1 FROM public.admins WHERE user_id = '98cda2fc-f09d-4840-9f47-ec0c749a6bbd'
 ) AND EXISTS (
@@ -204,6 +204,7 @@ AS $$
     SELECT COALESCE(SUM(balance_available), 0) FROM public.users;
 $$;
 
+DROP FUNCTION IF EXISTS get_top_referral_users(integer);
 CREATE OR REPLACE FUNCTION get_top_referral_users(limit_count integer)
 RETURNS TABLE(id uuid, full_name text, email text, referral_count bigint)
 LANGUAGE plpgsql
@@ -381,4 +382,5 @@ COMMIT;
   );
 }
 
+    
     
