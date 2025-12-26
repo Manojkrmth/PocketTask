@@ -208,6 +208,17 @@ ALTER TABLE public.settings
 ADD COLUMN IF NOT EXISTS is_maintenance_mode_enabled BOOLEAN DEFAULT FALSE;
 `;
 
+const coinManagerMetadataSql = `
+-- =================================================================
+-- FIX: Coin Manager Metadata
+-- =================================================================
+-- Adds the 'metadata' column to your coinsubmissions table.
+-- Run this in your Supabase SQL Editor to fix the "Update Failed" error on the Coin Manager page.
+-- =================================================================
+ALTER TABLE public.coinsubmissions
+ADD COLUMN IF NOT EXISTS metadata jsonb;
+`;
+
 export default function SqlEditorPage() {
 
   return (
@@ -238,6 +249,30 @@ export default function SqlEditorPage() {
               </CopyButton>
               <pre className="text-sm whitespace-pre-wrap font-mono">
                 <code>{maintenanceModeSql.trim()}</code>
+              </pre>
+            </div>
+        </CardContent>
+       </Card>
+      
+       <Card className="border-orange-500">
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2"><AlertTriangle className="text-orange-500"/> Fix: Coin Manager Metadata</CardTitle>
+            <CardDescription>
+                This command adds the `metadata` column to the `coinsubmissions` table, which is needed to save rejection reasons or approval notes.
+            </CardDescription>
+        </CardHeader>
+        <CardContent>
+            <div className="relative rounded-md bg-muted/50 p-4">
+              <CopyButton 
+                value={coinManagerMetadataSql}
+                variant="ghost"
+                size="icon"
+                className="absolute top-2 right-2 h-7 w-7"
+              >
+                  <Copy className="h-4 w-4" />
+              </CopyButton>
+              <pre className="text-sm whitespace-pre-wrap font-mono">
+                <code>{coinManagerMetadataSql.trim()}</code>
               </pre>
             </div>
         </CardContent>
