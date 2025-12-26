@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -6,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { LoadingScreen } from '@/components/loading-screen';
 import type { User } from '@supabase/supabase-js';
-import { BarChart, Users, ListTodo, LogOut, MessageSquare, Settings, Bell, Coins, SlidersHorizontal, Wallet, ListChecks, Shield, Megaphone, UserPlus } from 'lucide-react';
+import { BarChart, Users, ListTodo, LogOut, MessageSquare, Settings, Bell, Coins, SlidersHorizontal, Wallet, ListChecks, Shield, Megaphone, UserPlus, Database } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -19,6 +18,7 @@ const ADMIN_USER_IDS = [
 ];
 
 const navItems = [
+  { href: '/cmadmin/sql-editor', label: 'SQL Editor', icon: Database },
   { href: '/cmadmin/dashboard', label: 'Dashboard', icon: BarChart },
   { href: '/cmadmin/users', label: 'Users', icon: Users },
   { href: '/cmadmin/task-manager', label: 'Gmail Task Manager', icon: SlidersHorizontal },
