@@ -1,10 +1,10 @@
 
 'use client';
 
-import { useEffect, useState, useTransition, useRef, useCallback } from 'react';
+import { useEffect, useState, useTransition, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, Save, Link as LinkIcon, Settings, Image as ImageIcon, Text, Info, ToggleLeft, IndianRupee, Megaphone, ListTodo, Wallet, Gift, AlertTriangle, Users } from 'lucide-react';
@@ -21,6 +21,13 @@ export default function SettingsPage() {
 
     const [loading, setLoading] = useState(true);
     const [isSaving, startSaving] = useTransition();
+    
+    // Individual saving states for each card
+    const [isFinancialSaving, startFinancialSaving] = useTransition();
+    const [isNoticeSaving, startNoticeSaving] = useTransition();
+    const [isSocialSaving, startSocialSaving] = useTransition();
+    const [isPopupSaving, startPopupSaving] = useTransition();
+
 
     useEffect(() => {
         const fetchAllSettings = async () => {
@@ -59,17 +66,38 @@ export default function SettingsPage() {
          setSettings((prev: any) => ({ ...prev, [key]: value }));
     };
 
-    const handleSaveChanges = () => {
-        startSaving(async () => {
+    const handleSaveSection = async (sectionKey: string | string[], startTransition: React.TransitionStartFunction) => {
+        startTransition(async () => {
+             const { data: currentSettingsData, error: fetchError } = await supabase
+                .from('settings')
+                .select('settings_data')
+                .eq('id', 1)
+                .single();
+
+            if (fetchError) {
+                toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch latest settings before saving.' });
+                return;
+            }
+
+            let updatedSettingsData = { ...currentSettingsData.settings_data };
+            
+            if(Array.isArray(sectionKey)) {
+                sectionKey.forEach(key => {
+                    updatedSettingsData[key] = settings[key];
+                });
+            } else {
+                 updatedSettingsData[sectionKey] = settings[sectionKey];
+            }
+
             const { error } = await supabase
                 .from('settings')
-                .update({ settings_data: settings })
+                .update({ settings_data: updatedSettingsData })
                 .eq('id', 1);
 
             if (error) {
                 toast({ variant: 'destructive', title: 'Save Failed', description: error.message });
             } else {
-                toast({ title: 'Success', description: 'App settings have been updated.' });
+                toast({ title: 'Success', description: 'Settings have been updated.' });
             }
         });
     };
@@ -150,11 +178,17 @@ export default function SettingsPage() {
                             type="number"
                             value={settings.usdToInrRate || ''} 
                             onChange={(e) => handleTopLevelChange('usdToInrRate', parseFloat(e.target.value) || 0)} 
-                            disabled={isSaving}
+                            disabled={isFinancialSaving}
                             placeholder="e.g., 85"
                         />
                     </div>
                 </CardContent>
+                <CardFooter>
+                    <Button onClick={() => handleSaveSection('usdToInrRate', startFinancialSaving)} disabled={isFinancialSaving}>
+                        {isFinancialSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        Save Financial Settings
+                    </Button>
+                </CardFooter>
             </Card>
 
              <Card>
@@ -170,11 +204,17 @@ export default function SettingsPage() {
                             type="text"
                             value={settings.noticeBoardText || ''} 
                             onChange={(e) => handleTopLevelChange('noticeBoardText', e.target.value)} 
-                            disabled={isSaving}
+                            disabled={isNoticeSaving}
                             placeholder="e.g., Welcome! New tasks available."
                         />
                     </div>
                 </CardContent>
+                 <CardFooter>
+                    <Button onClick={() => handleSaveSection('noticeBoardText', startNoticeSaving)} disabled={isNoticeSaving}>
+                        {isNoticeSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        Save Notice Board
+                    </Button>
+                </CardFooter>
             </Card>
 
             <Card>
@@ -185,17 +225,23 @@ export default function SettingsPage() {
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
                         <Label htmlFor="whatsapp" className="flex items-center gap-2"><WhatsAppIcon className="h-4 w-4" /> WhatsApp Group Link</Label>
-                        <Input id="whatsapp" value={settings.socialLinks?.whatsapp || ''} onChange={(e) => handleInputChange('socialLinks', 'whatsapp', e.target.value)} disabled={isSaving} />
+                        <Input id="whatsapp" value={settings.socialLinks?.whatsapp || ''} onChange={(e) => handleInputChange('socialLinks', 'whatsapp', e.target.value)} disabled={isSocialSaving} />
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="telegram" className="flex items-center gap-2"><TelegramIcon className="h-4 w-4" /> Telegram Channel Link</Label>
-                        <Input id="telegram" value={settings.socialLinks?.telegram || ''} onChange={(e) => handleInputChange('socialLinks', 'telegram', e.target.value)} disabled={isSaving} />
+                        <Input id="telegram" value={settings.socialLinks?.telegram || ''} onChange={(e) => handleInputChange('socialLinks', 'telegram', e.target.value)} disabled={isSocialSaving} />
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="instagram" className="flex items-center gap-2"><InstagramIcon className="h-4 w-4" /> Instagram Profile Link</Label>
-                        <Input id="instagram" value={settings.socialLinks?.instagram || ''} onChange={(e) => handleInputChange('socialLinks', 'instagram', e.target.value)} disabled={isSaving} />
+                        <Input id="instagram" value={settings.socialLinks?.instagram || ''} onChange={(e) => handleInputChange('socialLinks', 'instagram', e.target.value)} disabled={isSocialSaving} />
                     </div>
                 </CardContent>
+                 <CardFooter>
+                    <Button onClick={() => handleSaveSection('socialLinks', startSocialSaving)} disabled={isSocialSaving}>
+                        {isSocialSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        Save Social Links
+                    </Button>
+                </CardFooter>
             </Card>
 
             <Card>
@@ -215,7 +261,7 @@ export default function SettingsPage() {
                             id="popup-enabled"
                             checked={settings.popupNotice?.isEnabled || false}
                             onCheckedChange={(checked) => handleInputChange('popupNotice', 'isEnabled', checked)}
-                            disabled={isSaving}
+                            disabled={isPopupSaving}
                         />
                     </div>
                      
@@ -235,24 +281,30 @@ export default function SettingsPage() {
                             {settings.popupNotice?.displayType === 'text' && (
                                 <div className="space-y-2">
                                     <Label htmlFor="popup-text" className="flex items-center gap-2"><Text /> Pop-up Text</Label>
-                                    <Input id="popup-text" value={settings.popupNotice?.text || ''} onChange={(e) => handleInputChange('popupNotice', 'text', e.target.value)} disabled={isSaving} />
+                                    <Input id="popup-text" value={settings.popupNotice?.text || ''} onChange={(e) => handleInputChange('popupNotice', 'text', e.target.value)} disabled={isPopupSaving} />
                                 </div>
                             )}
 
                              {settings.popupNotice?.displayType === 'image' && (
                                 <div className="space-y-2">
                                     <Label htmlFor="popup-image" className="flex items-center gap-2"><ImageIcon /> Image URL</Label>
-                                    <Input id="popup-image" value={settings.popupNotice?.imageUrl || ''} onChange={(e) => handleInputChange('popupNotice', 'imageUrl', e.target.value)} disabled={isSaving} />
+                                    <Input id="popup-image" value={settings.popupNotice?.imageUrl || ''} onChange={(e) => handleInputChange('popupNotice', 'imageUrl', e.target.value)} disabled={isPopupSaving} />
                                 </div>
                             )}
 
                              <div className="space-y-2">
                                 <Label htmlFor="popup-redirect" className="flex items-center gap-2"><LinkIcon /> Redirect Link (Optional)</Label>
-                                <Input id="popup-redirect" placeholder="https://example.com" value={settings.popupNotice?.redirectLink || ''} onChange={(e) => handleInputChange('popupNotice', 'redirectLink', e.target.value)} disabled={isSaving} />
+                                <Input id="popup-redirect" placeholder="https://example.com" value={settings.popupNotice?.redirectLink || ''} onChange={(e) => handleInputChange('popupNotice', 'redirectLink', e.target.value)} disabled={isPopupSaving} />
                             </div>
                         </div>
                     )}
                 </CardContent>
+                 <CardFooter>
+                    <Button onClick={() => handleSaveSection('popupNotice', startPopupSaving)} disabled={isPopupSaving}>
+                        {isPopupSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        Save Pop-up Notice
+                    </Button>
+                </CardFooter>
             </Card>
             
             <Card className="border-destructive">
@@ -267,12 +319,6 @@ export default function SettingsPage() {
                 </CardContent>
             </Card>
 
-            <div className="flex justify-end gap-2">
-                <Button onClick={handleSaveChanges} disabled={isSaving || loading}>
-                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                    Save All Settings
-                </Button>
-            </div>
         </div>
     );
 }
