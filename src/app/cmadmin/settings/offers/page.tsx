@@ -59,8 +59,10 @@ export default function OffersSettingsPage() {
         startSaving(async () => {
             const updatedSettings = {
                 ...settings,
-                featuredOffers: offers
+                featuredOffers: offers,
             };
+            
+            setSettings(updatedSettings); // Update local settings state before saving
 
             const { error } = await supabase
                 .from('settings')
@@ -162,18 +164,18 @@ export default function OffersSettingsPage() {
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
                             <Label htmlFor="imageUrl" className="flex items-center gap-2"><ImageIcon/> Image URL</Label>
-                            <Input id="imageUrl" value={editOffer.imageUrl} onChange={e => setEditOffer({...editOffer, imageUrl: e.target.value})} placeholder="https://example.com/image.png" />
+                            <Input id="imageUrl" value={editOffer.imageUrl || ''} onChange={e => setEditOffer({...editOffer, imageUrl: e.target.value})} placeholder="https://example.com/image.png" />
                         </div>
                          <div className="space-y-2">
                             <Label htmlFor="description" className="flex items-center gap-2"><TextIcon/> Description (Optional)</Label>
-                            <Input id="description" value={editOffer.description} onChange={e => setEditOffer({...editOffer, description: e.target.value})} placeholder="e.g., Summer Sale" />
+                            <Input id="description" value={editOffer.description || ''} onChange={e => setEditOffer({...editOffer, description: e.target.value})} placeholder="e.g., Summer Sale" />
                         </div>
                          <div className="space-y-2">
                             <Label htmlFor="redirectLink" className="flex items-center gap-2"><LinkIcon/> Redirect Link (Optional)</Label>
-                            <Input id="redirectLink" value={editOffer.redirectLink} onChange={e => setEditOffer({...editOffer, redirectLink: e.target.value})} placeholder="https://example.com/offer" />
+                            <Input id="redirectLink" value={editOffer.redirectLink || ''} onChange={e => setEditOffer({...editOffer, redirectLink: e.target.value})} placeholder="https://example.com/offer" />
                         </div>
                          <div className="flex items-center space-x-2">
-                            <Switch id="enabled" checked={editOffer.enabled} onCheckedChange={checked => setEditOffer({...editOffer, enabled: checked })} />
+                            <Switch id="enabled" checked={editOffer.enabled ?? true} onCheckedChange={checked => setEditOffer({...editOffer, enabled: checked })} />
                             <Label htmlFor="enabled">Enabled</Label>
                         </div>
                         <div className="flex justify-end gap-2">
