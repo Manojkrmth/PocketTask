@@ -23,14 +23,14 @@ const segments: WheelSegment[] = [
   { id: 'seg3', text: '8', color: '#1E88E5' },
   { id: 'seg4', text: '12', color: '#6A1B9A' },
   { id: 'seg5', text: '7', color: '#FB8C00' },
-  { id: 'seg6', text: '15', color: '#d32f2f' },
+  { id: 'seg6', text: '3', color: '#d32f2f' },
   { id: 'seg7', text: '6', color: '#00796b' },
   { id: 'seg8', text: '9', color: '#512da8' },
   { id: 'seg9', text: '11', color: '#c2185b' },
-  { id: 'seg10', text: '14', color: '#fbc02d' },
+  { id: 'seg10', text: '4', color: '#fbc02d' },
 ];
 
-const DAILY_SPIN_CHANCES = 50;
+const DAILY_SPIN_CHANCES = 10;
 const AD_VIEW_COUNTDOWN_SECONDS = 20;
 const MIN_TRANSFER_POINTS = 1000; // 1000 points = 10 INR
 
