@@ -197,6 +197,16 @@ CREATE POLICY "Allow admins to manage coin submissions" ON public.coinsubmission
 CREATE POLICY "Allow users to manage their own coin submissions" ON public.coinsubmissions FOR ALL USING (auth.uid() = user_id);
 `;
 
+const maintenanceModeSql = `
+-- =================================================================
+-- FIX: Maintenance Mode
+-- =================================================================
+-- Adds the 'is_maintenance_mode_enabled' column to your settings.
+-- Run this in your Supabase SQL Editor to enable the maintenance mode toggle.
+-- =================================================================
+ALTER TABLE public.settings
+ADD COLUMN IF NOT EXISTS is_maintenance_mode_enabled BOOLEAN DEFAULT FALSE;
+`;
 
 export default function SqlEditorPage() {
 
@@ -208,6 +218,30 @@ export default function SqlEditorPage() {
           Run these SQL queries in your Supabase project to fix specific issues.
         </p>
       </div>
+
+       <Card className="border-destructive">
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2"><AlertTriangle/> Fix: Maintenance Mode</CardTitle>
+            <CardDescription>
+                This command adds the necessary column to your database to control Maintenance Mode from the admin panel. Run this if the toggle is not working.
+            </CardDescription>
+        </CardHeader>
+        <CardContent>
+            <div className="relative rounded-md bg-muted/50 p-4">
+              <CopyButton 
+                value={maintenanceModeSql}
+                variant="ghost"
+                size="icon"
+                className="absolute top-2 right-2 h-7 w-7"
+              >
+                  <Copy className="h-4 w-4" />
+              </CopyButton>
+              <pre className="text-sm whitespace-pre-wrap font-mono">
+                <code>{maintenanceModeSql.trim()}</code>
+              </pre>
+            </div>
+        </CardContent>
+       </Card>
 
        <Card>
         <CardHeader>
