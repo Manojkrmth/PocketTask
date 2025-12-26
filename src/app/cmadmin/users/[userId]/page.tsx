@@ -115,21 +115,37 @@ export default function UserDetailsPage() {
     
     startBalanceUpdate(async () => {
         const amount = parseFloat(balanceAmount);
+        const signedAmount = balanceAction === 'credit' ? amount : -amount;
         const currentBalance = user.balance_available || 0;
-        const newBalance = balanceAction === 'credit' ? currentBalance + amount : currentBalance - amount;
-
+        const newBalance = currentBalance + signedAmount;
+        
         try {
-            const { error } = await supabase
+            // Step 1: Insert into wallet_history
+            const historyDescription = `Manual ${balanceAction} by admin.`;
+            const { error: historyError } = await supabase
+                .from('wallet_history')
+                .insert({
+                    user_id: userId,
+                    amount: signedAmount,
+                    type: balanceAction === 'credit' ? 'manual_credit' : 'manual_debit',
+                    status: 'Completed',
+                    description: historyDescription
+                });
+
+            if (historyError) throw historyError;
+            
+            // Step 2: Update the user's available balance
+            const { error: userUpdateError } = await supabase
                 .from('users')
                 .update({ balance_available: newBalance })
                 .eq('id', userId);
 
-            if (error) throw error;
+            if (userUpdateError) throw userUpdateError;
 
-            toast({ title: 'Balance Updated', description: "The user's balance has been updated." });
+            toast({ title: 'Balance Updated', description: "The user's balance and history have been updated." });
             setIsBalanceDialogOpen(false);
             setBalanceAmount('');
-            await fetchAllData();
+            await fetchAllData(); // Refresh all data on the page
 
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Update Failed', description: error.message });
@@ -262,7 +278,7 @@ export default function UserDetailsPage() {
         <DialogContent>
             <DialogHeader>
                 <DialogTitle>Edit User Balance</DialogTitle>
-                <DialogDescription>Manually credit or debit the user's wallet. This will directly change the user's available balance.</DialogDescription>
+                <DialogDescription>Manually credit or debit the user's wallet. This will directly change the user's available balance and add a record to their wallet history.</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
                 <div className="space-y-2">

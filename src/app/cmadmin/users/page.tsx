@@ -126,12 +126,14 @@ export default function UsersPage() {
     user.mobile?.includes(filter)
   );
   
-  const sqlPolicyFix = `-- POLICY FIX SCRIPT V8
+  const sqlPolicyFix = `-- POLICY FIX SCRIPT V12
 -- This script will:
 -- 1. Ensure the primary super admin exists in the 'admins' table.
 -- 2. Drop all potentially conflicting policies on relevant tables.
 -- 3. Create correct RLS policies for admins and users.
--- 4. Give UPDATE permission to admins on the 'users' table.
+-- 4. Create/Replace helper functions for balance calculations.
+-- 5. Give UPDATE permissions on 'users' table to Admins.
+-- 6. Give INSERT permissions on 'wallet_history' table to Admins.
 
 BEGIN;
 
@@ -144,6 +146,7 @@ WHERE NOT EXISTS (
     SELECT 1 FROM auth.users WHERE id = '98cda2fc-f09d-4840-9f47-ec0c749a6bbd'
 );
 
+
 -- 2. Drop potentially conflicting policies on the 'users' table.
 DROP POLICY IF EXISTS "Enable admins to manage users" ON public.users;
 DROP POLICY IF EXISTS "Allow individual users to view their own data" ON public.users;
@@ -151,28 +154,64 @@ DROP POLICY IF EXISTS "Allow individual users to update their own data" ON publi
 DROP POLICY IF EXISTS "Allow admin to read specific user" ON public.users;
 DROP POLICY IF EXISTS "Allow admins to update users" ON public.users;
 
--- 3. Create a policy for admins to SELECT (read) all users.
+-- 3. Create policies for the 'users' table.
+-- Admins can SELECT (read) all users.
 CREATE POLICY "Enable admins to manage users"
 ON public.users FOR SELECT
 USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 
--- 4. Create a policy for users to SELECT (read) their own data.
+-- Users can SELECT (read) their own data.
 CREATE POLICY "Allow individual users to view their own data"
 ON public.users FOR SELECT
 USING (auth.uid() = id);
 
--- 5. Create a policy for users to UPDATE their own data.
+-- Users can UPDATE their own data.
 CREATE POLICY "Allow individual users to update their own data"
 ON public.users FOR UPDATE
 USING (auth.uid() = id)
 WITH CHECK (auth.uid() = id);
 
--- 6. *** NEW *** Create a policy for admins to UPDATE any user's data.
+-- Admins can UPDATE any user's data.
 CREATE POLICY "Allow admins to update users"
 ON public.users FOR UPDATE
-USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()))
+USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
+
+
+-- 4. Drop and Create policies for 'wallet_history'
+DROP POLICY IF EXISTS "Enable read access for own records" ON public.wallet_history;
+DROP POLICY IF EXISTS "Allow admins to read all history" ON public.wallet_history;
+DROP POLICY IF EXISTS "Allow admins to insert records" ON public.wallet_history;
+
+
+CREATE POLICY "Enable read access for own records"
+ON public.wallet_history FOR SELECT
+USING (auth.uid() = user_id);
+
+CREATE POLICY "Allow admins to read all history"
+ON public.wallet_history FOR SELECT
+USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
+
+CREATE POLICY "Allow admins to insert records"
+ON public.wallet_history FOR INSERT
 WITH CHECK (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 
+
+-- 5. Create or replace the RPC functions needed for dashboard stats.
+CREATE OR REPLACE FUNCTION get_total_users_count()
+RETURNS integer
+LANGUAGE sql
+SECURITY DEFINER
+AS $$
+    SELECT COUNT(*)::integer FROM auth.users;
+$$;
+
+CREATE OR REPLACE FUNCTION get_total_users_balance()
+RETURNS double precision
+LANGUAGE sql
+SECURITY DEFINER
+AS $$
+    SELECT COALESCE(SUM(balance_available), 0) FROM public.users;
+$$;
 
 COMMIT;
 `;
@@ -198,9 +237,9 @@ COMMIT;
         
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Can't see all users?</AlertTitle>
+          <AlertTitle>Can't see or edit users?</AlertTitle>
           <div className="space-y-2">
-            <p>If you are unable to view all users or edit their balances, you may need to update your database security rules. Please run the following SQL code in your Supabase SQL Editor.</p>
+            <p>If you are unable to view, edit, or manage users, you may need to update your database security rules. Please run the following SQL code in your Supabase SQL Editor.</p>
             <Textarea className="font-mono bg-destructive/10 text-destructive-foreground h-48" readOnly value={sqlPolicyFix} />
             <Button variant="secondary" size="sm" onClick={() => navigator.clipboard.writeText(sqlPolicyFix)}>Copy SQL</Button>
           </div>
