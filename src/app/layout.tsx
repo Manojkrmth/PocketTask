@@ -30,7 +30,8 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
             .single();
         
         if (!error && data) {
-            setIsUnderConstruction((data as any).isUnderConstruction || false);
+            // Check for a strict true value. If it's false, null, or undefined, construction mode is off.
+            setIsUnderConstruction((data as any).isUnderConstruction === true);
         }
         setLoading(false);
     };
