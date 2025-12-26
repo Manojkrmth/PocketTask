@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useState, useTransition, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -18,8 +18,14 @@ export default function SettingsPage() {
     const { toast } = useToast();
     const router = useRouter();
     const [settings, setSettings] = useState<any>(null);
+    const settingsRef = useRef(settings);
+
     const [loading, setLoading] = useState(true);
     const [isSaving, startSaving] = useTransition();
+    
+    useEffect(() => {
+        settingsRef.current = settings;
+    }, [settings]);
 
     useEffect(() => {
         const fetchAllSettings = async () => {
@@ -58,11 +64,12 @@ export default function SettingsPage() {
          setSettings((prev: any) => ({ ...prev, [key]: value }));
     };
 
-    const handleSaveChanges = () => {
+    const handleSaveChanges = useCallback(() => {
         startSaving(async () => {
+            const currentSettings = settingsRef.current;
             const { error } = await supabase
                 .from('settings')
-                .update({ settings_data: settings })
+                .update({ settings_data: currentSettings })
                 .eq('id', 1);
 
             if (error) {
@@ -71,7 +78,7 @@ export default function SettingsPage() {
                 toast({ title: 'Success', description: 'App settings have been updated.' });
             }
         });
-    };
+    }, [toast]);
 
     if (loading) {
         return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;
