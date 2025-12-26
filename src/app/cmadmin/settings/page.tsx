@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Save, Link as LinkIcon, Settings, Image as ImageIcon, Text, Info, ToggleLeft, IndianRupee, Megaphone, ListTodo, Wallet, Gift, AlertTriangle, Users } from 'lucide-react';
+import { Loader2, Save, Link as LinkIcon, Settings, Image as ImageIcon, Text, Info, ToggleLeft, IndianRupee, Megaphone, ListTodo, Wallet, Gift, AlertTriangle, Users, Wrench } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { InstagramIcon, TelegramIcon, WhatsAppIcon } from '@/components/icons';
 import { Switch } from '@/components/ui/switch';
@@ -26,6 +26,7 @@ export default function SettingsPage() {
     const [isNoticeSaving, startNoticeSaving] = useTransition();
     const [isSocialSaving, startSocialSaving] = useTransition();
     const [isPopupSaving, startPopupSaving] = useTransition();
+    const [isMaintenanceSaving, startMaintenanceSaving] = useTransition();
 
 
     useEffect(() => {
@@ -57,7 +58,8 @@ export default function SettingsPage() {
                         text: data.popup_notice_text,
                         imageUrl: data.popup_notice_image_url,
                         redirectLink: data.popup_notice_redirect_link
-                    }
+                    },
+                    isMaintenanceModeEnabled: data.is_maintenance_mode_enabled ?? false,
                 });
             }
 
@@ -111,6 +113,32 @@ export default function SettingsPage() {
                 <p className="text-muted-foreground">Manage global settings for your application.</p>
             </div>
             
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Wrench className="h-5 w-5 text-primary" /> Maintenance Mode</CardTitle>
+                    <CardDescription>When enabled, only admins can access the app. All other users will see a maintenance page.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                     <div className="flex items-center justify-between rounded-lg border p-4 shadow-sm">
+                        <Label htmlFor="maintenance-mode" className="font-semibold text-lg flex items-center gap-2">
+                           Enable Maintenance Mode
+                        </Label>
+                        <Switch
+                            id="maintenance-mode"
+                            checked={settings.isMaintenanceModeEnabled}
+                            onCheckedChange={(checked) => handleTopLevelChange('isMaintenanceModeEnabled', checked)}
+                            disabled={isMaintenanceSaving}
+                        />
+                    </div>
+                </CardContent>
+                 <CardFooter>
+                    <Button onClick={() => handleSaveSection(startMaintenanceSaving, { is_maintenance_mode_enabled: settings.isMaintenanceModeEnabled })} disabled={isMaintenanceSaving}>
+                        {isMaintenanceSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        Save Maintenance Setting
+                    </Button>
+                </CardFooter>
+            </Card>
+
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5 text-primary" /> Referral Settings</CardTitle>
