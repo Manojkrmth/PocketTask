@@ -49,12 +49,12 @@ export function AddReferralDialog({ onFinished }: { onFinished?: () => void }) {
             setError(null);
             setFoundUser(null);
             
-            const upperCaseCode = referralCode.trim().toUpperCase();
+            const codeToVerify = referralCode.trim();
 
             const { data, error: queryError } = await supabase
                 .from('users')
                 .select('id, email')
-                .eq('referral_code', upperCaseCode)
+                .eq('referral_code', codeToVerify)
                 .single();
             
             if (queryError || !data) {
@@ -78,7 +78,7 @@ export function AddReferralDialog({ onFinished }: { onFinished?: () => void }) {
         startConfirming(async () => {
              const { error } = await supabase
                 .from('users')
-                .update({ referred_by: referralCode.trim().toUpperCase() })
+                .update({ referred_by: referralCode.trim() })
                 .eq('id', currentUser.id);
 
             if(error) {
