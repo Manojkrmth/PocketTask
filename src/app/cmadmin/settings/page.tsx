@@ -21,6 +21,11 @@ export default function SettingsPage() {
     const [settings, setSettings] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [isSaving, startSaving] = useTransition();
+    
+    // Dedicated state for Construction Mode
+    const [isUnderConstruction, setIsUnderConstruction] = useState(false);
+    const [isSavingConstruction, startSavingConstruction] = useTransition();
+
 
     useEffect(() => {
         const fetchSettings = async () => {
@@ -36,11 +41,33 @@ export default function SettingsPage() {
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch app settings.' });
             } else {
                 setSettings(data.settings_data);
+                // Set the dedicated state for construction mode
+                setIsUnderConstruction(data.settings_data?.isUnderConstruction === true);
             }
             setLoading(false);
         };
         fetchSettings();
     }, [toast]);
+    
+    const handleSaveConstructionMode = () => {
+        startSavingConstruction(async () => {
+             const { error } = await supabase
+                .from('settings')
+                .update({ 
+                    settings_data: { 
+                        ...settings, // keep other settings
+                        isUnderConstruction: isUnderConstruction 
+                    } 
+                })
+                .eq('id', 1);
+
+            if (error) {
+                toast({ variant: 'destructive', title: 'Save Failed', description: error.message });
+            } else {
+                toast({ title: 'Success', description: 'Construction mode has been updated.' });
+            }
+        });
+    }
 
     const handleInputChange = (category: string, key: string, value: any) => {
         setSettings((prev: any) => ({
@@ -53,25 +80,8 @@ export default function SettingsPage() {
     };
     
     const handleTopLevelChange = (key: string, value: any) => {
-         setSettings((prev: any) => {
-            const newSettings = { ...prev };
-            newSettings[key] = value;
-            return newSettings;
-        });
+         setSettings((prev: any) => ({ ...prev, [key]: value }));
     };
-
-    const handlePopupStyleChange = (key: string, value: string) => {
-         setSettings((prev: any) => ({
-            ...prev,
-            popupNotice: {
-                ...prev.popupNotice,
-                styles: {
-                    ...prev.popupNotice.styles,
-                    [key]: value
-                }
-            }
-        }));
-    }
 
     const handleSaveChanges = () => {
         startSaving(async () => {
@@ -108,16 +118,20 @@ export default function SettingsPage() {
                     <CardTitle className="flex items-center gap-2"><HardHat className="h-5 w-5 text-primary" /> Construction Mode</CardTitle>
                     <CardDescription>If enabled, the entire app will show a "Under Construction" page to users.</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
                     <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                         <Label htmlFor="construction-mode" className="font-semibold">Enable Construction Mode</Label>
                         <Switch
                             id="construction-mode"
-                            checked={settings.isUnderConstruction || false}
-                            onCheckedChange={(checked) => handleTopLevelChange('isUnderConstruction', checked)}
-                            disabled={isSaving}
+                            checked={isUnderConstruction}
+                            onCheckedChange={setIsUnderConstruction}
+                            disabled={isSavingConstruction}
                         />
                     </div>
+                     <Button onClick={handleSaveConstructionMode} disabled={isSavingConstruction || loading}>
+                        {isSavingConstruction ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        Save Construction Status
+                    </Button>
                 </CardContent>
             </Card>
             
@@ -302,13 +316,9 @@ export default function SettingsPage() {
             <div className="flex justify-end gap-2">
                 <Button onClick={handleSaveChanges} disabled={isSaving || loading}>
                     {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                    Save All Settings
+                    Save All Other Settings
                 </Button>
             </div>
         </div>
     );
 }
-
-    
-
-    

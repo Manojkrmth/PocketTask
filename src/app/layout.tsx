@@ -25,26 +25,39 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
   
   useEffect(() => {
     const fetchSettings = async () => {
-        const { data, error } = await supabase
-            .from('settings')
-            .select('settings_data->isUnderConstruction')
-            .eq('id', 1)
-            .single();
-        
-        if (!error && data) {
-            // Check for a strict true value. If it's false, null, or undefined, construction mode is off.
-            setIsUnderConstruction((data as any).isUnderConstruction === true);
+        // Only run this check for user-facing pages
+        if (isAdminPage) {
+            setLoading(false);
+            return;
         }
-        setLoading(false);
+
+        try {
+            const { data, error } = await supabase
+                .from('settings')
+                .select('settings_data->isUnderConstruction')
+                .eq('id', 1)
+                .single();
+            
+            if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
+                throw error;
+            }
+            
+            // Explicitly check for true. If it's false, null, or undefined, mode is off.
+            if (data && (data as any).isUnderConstruction === true) {
+                setIsUnderConstruction(true);
+            } else {
+                setIsUnderConstruction(false);
+            }
+        } catch (e) {
+            console.error("Could not fetch maintenance status, defaulting to off.", e);
+            setIsUnderConstruction(false);
+        } finally {
+            setLoading(false);
+        }
     };
     
-    // Always fetch settings for non-admin users to check for maintenance mode.
-    if (!isAdminPage) {
-        fetchSettings();
-    } else {
-        setLoading(false); // Don't block admin pages
-    }
-  }, [isAdminPage]);
+    fetchSettings();
+  }, [isAdminPage, pathname]);
   
   if (loading && !isAdminPage) {
     return <LoadingScreen />;
@@ -52,9 +65,13 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
   
   if (isUnderConstruction && !isAdminPage) {
       return (
-        <main className="max-w-md mx-auto bg-background min-h-screen relative shadow-2xl">
-            <MaintenancePage />
-        </main>
+        <html lang="en">
+          <body>
+            <main className="max-w-md mx-auto bg-background min-h-screen relative shadow-2xl">
+                <MaintenancePage />
+            </main>
+          </body>
+        </html>
       );
   }
 
@@ -109,5 +126,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-    
