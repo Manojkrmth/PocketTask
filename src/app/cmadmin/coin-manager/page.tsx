@@ -77,6 +77,9 @@ export default function CoinManagerPage() {
   const [newStatus, setNewStatus] = useState<SubmissionStatus | null>(null);
   const [actionReason, setActionReason] = useState('');
   
+  const [editableCoinAmount, setEditableCoinAmount] = useState(0);
+  const [editableRewardInr, setEditableRewardInr] = useState(0);
+
   const { formatCurrency } = useCurrency();
   const { toast } = useToast();
 
@@ -134,7 +137,7 @@ export default function CoinManagerPage() {
   
   const updateSubmissionStatus = async (submission: CoinSubmission, status: SubmissionStatus, reason?: string) => {
     const existingMetadata = submission.metadata || {};
-    const updatePayload: { status: SubmissionStatus; metadata?: any } = { status };
+    const updatePayload: { status: SubmissionStatus; metadata?: any, coin_amount?: number, reward_inr?: number } = { status };
     
     let newMetadata = {...existingMetadata};
     if (status === 'Rejected' && reason) {
@@ -142,6 +145,11 @@ export default function CoinManagerPage() {
     }
     if (status === 'Approved' && reason) {
         newMetadata.approval_note = reason;
+    }
+    
+    if (status === 'Approved') {
+        updatePayload.coin_amount = editableCoinAmount;
+        updatePayload.reward_inr = editableRewardInr;
     }
 
     updatePayload.metadata = newMetadata;
@@ -154,15 +162,15 @@ export default function CoinManagerPage() {
 
     if (updateError) throw updateError;
     
-    if (status === 'Approved' && submission.reward_inr > 0) {
+    if (status === 'Approved' && editableRewardInr > 0) {
         const { error: walletError } = await supabase
             .from('wallet_history')
             .insert({
                 user_id: submission.user_id,
-                amount: submission.reward_inr,
+                amount: editableRewardInr,
                 type: 'coin_credit',
                 status: 'Completed',
-                description: `Reward for ${submission.coin_amount} ${submission.coin_type.replace('-', ' ')} coins`
+                description: `Reward for ${editableCoinAmount} ${submission.coin_type.replace('-', ' ')} coins`
             });
         
         if (walletError) throw walletError;
@@ -193,6 +201,8 @@ export default function CoinManagerPage() {
   const openConfirmationDialog = (submission: CoinSubmission, status: SubmissionStatus) => {
     setSelectedSubmission(submission);
     setNewStatus(status);
+    setEditableCoinAmount(submission.coin_amount);
+    setEditableRewardInr(submission.reward_inr);
     setDialogOpen(true);
     setActionReason(''); // Reset reason
   };
@@ -209,6 +219,8 @@ export default function CoinManagerPage() {
     setSelectedSubmission(null);
     setNewStatus(null);
     setActionReason('');
+    setEditableCoinAmount(0);
+    setEditableRewardInr(0);
   };
 
   const filteredSubmissions = useMemo(() => {
@@ -368,24 +380,55 @@ export default function CoinManagerPage() {
               You are about to <span className={cn("font-bold", newStatus === 'Approved' ? "text-green-600" : "text-red-600")}>{newStatus?.toLowerCase()}</span> this submission. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
-            {(newStatus === 'Rejected' || newStatus === 'Approved') && (
+            {newStatus === 'Rejected' && (
                 <div className="space-y-2 pt-2">
                     <Label htmlFor="action-reason" className="font-semibold">
-                        {newStatus === 'Rejected' ? 'Reason for Rejection' : 'Reason/Note for Approval (Optional)'}
+                        Reason for Rejection
                     </Label>
                     <Textarea 
                         id="action-reason"
-                        placeholder={newStatus === 'Rejected' ? 'Provide a clear reason for rejecting...' : 'Optional approval note...'}
+                        placeholder={'Provide a clear reason for rejecting...'}
                         value={actionReason}
                         onChange={(e) => setActionReason(e.target.value)}
                     />
+                </div>
+            )}
+            {newStatus === 'Approved' && (
+                <div className="space-y-4 pt-2">
+                     <div className="space-y-2">
+                        <Label htmlFor="coin-amount" className="font-semibold">Coin Amount</Label>
+                        <Input
+                            id="coin-amount"
+                            type="number"
+                            value={editableCoinAmount}
+                            onChange={(e) => setEditableCoinAmount(parseInt(e.target.value) || 0)}
+                        />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="reward-inr" className="font-semibold">Reward (INR)</Label>
+                        <Input
+                            id="reward-inr"
+                            type="number"
+                            value={editableRewardInr}
+                            onChange={(e) => setEditableRewardInr(parseFloat(e.target.value) || 0)}
+                        />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="approval-note" className="font-semibold">Approval Note (Optional)</Label>
+                         <Textarea 
+                            id="approval-note"
+                            placeholder='Optional approval note...'
+                            value={actionReason}
+                            onChange={(e) => setActionReason(e.target.value)}
+                        />
+                    </div>
                 </div>
             )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction 
                 onClick={confirmAction}
-                disabled={newStatus === 'Rejected' && !actionReason.trim()}
+                disabled={(newStatus === 'Rejected' && !actionReason.trim()) || (newStatus === 'Approved' && (editableCoinAmount <= 0 || editableRewardInr < 0))}
             >
               Confirm
             </AlertDialogAction>
