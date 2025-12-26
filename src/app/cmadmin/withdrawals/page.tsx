@@ -76,18 +76,34 @@ export default function WithdrawalsPage() {
   const { toast } = useToast();
 
   const fetchRequests = async () => {
-      setLoading(true);
-      const { data, error } = await supabase.rpc('get_all_payment_requests');
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('payments')
+      .select(`
+        id,
+        created_at,
+        amount,
+        payment_method,
+        payment_details,
+        status,
+        user_id,
+        metadata,
+        users (
+          full_name,
+          email
+        )
+      `)
+      .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error("Error fetching payment requests:", error);
-        const description = 'Could not fetch requests. Please go to the SQL Editor page and run the "Master RLS & Functions Script" to fix all data access issues.';
-        toast({ variant: 'destructive', title: 'Error Fetching Data', description: description, duration: 10000 });
-      } else {
-        setRequests(data as PaymentRequest[]);
-      }
-      setLoading(false);
-    };
+    if (error) {
+      console.error("Error fetching payment requests:", error);
+      const description = 'Could not fetch requests. Please ensure you have admin privileges and have run the "Master RLS & Functions Script" from the SQL Editor page.';
+      toast({ variant: 'destructive', title: 'Error Fetching Data', description: description, duration: 10000 });
+    } else {
+      setRequests(data as any[] as PaymentRequest[]);
+    }
+    setLoading(false);
+  };
 
   useEffect(() => {
     fetchRequests();
