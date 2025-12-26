@@ -26,39 +26,38 @@ interface TaskSetting {
     submitCooldownSeconds?: number;
 }
 
+const DEFAULT_TASKS: TaskSetting[] = [
+    { id: 'gmail', name: 'Gmail Task', description: 'Create a Gmail account following the rules.', badge: 'POPULAR', enabled: true, reward: 5, rules: 'Use provided name; Do not use VPN; Submit recovery mail', taskDurationSeconds: 600, submitCooldownSeconds: 60 },
+    { id: 'used-mails', name: 'Used Mails Task', description: 'Submit old, unused email accounts.', badge: 'EASY', enabled: true, reward: 2, rules: 'Must be at least 1 year old; Must not be in use' },
+    { id: 'hot-mail', name: 'Hot Mail Task', description: 'Create a Hotmail/Outlook account.', badge: '', enabled: true, reward: 4, rules: '' },
+    { id: 'outlook-mail', name: 'Outlook Mail Task', description: 'Create a new Outlook account.', badge: '', enabled: true, reward: 4, rules: '' },
+    { id: 'instagram', name: 'Instagram Task', description: 'Create a new Instagram account.', badge: 'NEW', enabled: true, reward: 3, rules: 'Add a profile picture' },
+    { id: 'facebook', name: 'Facebook Task', description: 'Create a new Facebook account.', badge: '', enabled: true, reward: 3, rules: 'Complete your profile' },
+    { id: 'visit-earn', name: 'Visit & Earn Task', description: 'Visit a website and earn.', badge: '', enabled: true, reward: 0.5, rules: 'Stay on the page for 60 seconds' },
+    { id: 'watch-earn', name: 'Watch & Earn Task', description: 'Watch a video to earn rewards.', badge: '', enabled: true, reward: 1, rules: 'Watch the full video' },
+    { id: 'niva-coin', name: 'Niva Coin Task', description: 'Complete tasks to earn Niva Coins.', badge: 'HIGH PAY', enabled: true, reward: 10, rules: 'Follow all instructions carefully', receiverId: '' },
+    { id: 'top-coin', name: 'Top Coin Task', description: 'Earn Top Coins by completing offers.', badge: 'HIGH PAY', enabled: true, reward: 10, rules: 'Follow all instructions carefully', receiverId: '' },
+];
+
+
 export default function TaskSettingsPage() {
     const { toast } = useToast();
     const router = useRouter();
-    const [taskSettings, setTaskSettings] = useState<TaskSetting[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [taskSettings, setTaskSettings] = useState<TaskSetting[]>(DEFAULT_TASKS);
+    const [loading, setLoading] = useState(false); // No DB fetching yet, so start with false
     const [isSaving, startSaving] = useTransition();
 
-    useEffect(() => {
-        const fetchSettings = async () => {
-            setLoading(true);
-            const { data, error } = await supabase
-                .from('settings')
-                .select('task_settings')
-                .eq('id', 1)
-                .single();
-
-            if (error) {
-                console.error('Error fetching settings:', error);
-                toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch app settings.' });
-            } else if (data && data.task_settings) {
-                // Ensure default values if fields are missing
-                const initializedSettings = (data.task_settings as any[]).map((task: any) => ({
-                    reward: 0,
-                    rules: '',
-                    enabled: task.enabled ?? true, // Default to true if missing
-                    ...task
-                }));
-                setTaskSettings(initializedSettings);
-            }
-            setLoading(false);
-        };
-        fetchSettings();
-    }, [toast]);
+    // In a real scenario, you'd fetch this from the DB.
+    // For now, we just use the default state.
+    
+    // useEffect(() => {
+    //     const fetchSettings = async () => {
+    //         setLoading(true);
+    //         // Supabase fetch logic will go here
+    //         setLoading(false);
+    //     };
+    //     fetchSettings();
+    // }, []);
 
     const handleFieldChange = (taskId: string, field: keyof TaskSetting, value: any) => {
         setTaskSettings(prev => 
@@ -70,16 +69,19 @@ export default function TaskSettingsPage() {
 
     const handleSaveChanges = () => {
         startSaving(async () => {
-            const { error } = await supabase
-                .from('settings')
-                .update({ task_settings: taskSettings })
-                .eq('id', 1);
+            // This is where you would save to Supabase
+            console.log("Saving task settings:", taskSettings);
+            toast({ title: 'UI Only', description: 'This is a UI demonstration. No data was saved.' });
+            // const { error } = await supabase
+            //     .from('settings')
+            //     .update({ task_settings: taskSettings })
+            //     .eq('id', 1);
 
-            if (error) {
-                toast({ variant: 'destructive', title: 'Save Failed', description: error.message });
-            } else {
-                toast({ title: 'Success', description: 'Task settings have been updated.' });
-            }
+            // if (error) {
+            //     toast({ variant: 'destructive', title: 'Save Failed', description: error.message });
+            // } else {
+            //     toast({ title: 'Success', description: 'Task settings have been updated.' });
+            // }
         });
     };
 
