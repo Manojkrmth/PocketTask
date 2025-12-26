@@ -126,13 +126,13 @@ export default function UsersPage() {
     user.mobile?.includes(filter)
   );
   
-  const sqlPolicyFix = `-- POLICY FIX SCRIPT V25
+  const sqlPolicyFix = `-- POLICY FIX SCRIPT V27
 -- This script will:
 -- 1. Ensure the primary super admin exists in the 'admins' table.
 -- 2. Drop all potentially conflicting policies on relevant tables.
 -- 3. Create correct RLS policies for admins and users.
--- 4. Create/Replace helper functions for balance calculations.
--- 5. Grant necessary permissions to the 'authenticated' role.
+-- 4. Create/Replace helper functions.
+-- 5. Grant necessary permissions.
 
 BEGIN;
 
@@ -192,8 +192,10 @@ CREATE POLICY "Allow admins to update payments" ON public.payments FOR UPDATE
 USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 
 
--- 5. Create or replace the RPC functions needed for dashboard stats.
+-- 5. Create or replace the RPC functions needed.
 DROP FUNCTION IF EXISTS get_top_referral_users(integer);
+DROP FUNCTION IF EXISTS get_all_payment_requests();
+
 CREATE OR REPLACE FUNCTION get_total_users_count()
 RETURNS integer LANGUAGE sql SECURITY DEFINER AS $$
     SELECT COUNT(*)::integer FROM public.users;
@@ -206,7 +208,7 @@ $$;
 
 CREATE OR REPLACE FUNCTION get_top_referral_users(limit_count integer)
 RETURNS TABLE(id uuid, full_name text, email text, referral_count bigint)
-LANGUAGE plpgsql AS $$
+LANGUAGE plpgsql SECURITY DEFINER AS $$
 BEGIN
     RETURN QUERY
     SELECT
@@ -227,10 +229,43 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION get_all_payment_requests()
+RETURNS TABLE (
+    id int,
+    created_at timestamptz,
+    amount float8,
+    payment_method text,
+    payment_details text,
+    status text,
+    user_id uuid,
+    metadata jsonb,
+    users json
+)
+LANGUAGE sql SECURITY DEFINER AS $$
+  SELECT
+    p.id,
+    p.created_at,
+    p.amount,
+    p.payment_method,
+    p.payment_details,
+    p.status,
+    p.user_id,
+    p.metadata,
+    json_build_object('full_name', u.full_name, 'email', u.email) as users
+  FROM
+    public.payments p
+  LEFT JOIN
+    public.users u ON p.user_id = u.id
+  ORDER BY
+    p.created_at DESC;
+$$;
+
+
 -- 6. Grant execute permissions to the authenticated role for the RPCs
 GRANT EXECUTE ON FUNCTION public.get_total_users_count() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_total_users_balance() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_top_referral_users(integer) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_all_payment_requests() TO authenticated;
 
 COMMIT;
 `;
@@ -379,9 +414,3 @@ COMMIT;
     </>
   );
 }
-
-    
-    
-    
-
-    
