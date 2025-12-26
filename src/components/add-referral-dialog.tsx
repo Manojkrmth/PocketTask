@@ -76,15 +76,15 @@ export function AddReferralDialog({ onFinished }: { onFinished?: () => void }) {
         }
         
         startConfirming(async () => {
-             const { data, error } = await supabase.rpc('update_referral_and_add_bonus', {
-                referee_id: currentUser.id,
-                referrer_code: referralCode.trim().toUpperCase()
-            });
+             const { error } = await supabase
+                .from('users')
+                .update({ referred_by: referralCode.trim().toUpperCase() })
+                .eq('id', currentUser.id);
 
-            if(error || (data && data.status === 'error')) {
-                 toast({ variant: 'destructive', title: 'Error', description: error?.message || (data && data.message) });
+            if(error) {
+                 toast({ variant: 'destructive', title: 'Error', description: error.message });
             } else {
-                 toast({ title: 'Success!', description: `Referral applied! You and your friend have received a bonus.` });
+                 toast({ title: 'Success!', description: `Referral applied!` });
                  setIsOpen(false);
                  if (onFinished) {
                     onFinished();
