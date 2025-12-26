@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -367,10 +368,10 @@ $$;
 
 const withdrawalRequestsSql = `
 -- =================================================================
--- FIX: Withdrawal Requests
+-- FIX: Withdrawal Requests Page
 -- =================================================================
 -- Creates the function to securely fetch all withdrawal requests
--- for the admin panel. Run this if the Withdrawals page shows an error.
+-- for the admin panel. Run this if the Withdrawals page shows an error or is empty.
 -- =================================================================
 CREATE OR REPLACE FUNCTION is_admin(user_id uuid)
 RETURNS boolean
@@ -431,7 +432,7 @@ export default function SqlEditorPage() {
 
       <Card className="border-green-500">
         <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Wallet className="text-green-500"/> Fix: Withdrawal Requests</CardTitle>
+            <CardTitle className="flex items-center gap-2"><Wallet className="text-green-500"/> Fix: Withdrawal Requests Page</CardTitle>
             <CardDescription>
                 This command creates the necessary database functions to securely fetch all withdrawal requests for the admin panel. Run this if the Withdrawals page shows an error or is empty.
             </CardDescription>
@@ -624,3 +625,4 @@ export default function SqlEditorPage() {
     </div>
   );
 }
+

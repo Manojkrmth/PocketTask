@@ -90,7 +90,7 @@ export default function WithdrawalsPage() {
 
   useEffect(() => {
     fetchRequests();
-  }, [toast]);
+  }, []);
   
   const handleUpdateRequest = async () => {
     if (!selectedRequest || !newStatus) return;
@@ -334,5 +334,4 @@ export default function WithdrawalsPage() {
     </>
   );
 }
-
     
