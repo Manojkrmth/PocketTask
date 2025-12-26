@@ -132,32 +132,33 @@ body {
     animation: pulse-background-fast 5s ease-in-out infinite;
   }
   
-  @keyframes spin-gear {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  .animate-spin-gear {
-    animation: spin-gear 10s linear infinite;
-  }
-
-  @keyframes swing-wrench {
+  @keyframes screen-glow {
     0%, 100% {
-      transform: rotate(-15deg);
+      opacity: 0.7;
     }
     50% {
-      transform: rotate(10deg);
+      opacity: 1;
     }
   }
 
-  .animate-swing-wrench {
-    animation: swing-wrench 4s ease-in-out infinite;
-    transform-origin: 20% 80%;
+  .animate-screen-glow {
+    animation: screen-glow 2s ease-in-out infinite;
   }
+
+  @keyframes head-bob {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(1px);
+    }
+  }
+
+  .animate-head-bob {
+    animation: head-bob 3s ease-in-out infinite;
+    transform-origin: center;
+  }
+
 
   @keyframes slide-in-out {
     0%, 100% {
