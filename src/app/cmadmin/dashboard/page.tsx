@@ -136,8 +136,8 @@ export default function AdminDashboardPage() {
       </div>
        
        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Link href="/cmadmin/users">
-            <Card className="bg-blue-50 border-blue-200 transition-all hover:shadow-md hover:border-blue-300 group">
+        <Link href="/cmadmin/users" className="block h-full">
+            <Card className="h-full bg-blue-50 border-blue-200 transition-all hover:shadow-md hover:border-blue-300 group">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium text-blue-800">Total Users</CardTitle>
                     <Users className="h-4 w-4 text-blue-600" />
@@ -149,7 +149,7 @@ export default function AdminDashboardPage() {
             </Card>
         </Link>
 
-        <Card className="bg-cyan-50 border-cyan-200">
+        <Card className="h-full bg-cyan-50 border-cyan-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-cyan-800">Total Users Available Balance</CardTitle>
                 <Banknote className="h-4 w-4 text-cyan-600" />
@@ -159,7 +159,7 @@ export default function AdminDashboardPage() {
             </CardContent>
         </Card>
         
-        <Card className="bg-emerald-50 border-emerald-200">
+        <Card className="h-full bg-emerald-50 border-emerald-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-emerald-800">Total Revenue Generated</CardTitle>
                 <DollarSign className="h-4 w-4 text-emerald-600" />
@@ -169,7 +169,7 @@ export default function AdminDashboardPage() {
             </CardContent>
         </Card>
 
-        <Card className="bg-green-50 border-green-200">
+        <Card className="h-full bg-green-50 border-green-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-green-800">Total Withdrawn</CardTitle>
                 <TrendingUp className="h-4 w-4 text-green-600" />
@@ -179,8 +179,8 @@ export default function AdminDashboardPage() {
             </CardContent>
         </Card>
 
-        <Link href="/cmadmin/tickets">
-            <Card className="bg-purple-50 border-purple-200 transition-all hover:shadow-md hover:border-purple-300 group">
+        <Link href="/cmadmin/tickets" className="block h-full">
+            <Card className="h-full bg-purple-50 border-purple-200 transition-all hover:shadow-md hover:border-purple-300 group">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium text-purple-800">Pending Tickets</CardTitle>
                     <MessageSquare className="h-4 w-4 text-purple-600" />
@@ -192,8 +192,8 @@ export default function AdminDashboardPage() {
             </Card>
         </Link>
         
-        <Link href="/cmadmin/tasks">
-            <Card className="bg-yellow-50 border-yellow-200 transition-all hover:shadow-md hover:border-yellow-300 group">
+        <Link href="/cmadmin/tasks" className="block h-full">
+            <Card className="h-full bg-yellow-50 border-yellow-200 transition-all hover:shadow-md hover:border-yellow-300 group">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium text-yellow-800">Pending Tasks</CardTitle>
                     <Hourglass className="h-4 w-4 text-yellow-600" />
@@ -205,8 +205,8 @@ export default function AdminDashboardPage() {
             </Card>
         </Link>
 
-         <Link href="/cmadmin/withdrawals">
-            <Card className="bg-red-50 border-red-200 transition-all hover:shadow-md hover:border-red-300 group">
+         <Link href="/cmadmin/withdrawals" className="block h-full">
+            <Card className="h-full bg-red-50 border-red-200 transition-all hover:shadow-md hover:border-red-300 group">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium text-red-800">Pending Withdrawals</CardTitle>
                     <Wallet className="h-4 w-4 text-red-600" />
@@ -223,8 +223,8 @@ export default function AdminDashboardPage() {
             </Card>
         </Link>
 
-        <Link href="/cmadmin/coin-manager">
-            <Card className="bg-orange-50 border-orange-200 transition-all hover:shadow-md hover:border-orange-300 group">
+        <Link href="/cmadmin/coin-manager" className="block h-full">
+            <Card className="h-full bg-orange-50 border-orange-200 transition-all hover:shadow-md hover:border-orange-300 group">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium text-orange-800">Pending Coin Submissions</CardTitle>
                     <Coins className="h-4 w-4 text-orange-600" />
@@ -239,7 +239,7 @@ export default function AdminDashboardPage() {
        </div>
 
        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
+            <Card className="h-full">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><Crown className="text-yellow-500" /> Top Users by Balance</CardTitle>
                     <CardDescription>Users with the highest available balance.</CardDescription>
@@ -273,7 +273,7 @@ export default function AdminDashboardPage() {
                 </CardContent>
             </Card>
 
-            <Card>
+            <Card className="h-full">
                  <CardHeader>
                     <CardTitle className="flex items-center gap-2"><UserPlus className="text-purple-500" /> Top Referral Users</CardTitle>
                     <CardDescription>Users with the most successful referrals.</CardDescription>
