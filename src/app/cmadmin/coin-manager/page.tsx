@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, Loader2, ListFilter, CheckCircle, XCircle, Coins } from 'lucide-react';
+import { MoreHorizontal, Loader2, ListFilter, CheckCircle, XCircle, Coins, IndianRupee } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { useCurrency } from '@/context/currency-context';
@@ -41,6 +41,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 
 type SubmissionStatus = 'Pending' | 'Approved' | 'Rejected';
@@ -78,7 +79,7 @@ export default function CoinManagerPage() {
   const [actionReason, setActionReason] = useState('');
   
   const [editableCoinAmount, setEditableCoinAmount] = useState(0);
-  const [editableRewardInr, setEditableRewardInr] = useState(0);
+  const [editableRate, setEditableRate] = useState(0);
 
   const { formatCurrency } = useCurrency();
   const { toast } = useToast();
@@ -135,8 +136,15 @@ export default function CoinManagerPage() {
     fetchSubmissions();
   }, []);
   
+  const calculatedReward = useMemo(() => {
+    if (editableCoinAmount <= 0 || editableRate <= 0) return 0;
+    return (editableCoinAmount / 1000) * editableRate;
+  }, [editableCoinAmount, editableRate]);
+  
   const updateSubmissionStatus = async (submission: CoinSubmission, status: SubmissionStatus, reason?: string) => {
     const existingMetadata = submission.metadata || {};
+    const finalReward = calculatedReward;
+    
     const updatePayload: { status: SubmissionStatus; metadata?: any, coin_amount?: number, reward_inr?: number } = { status };
     
     let newMetadata = {...existingMetadata};
@@ -149,7 +157,7 @@ export default function CoinManagerPage() {
     
     if (status === 'Approved') {
         updatePayload.coin_amount = editableCoinAmount;
-        updatePayload.reward_inr = editableRewardInr;
+        updatePayload.reward_inr = finalReward;
     }
 
     updatePayload.metadata = newMetadata;
@@ -162,12 +170,12 @@ export default function CoinManagerPage() {
 
     if (updateError) throw updateError;
     
-    if (status === 'Approved' && editableRewardInr > 0) {
+    if (status === 'Approved' && finalReward > 0) {
         const { error: walletError } = await supabase
             .from('wallet_history')
             .insert({
                 user_id: submission.user_id,
-                amount: editableRewardInr,
+                amount: finalReward,
                 type: 'coin_credit',
                 status: 'Completed',
                 description: `Reward for ${editableCoinAmount} ${submission.coin_type.replace('-', ' ')} coins`
@@ -202,7 +210,11 @@ export default function CoinManagerPage() {
     setSelectedSubmission(submission);
     setNewStatus(status);
     setEditableCoinAmount(submission.coin_amount);
-    setEditableRewardInr(submission.reward_inr);
+    
+    // Calculate rate from original submission
+    const rate = submission.coin_amount > 0 ? (submission.reward_inr / submission.coin_amount) * 1000 : 0;
+    setEditableRate(rate);
+
     setDialogOpen(true);
     setActionReason(''); // Reset reason
   };
@@ -220,7 +232,7 @@ export default function CoinManagerPage() {
     setNewStatus(null);
     setActionReason('');
     setEditableCoinAmount(0);
-    setEditableRewardInr(0);
+    setEditableRate(0);
   };
 
   const filteredSubmissions = useMemo(() => {
@@ -405,14 +417,23 @@ export default function CoinManagerPage() {
                         />
                     </div>
                      <div className="space-y-2">
-                        <Label htmlFor="reward-inr" className="font-semibold">Reward (INR)</Label>
+                        <Label htmlFor="reward-rate" className="font-semibold">Rate per 1000 Coins (INR)</Label>
                         <Input
-                            id="reward-inr"
+                            id="reward-rate"
                             type="number"
-                            value={editableRewardInr}
-                            onChange={(e) => setEditableRewardInr(parseFloat(e.target.value) || 0)}
+                            value={editableRate}
+                            onChange={(e) => setEditableRate(parseFloat(e.target.value) || 0)}
                         />
                     </div>
+                    {calculatedReward > 0 && (
+                        <Alert variant="default" className="bg-green-50 border-green-200">
+                            <IndianRupee className="h-4 w-4 text-green-700" />
+                            <AlertTitle className="text-green-800">Estimated Earning</AlertTitle>
+                            <AlertDescription className="font-bold text-green-700">
+                                {formatCurrency(calculatedReward)}
+                            </AlertDescription>
+                        </Alert>
+                    )}
                      <div className="space-y-2">
                         <Label htmlFor="approval-note" className="font-semibold">Approval Note (Optional)</Label>
                          <Textarea 
@@ -428,7 +449,7 @@ export default function CoinManagerPage() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction 
                 onClick={confirmAction}
-                disabled={(newStatus === 'Rejected' && !actionReason.trim()) || (newStatus === 'Approved' && (editableCoinAmount <= 0 || editableRewardInr < 0))}
+                disabled={(newStatus === 'Rejected' && !actionReason.trim()) || (newStatus === 'Approved' && (editableCoinAmount <= 0 || editableRate < 0))}
             >
               Confirm
             </AlertDialogAction>
