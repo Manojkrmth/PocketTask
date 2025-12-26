@@ -340,8 +340,10 @@ export default function HomePage() {
                       <Users className="h-6 w-6 text-blue-600" />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-md text-gray-900">Invite Friends</h4>
-                      <p className="text-xs text-gray-600">Earn bonuses</p>                    
+                      <h4 className="font-semibold text-md text-gray-900">Invite & Earn</h4>
+                      <p className="text-xs text-gray-600">
+                        <Badge className="bg-red-500 text-white px-1.5 py-0">Lifetime</Badge> bonus
+                      </p>
                     </div>
                   </Card>
                 </div>
