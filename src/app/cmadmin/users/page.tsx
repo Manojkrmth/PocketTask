@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, Loader2, Mail, Phone, UserX, UserCheck, Eye, Edit } from 'lucide-react';
+import { MoreHorizontal, Loader2, Mail, Phone, UserX, UserCheck, Eye } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { useCurrency } from '@/context/currency-context';
