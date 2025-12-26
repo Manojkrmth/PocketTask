@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, ClipboardList, Wallet, Users, UserCircle } from "lucide-react";
+import { Home, ClipboardList, Wallet, Network, UserCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/", label: "Home", icon: Home },
-  { href: "/team", label: "Team", icon: Users },
+  { href: "/team", label: "Team", icon: Network },
   { href: "/tasks", label: "Tasks", icon: ClipboardList },
   { href: "/withdraw", label: "Withdraw", icon: Wallet },
   { href: "/profile", label: "Profile", icon: UserCircle },
@@ -63,5 +63,3 @@ export function BottomNav() {
     </div>
   );
 }
-
-    
