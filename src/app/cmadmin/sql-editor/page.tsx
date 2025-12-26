@@ -370,9 +370,12 @@ const withdrawalRequestsSql = `
 -- =================================================================
 -- FIX: Withdrawal Requests Page
 -- =================================================================
--- Creates the function to securely fetch all withdrawal requests
+-- Creates/Updates the function to securely fetch all withdrawal requests
 -- for the admin panel. Run this if the Withdrawals page shows an error or is empty.
 -- =================================================================
+DROP FUNCTION IF EXISTS public.get_all_payment_requests();
+DROP FUNCTION IF EXISTS public.is_admin(uuid);
+
 CREATE OR REPLACE FUNCTION is_admin(user_id uuid)
 RETURNS boolean
 LANGUAGE plpgsql
@@ -434,7 +437,7 @@ export default function SqlEditorPage() {
         <CardHeader>
             <CardTitle className="flex items-center gap-2"><Wallet className="text-green-500"/> Fix: Withdrawal Requests Page</CardTitle>
             <CardDescription>
-                This command creates the necessary database functions to securely fetch all withdrawal requests for the admin panel. Run this if the Withdrawals page shows an error or is empty.
+                This command creates/updates the necessary database functions to securely fetch all withdrawal requests for the admin panel. Run this if the Withdrawals page shows an error or is empty.
             </CardDescription>
         </CardHeader>
         <CardContent>
