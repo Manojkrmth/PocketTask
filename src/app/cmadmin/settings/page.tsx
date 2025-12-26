@@ -20,7 +20,6 @@ export default function SettingsPage() {
     const [settings, setSettings] = useState<any>(null);
 
     const [loading, setLoading] = useState(true);
-    const [isSaving, startSaving] = useTransition();
     
     // Individual saving states for each card
     const [isFinancialSaving, startFinancialSaving] = useTransition();
@@ -66,7 +65,7 @@ export default function SettingsPage() {
          setSettings((prev: any) => ({ ...prev, [key]: value }));
     };
 
-    const handleSaveSection = async (sectionKey: string | string[], startTransition: React.TransitionStartFunction) => {
+    const handleSaveSection = useCallback(async (sectionKeys: string[], startTransition: React.TransitionStartFunction, changedData: any) => {
         startTransition(async () => {
              const { data: currentSettingsData, error: fetchError } = await supabase
                 .from('settings')
@@ -79,15 +78,11 @@ export default function SettingsPage() {
                 return;
             }
 
-            let updatedSettingsData = { ...currentSettingsData.settings_data };
+            let updatedSettingsData = { ...(currentSettingsData.settings_data || {}) };
             
-            if(Array.isArray(sectionKey)) {
-                sectionKey.forEach(key => {
-                    updatedSettingsData[key] = settings[key];
-                });
-            } else {
-                 updatedSettingsData[sectionKey] = settings[sectionKey];
-            }
+            sectionKeys.forEach(key => {
+                updatedSettingsData[key] = changedData[key];
+            });
 
             const { error } = await supabase
                 .from('settings')
@@ -100,7 +95,7 @@ export default function SettingsPage() {
                 toast({ title: 'Success', description: 'Settings have been updated.' });
             }
         });
-    };
+    }, [toast]);
 
     if (loading) {
         return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;
@@ -184,7 +179,7 @@ export default function SettingsPage() {
                     </div>
                 </CardContent>
                 <CardFooter>
-                    <Button onClick={() => handleSaveSection('usdToInrRate', startFinancialSaving)} disabled={isFinancialSaving}>
+                    <Button onClick={() => handleSaveSection(['usdToInrRate'], startFinancialSaving, { usdToInrRate: settings.usdToInrRate })} disabled={isFinancialSaving}>
                         {isFinancialSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                         Save Financial Settings
                     </Button>
@@ -210,7 +205,7 @@ export default function SettingsPage() {
                     </div>
                 </CardContent>
                  <CardFooter>
-                    <Button onClick={() => handleSaveSection('noticeBoardText', startNoticeSaving)} disabled={isNoticeSaving}>
+                    <Button onClick={() => handleSaveSection(['noticeBoardText'], startNoticeSaving, { noticeBoardText: settings.noticeBoardText })} disabled={isNoticeSaving}>
                         {isNoticeSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                         Save Notice Board
                     </Button>
@@ -237,7 +232,7 @@ export default function SettingsPage() {
                     </div>
                 </CardContent>
                  <CardFooter>
-                    <Button onClick={() => handleSaveSection('socialLinks', startSocialSaving)} disabled={isSocialSaving}>
+                    <Button onClick={() => handleSaveSection(['socialLinks'], startSocialSaving, { socialLinks: settings.socialLinks })} disabled={isSocialSaving}>
                         {isSocialSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                         Save Social Links
                     </Button>
@@ -300,7 +295,7 @@ export default function SettingsPage() {
                     )}
                 </CardContent>
                  <CardFooter>
-                    <Button onClick={() => handleSaveSection('popupNotice', startPopupSaving)} disabled={isPopupSaving}>
+                    <Button onClick={() => handleSaveSection(['popupNotice'], startPopupSaving, { popupNotice: settings.popupNotice })} disabled={isPopupSaving}>
                         {isPopupSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                         Save Pop-up Notice
                     </Button>
