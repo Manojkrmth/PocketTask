@@ -54,15 +54,15 @@ export default function TeamPage() {
 
     const { data: settingsData, error: settingsError } = await supabase
       .from('settings')
-      .select('settings_data->referralCommissions')
+      .select('referral_commissions')
       .eq('id', 1)
       .single();
 
-    if (settingsError || !settingsData?.referralCommissions) {
+    if (settingsError || !settingsData?.referral_commissions) {
       console.error("Could not fetch referral commission settings:", settingsError);
       setCommissionSettings([10, 5, 3, 2, 1]); // Fallback commissions
     } else {
-      setCommissionSettings(settingsData.referralCommissions as number[]);
+      setCommissionSettings(settingsData.referral_commissions as number[]);
     }
     
     // Get user's referral code
@@ -92,7 +92,7 @@ export default function TeamPage() {
 
     const level1MemberCount = level1Referrals?.length || 0;
     
-    const commissions = settingsData?.referralCommissions as number[] || [10, 5, 3, 2, 1];
+    const commissions = settingsData?.referral_commissions as number[] || [10, 5, 3, 2, 1];
 
     const level1Data = {
         level: 1,
