@@ -84,9 +84,14 @@ function ReferrerInfoCard({ referralCode }: { referralCode: string }) {
             </CardHeader>
             <CardContent>
                 {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : referrer ? (
-                    <div className="flex items-center gap-2">
-                       <Mail className="h-5 w-5 text-muted-foreground"/>
-                       <p className="font-bold text-md">{referrer.full_name} ({referrer.email})</p>
+                    <div className="flex items-center gap-3">
+                       <div className="flex-shrink-0">
+                           <Contact className="h-6 w-6 text-muted-foreground"/>
+                       </div>
+                       <div>
+                           <p className="font-semibold text-md">{referrer.full_name}</p>
+                           <p className="text-sm text-muted-foreground">{referrer.email}</p>
+                       </div>
                     </div>
                 ) : (
                     <p className="text-sm text-muted-foreground">Could not load referrer information.</p>
