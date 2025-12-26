@@ -71,6 +71,8 @@ body {
   }
   .admin-panel {
      @apply bg-background;
+     display: flex;
+     min-height: 100vh;
   }
 }
 

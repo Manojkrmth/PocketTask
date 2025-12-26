@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { LoadingScreen } from '@/components/loading-screen';
 import type { User } from '@supabase/supabase-js';
-import { BarChart, Users, ListTodo, LogOut, MessageSquare, Settings, Bell, Coins, SlidersHorizontal, Wallet, ListChecks, Shield, Megaphone, UserPlus, Database } from 'lucide-react';
+import { BarChart, Users, ListTodo, LogOut, MessageSquare, Settings, Bell, Coins, SlidersHorizontal, Wallet, ListChecks, Shield, Megaphone, UserPlus, Database, Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -47,6 +47,7 @@ export default function AdminLayout({
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -80,25 +81,28 @@ export default function AdminLayout({
   }
 
   if (!isAuthorized) {
-    // You can optionally show an "Unauthorized" message here
-    // before redirecting, but for now, LoadingScreen is fine.
     return <LoadingScreen />;
   }
 
   return (
-    <div className="flex min-h-screen bg-background admin-panel">
-      <aside className="w-64 flex-shrink-0 bg-card border-r p-4 flex flex-col">
-        <div className="text-center py-4 mb-8 flex items-center justify-center gap-2">
-            <Image 
-                src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjQeXPPDoYHtSI3CkEycSr99eEzj5eNNnXZkkzetdCk8G5qhltxgm9vXYe4O2nRb8eJIkTRvSW7WljNX1U4sgGJopouCKxTr_u6Vn6eG5mmZrFt9Fw2R9L_VgCzk4J3BLhQu9UG7uAuGy3INawPoZlC1j11YSD0TSRCnUglyTByJM2ajI_Ce8O2t1d9Ahk/s320/photo_2025-11-21_17-20-41.jpg"
-                alt="Logo"
-                width={40}
-                height={40}
-                className="rounded-full"
-            />
-            <h1 className="text-xl font-bold text-primary">Admin Panel</h1>
+    <div className="admin-panel">
+       <aside className={cn(
+        "bg-card border-r flex flex-col transition-all duration-300 ease-in-out",
+        isSidebarOpen ? "w-64 p-4" : "w-0 p-0 overflow-hidden"
+      )}>
+        <div className="flex justify-between items-center mb-8">
+            <div className={cn("flex items-center gap-2 transition-opacity", !isSidebarOpen && "opacity-0")}>
+                <Image 
+                    src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjQeXPPDoYHtSI3CkEycSr99eEzj5eNNnXZkkzetdCk8G5qhltxgm9vXYe4O2nRb8eJIkTRvSW7WljNX1U4sgGJopouCKxTr_u6Vn6eG5mmZrFt9Fw2R9L_VgCzk4J3BLhQu9UG7uAuGy3INawPoZlC1j11YSD0TSRCnUglyTByJM2ajI_Ce8O2t1d9Ahk/s320/photo_2025-11-21_17-20-41.jpg"
+                    alt="Logo"
+                    width={40}
+                    height={40}
+                    className="rounded-full"
+                />
+                <h1 className="text-xl font-bold text-primary whitespace-nowrap">Admin Panel</h1>
+            </div>
         </div>
-        <nav className="flex-grow space-y-2">
+        <nav className={cn("flex-grow space-y-2 transition-opacity", !isSidebarOpen && "opacity-0")}>
           {navItems.map(item => (
             <Link key={item.href} href={item.href} passHref>
                <Button
@@ -125,9 +129,13 @@ export default function AdminLayout({
         </nav>
       </aside>
       
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col transition-all duration-300 ease-in-out">
         <header className="bg-card shadow-sm border-b">
-            <div className="p-4 flex justify-end items-center gap-4">
+            <div className="p-4 flex justify-between items-center gap-4">
+                 <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+                    {isSidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                 </Button>
+                 <div className="flex-grow"></div>
                  {user && (
                     <div className="text-sm text-right">
                         <p className="font-semibold">{user.email}</p>
