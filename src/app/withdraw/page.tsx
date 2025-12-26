@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -91,7 +92,6 @@ export default function WithdrawPage() {
 
         setBalances({ available: availableBalance, hold: holdBalance });
         
-        // Mocking settings data - In a real app this should come from your DB
         const { data: appSettings } = await supabase.from('settings').select('*').single();
         if (appSettings) {
             setSettingsData(appSettings.settings_data);
@@ -151,13 +151,13 @@ export default function WithdrawPage() {
     const numAmount = parseFloat(amount);
     const minWithdrawalInr = withdrawalSettings.minAmount;
     
-    if (numAmount < (currency === 'USD' ? minWithdrawalInr / 85 : minWithdrawalInr)) { // Assuming a static rate for now
+    if (numAmount < (currency === 'USD' ? minWithdrawalInr / (settingsData?.usdToInrRate || 85) : minWithdrawalInr)) {
       toast({ variant: 'destructive', title: 'Amount too low', description: `Minimum withdrawal is ${formatCurrency(minWithdrawalInr)}.`});
       return false;
     }
 
     const availableBalanceInr = balances.available;
-    const availableBalanceCurrentCurrency = currency === 'USD' ? availableBalanceInr / 85 : availableBalanceInr;
+    const availableBalanceCurrentCurrency = currency === 'USD' ? availableBalanceInr / (settingsData?.usdToInrRate || 85) : availableBalanceInr;
     
     if (numAmount > availableBalanceCurrentCurrency) {
         toast({ variant: 'destructive', title: 'Insufficient balance', description: 'You cannot withdraw more than your available balance.'});
@@ -174,7 +174,8 @@ export default function WithdrawPage() {
 
     startTransition(async () => {
         try {
-            const { error } = await supabase
+            // Step 1: Insert into payments table
+            const { data: paymentData, error: paymentError } = await supabase
               .from('payments')
               .insert({
                   user_id: user.id,
@@ -182,15 +183,31 @@ export default function WithdrawPage() {
                   payment_method: selectedMethod,
                   payment_details: paymentDetails,
                   status: 'Pending',
-              });
+              })
+              .select()
+              .single();
 
-            if (error) throw error;
+            if (paymentError) throw paymentError;
+
+            // Step 2: Insert into wallet_history as a pending withdrawal
+            const { error: historyError } = await supabase
+                .from('wallet_history')
+                .insert({
+                    user_id: user.id,
+                    amount: -amountInr, // Negative amount to deduct from balance
+                    type: 'withdrawal_pending',
+                    status: 'Pending',
+                    description: `Withdrawal request for ${formatCurrency(amountInr)} to ${selectedMethod}`,
+                    metadata: { payment_id: paymentData.id }
+                });
+
+            if (historyError) throw historyError;
             
+            // Step 3: Optimistically update local state
             const newBalance = balances.available - amountInr;
             setBalances(prev => ({...prev, available: newBalance}));
 
-
-            toast({ title: 'Success', description: 'Withdrawal request submitted.' });
+            toast({ title: 'Success', description: 'Withdrawal request submitted. Your balance has been updated.' });
             setAmount('');
             setPaymentDetails('');
         } catch(error: any) {
@@ -394,3 +411,5 @@ export default function WithdrawPage() {
     </div>
   );
 }
+
+    

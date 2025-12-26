@@ -126,7 +126,7 @@ export default function UsersPage() {
     user.mobile?.includes(filter)
   );
   
-  const sqlPolicyFix = `-- POLICY FIX SCRIPT V27
+  const sqlPolicyFix = `-- POLICY FIX SCRIPT V30
 -- This script will:
 -- 1. Ensure the primary super admin exists in the 'admins' table.
 -- 2. Drop all potentially conflicting policies on relevant tables.
@@ -163,13 +163,16 @@ CREATE POLICY "Allow individual users to update their own data" ON public.users 
 USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
 
 CREATE POLICY "Allow admins to update users" ON public.users FOR UPDATE
-USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
+USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()))
+WITH CHECK (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 
 
 -- 3. Drop and Create policies for 'wallet_history'
 DROP POLICY IF EXISTS "Enable read access for own records" ON public.wallet_history;
 DROP POLICY IF EXISTS "Allow admins to read all history" ON public.wallet_history;
 DROP POLICY IF EXISTS "Allow admins to insert records" ON public.wallet_history;
+DROP POLICY IF EXISTS "Enable insert for own withdrawal requests" ON public.wallet_history;
+
 
 CREATE POLICY "Enable read access for own records" ON public.wallet_history FOR SELECT
 USING (auth.uid() = user_id);
@@ -180,16 +183,28 @@ USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 CREATE POLICY "Allow admins to insert records" ON public.wallet_history FOR INSERT
 WITH CHECK (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 
+CREATE POLICY "Enable insert for own withdrawal requests" ON public.wallet_history FOR INSERT
+WITH CHECK (
+    auth.uid() = user_id AND
+    type = 'withdrawal_pending'
+);
+
 
 -- 4. Drop and Create policies for 'payments' table
 DROP POLICY IF EXISTS "Allow admins to read all payments" ON public.payments;
 DROP POLICY IF EXISTS "Allow admins to update payments" ON public.payments;
+DROP POLICY IF EXISTS "Allow users to insert their own payment requests" ON public.payments;
+
 
 CREATE POLICY "Allow admins to read all payments" ON public.payments FOR SELECT
 USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
 
 CREATE POLICY "Allow admins to update payments" ON public.payments FOR UPDATE
-USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
+USING (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()))
+WITH CHECK (EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid()));
+
+CREATE POLICY "Allow users to insert their own payment requests" ON public.payments FOR INSERT
+WITH CHECK (auth.uid() = user_id);
 
 
 -- 5. Create or replace the RPC functions needed.
@@ -414,3 +429,5 @@ COMMIT;
     </>
   );
 }
+
+    
