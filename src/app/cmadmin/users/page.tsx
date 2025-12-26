@@ -126,11 +126,10 @@ export default function UsersPage() {
   );
   
   const sqlPolicyFix = `-- 1. सुनिश्चित करें कि पुरानी नीतियां हटा दी गई हैं
-DROP POLICY IF EXISTS "Allow admins to do everything" ON public.users;
-DROP POLICY IF EXISTS "Allow admin full access" ON public.users;
 DROP POLICY IF EXISTS "Allow admins to read all users" ON public.users;
 DROP POLICY IF EXISTS "Allow individual users to view their own data" ON public.users;
 DROP POLICY IF EXISTS "Allow individual users to update their own data" ON public.users;
+DROP POLICY IF EXISTS "Enable admins to manage users" ON public.users;
 
 -- 2. व्यवस्थापकों (admins) के लिए उपयोगकर्ताओं को पढ़ने (read) की एक नई, सही नीति बनाएं
 CREATE POLICY "Allow admins to read all users"
@@ -138,17 +137,28 @@ ON public.users
 FOR SELECT
 TO authenticated
 USING (
-  (SELECT is_admin FROM get_user_role(auth.uid()))
+  EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid())
 );
 
--- 3. उपयोगकर्ताओं के लिए अपनी जानकारी देखने हेतु एक नई नीति बनाएं
+-- 3. व्यवस्थापकों (admins) को उपयोगकर्ताओं को प्रबंधित करने की अनुमति दें (update/delete)
+CREATE POLICY "Enable admins to manage users"
+ON public.users
+FOR ALL
+USING (
+  EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid())
+)
+WITH CHECK (
+  EXISTS (SELECT 1 FROM public.admins WHERE user_id = auth.uid())
+);
+
+-- 4. उपयोगकर्ताओं के लिए अपनी जानकारी देखने हेतु एक नई नीति बनाएं
 CREATE POLICY "Allow individual users to view their own data"
 ON public.users
 FOR SELECT
 TO authenticated
 USING (auth.uid() = id);
 
--- 4. उपयोगकर्ताओं को अपनी जानकारी अपडेट करने की अनुमति दें (उदा. नाम, मोबाइल)
+-- 5. उपयोगकर्ताओं को अपनी जानकारी अपडेट करने की अनुमति दें (उदा. नाम, मोबाइल)
 CREATE POLICY "Allow individual users to update their own data"
 ON public.users
 FOR UPDATE
@@ -156,7 +166,7 @@ TO authenticated
 USING (auth.uid() = id)
 WITH CHECK (auth.uid() = id);
 
--- 5. कुल उपयोगकर्ताओं की गिनती के लिए RPC फ़ंक्शन (यदि मौजूद नहीं है)
+-- 6. कुल उपयोगकर्ताओं की गिनती के लिए RPC फ़ंक्शन (यदि मौजूद नहीं है)
 CREATE OR REPLACE FUNCTION get_total_users_count()
 RETURNS integer
 LANGUAGE plpgsql
@@ -171,8 +181,7 @@ BEGIN
 
     return total_count;
 END;
-$$;
-`;
+$$;`;
 
 
   return (
@@ -322,5 +331,3 @@ $$;
     </>
   );
 }
-
-    
