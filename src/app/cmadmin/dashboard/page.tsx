@@ -18,13 +18,14 @@ import {
     Coins,
     Banknote,
     DollarSign,
-    ArrowRight
+    ExternalLink
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useCurrency } from '@/context/currency-context';
 import { CopyButton } from '@/components/copy-button';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 interface TopUser {
     id: string;
@@ -135,20 +136,18 @@ export default function AdminDashboardPage() {
       </div>
        
        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="bg-blue-50 border-blue-200 flex flex-col">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-blue-800">Total Users</CardTitle>
-                <Users className="h-4 w-4 text-blue-600" />
-            </CardHeader>
-            <CardContent>
-                {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : <div className="text-2xl font-bold text-blue-900">{totalUsers}</div>}
-            </CardContent>
-             <CardFooter className="pt-2 mt-auto">
-                <Button asChild size="sm" variant="outline" className="w-full">
-                    <Link href="/cmadmin/users">View List <ArrowRight className="ml-2 h-4 w-4"/></Link>
-                </Button>
-            </CardFooter>
-        </Card>
+        <Link href="/cmadmin/users">
+            <Card className="bg-blue-50 border-blue-200 transition-all hover:shadow-md hover:border-blue-300 group">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-blue-800">Total Users</CardTitle>
+                    <Users className="h-4 w-4 text-blue-600" />
+                </CardHeader>
+                <CardContent>
+                    {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : <div className="text-2xl font-bold text-blue-900">{totalUsers}</div>}
+                     <ExternalLink className="absolute top-2 right-2 h-4 w-4 text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"/>
+                </CardContent>
+            </Card>
+        </Link>
 
         <Card className="bg-cyan-50 border-cyan-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -180,70 +179,62 @@ export default function AdminDashboardPage() {
             </CardContent>
         </Card>
 
-        <Card className="bg-purple-50 border-purple-200 flex flex-col">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-purple-800">Pending Tickets</CardTitle>
-                <MessageSquare className="h-4 w-4 text-purple-600" />
-            </CardHeader>
-            <CardContent>
-                {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : <div className="text-2xl font-bold text-purple-900">{pendingTickets}</div>}
-            </CardContent>
-             <CardFooter className="pt-2 mt-auto">
-                <Button asChild size="sm" variant="outline" className="w-full">
-                    <Link href="/cmadmin/tickets">View Tickets <ArrowRight className="ml-2 h-4 w-4"/></Link>
-                </Button>
-            </CardFooter>
-        </Card>
+        <Link href="/cmadmin/tickets">
+            <Card className="bg-purple-50 border-purple-200 transition-all hover:shadow-md hover:border-purple-300 group">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-purple-800">Pending Tickets</CardTitle>
+                    <MessageSquare className="h-4 w-4 text-purple-600" />
+                </CardHeader>
+                <CardContent>
+                    {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : <div className="text-2xl font-bold text-purple-900">{pendingTickets}</div>}
+                    <ExternalLink className="absolute top-2 right-2 h-4 w-4 text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity"/>
+                </CardContent>
+            </Card>
+        </Link>
         
-        <Card className="bg-yellow-50 border-yellow-200 flex flex-col">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-yellow-800">Pending Tasks</CardTitle>
-                <Hourglass className="h-4 w-4 text-yellow-600" />
-            </CardHeader>
-            <CardContent>
-                {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : <div className="text-2xl font-bold text-yellow-900">{pendingTasks}</div>}
-            </CardContent>
-            <CardFooter className="pt-2 mt-auto">
-                <Button asChild size="sm" variant="outline" className="w-full">
-                    <Link href="/cmadmin/tasks">View Tasks <ArrowRight className="ml-2 h-4 w-4"/></Link>
-                </Button>
-            </CardFooter>
-        </Card>
+        <Link href="/cmadmin/tasks">
+            <Card className="bg-yellow-50 border-yellow-200 transition-all hover:shadow-md hover:border-yellow-300 group">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-yellow-800">Pending Tasks</CardTitle>
+                    <Hourglass className="h-4 w-4 text-yellow-600" />
+                </CardHeader>
+                <CardContent>
+                    {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : <div className="text-2xl font-bold text-yellow-900">{pendingTasks}</div>}
+                    <ExternalLink className="absolute top-2 right-2 h-4 w-4 text-yellow-400 opacity-0 group-hover:opacity-100 transition-opacity"/>
+                </CardContent>
+            </Card>
+        </Link>
 
-        <Card className="bg-red-50 border-red-200 flex flex-col">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-red-800">Pending Withdrawals</CardTitle>
-                <Wallet className="h-4 w-4 text-red-600" />
-            </CardHeader>
-            <CardContent>
-                {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : (
-                    <div className="flex items-baseline gap-2">
-                        <div className="text-2xl font-bold text-red-900">{pendingWithdrawals?.count}</div>
-                        <div className="text-sm font-semibold text-red-800/90">({formatCurrency(pendingWithdrawals?.amount || 0)})</div>
-                    </div>
-                )}
-            </CardContent>
-            <CardFooter className="pt-2 mt-auto">
-                <Button asChild size="sm" variant="outline" className="w-full">
-                    <Link href="/cmadmin/withdrawals">View Requests <ArrowRight className="ml-2 h-4 w-4"/></Link>
-                </Button>
-            </CardFooter>
-        </Card>
+         <Link href="/cmadmin/withdrawals">
+            <Card className="bg-red-50 border-red-200 transition-all hover:shadow-md hover:border-red-300 group">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-red-800">Pending Withdrawals</CardTitle>
+                    <Wallet className="h-4 w-4 text-red-600" />
+                </CardHeader>
+                <CardContent>
+                    {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : (
+                        <div className="flex items-baseline gap-2">
+                            <div className="text-2xl font-bold text-red-900">{pendingWithdrawals?.count}</div>
+                            <div className="text-sm font-semibold text-red-800/90">({formatCurrency(pendingWithdrawals?.amount || 0)})</div>
+                        </div>
+                    )}
+                    <ExternalLink className="absolute top-2 right-2 h-4 w-4 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"/>
+                </CardContent>
+            </Card>
+        </Link>
 
-        <Card className="bg-orange-50 border-orange-200 flex flex-col">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-orange-800">Pending Coin Submissions</CardTitle>
-                <Coins className="h-4 w-4 text-orange-600" />
-            </CardHeader>
-            <CardContent>
-                {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : <div className="text-2xl font-bold text-orange-900">{pendingCoins}</div>}
-            </CardContent>
-            <CardFooter className="pt-2 mt-auto">
-                <Button asChild size="sm" variant="outline" className="w-full">
-                    <Link href="/cmadmin/coin-manager">View Submissions <ArrowRight className="ml-2 h-4 w-4"/></Link>
-                </Button>
-            </CardFooter>
-        </Card>
+        <Link href="/cmadmin/coin-manager">
+            <Card className="bg-orange-50 border-orange-200 transition-all hover:shadow-md hover:border-orange-300 group">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-orange-800">Pending Coin Submissions</CardTitle>
+                    <Coins className="h-4 w-4 text-orange-600" />
+                </CardHeader>
+                <CardContent>
+                    {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : <div className="text-2xl font-bold text-orange-900">{pendingCoins}</div>}
+                    <ExternalLink className="absolute top-2 right-2 h-4 w-4 text-orange-400 opacity-0 group-hover:opacity-100 transition-opacity"/>
+                </CardContent>
+            </Card>
+        </Link>
 
        </div>
 
