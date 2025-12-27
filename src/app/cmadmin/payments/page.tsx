@@ -47,16 +47,7 @@ export default function PaymentsPage() {
     const fetchRequests = async () => {
       setLoading(true);
       try {
-          const { data, error } = await supabase
-              .from('payments')
-              .select(`
-                  *,
-                  users (
-                      full_name,
-                      email
-                  )
-              `)
-              .order('created_at', { ascending: false });
+          const { data, error } = await supabase.rpc('get_all_payment_requests');
 
           if (error) throw error;
           setRequests(data as PaymentRequest[]);
@@ -64,7 +55,7 @@ export default function PaymentsPage() {
           toast({
               variant: "destructive",
               title: "Error",
-              description: "Could not fetch payment requests. " + error.message,
+              description: "Could not fetch payment requests. Please run the 'Fix: Withdrawal Requests' script from the SQL Editor page.",
           });
       } finally {
           setLoading(false);
