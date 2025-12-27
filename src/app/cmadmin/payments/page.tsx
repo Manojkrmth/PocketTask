@@ -43,36 +43,35 @@ export default function PaymentsPage() {
   const { toast } = useToast();
   const { formatCurrency } = useCurrency();
 
-  const fetchRequests = async () => {
-    setLoading(true);
-    try {
-        const { data, error } = await supabase
-            .from('payments')
-            .select(`
-                *,
-                users (
-                    full_name,
-                    email
-                )
-            `)
-            .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        setRequests(data as PaymentRequest[]);
-    } catch (error: any) {
-        toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Could not fetch payment requests. " + error.message,
-        });
-    } finally {
-        setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchRequests = async () => {
+      setLoading(true);
+      try {
+          const { data, error } = await supabase
+              .from('payments')
+              .select(`
+                  *,
+                  users (
+                      full_name,
+                      email
+                  )
+              `)
+              .order('created_at', { ascending: false });
+
+          if (error) throw error;
+          setRequests(data as PaymentRequest[]);
+      } catch (error: any) {
+          toast({
+              variant: "destructive",
+              title: "Error",
+              description: "Could not fetch payment requests. " + error.message,
+          });
+      } finally {
+          setLoading(false);
+      }
+    };
     fetchRequests();
-  }, []);
+  }, [toast]);
 
   const filteredRequests = (status: PaymentStatus) => {
     return requests.filter(req => req.status === status);
