@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useMemo, useTransition } from 'react';
@@ -50,7 +49,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, Loader2, ListFilter, CheckCircle, XCircle, Download, UploadCloud, FileCheck2, Fingerprint, Mail, KeyRound } from 'lucide-react';
+import { MoreHorizontal, Loader2, ListFilter, CheckCircle, XCircle, Download, UploadCloud, FileCheck2, Fingerprint, Mail, KeyRound, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { useCurrency } from '@/context/currency-context';
@@ -78,6 +77,8 @@ interface AppTask {
   } | null;
 }
 
+const ROWS_PER_PAGE_OPTIONS = [10, 20, 30, 40, 50];
+
 export default function TasksPage() {
   const searchParams = useSearchParams();
   const preselectedUserId = searchParams.get('userId');
@@ -95,6 +96,10 @@ export default function TasksPage() {
   
   const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('');
+  
+  const [rowsPerPage, setRowsPerPage] = useState(ROWS_PER_PAGE_OPTIONS[1]);
+  const [currentPage, setCurrentPage] = useState(1);
+
 
   const { formatCurrency } = useCurrency();
   const { toast } = useToast();
@@ -143,6 +148,10 @@ export default function TasksPage() {
     fetchTasks();
   }, []);
   
+  useEffect(() => {
+    setCurrentPage(1); // Reset to first page on any filter/search change
+  }, [filter, statusFilters, rowsPerPage]);
+
   const updateTaskStatus = async (task: AppTask, status: TaskStatus, reason?: string) => {
     const existingMetadata = task.submission_data?.metadata || {};
     const updatePayload: { status: TaskStatus; submission_data?: any } = { status };
@@ -242,6 +251,13 @@ export default function TasksPage() {
     );
   };
   
+  const totalPages = Math.ceil(filteredTasks.length / rowsPerPage);
+
+  const paginatedTasks = useMemo(() => {
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    return filteredTasks.slice(startIndex, startIndex + rowsPerPage);
+  }, [filteredTasks, currentPage, rowsPerPage]);
+
   const availableCategories = useMemo(() => {
     const categories = new Set<string>();
     tasks.forEach(task => {
@@ -543,8 +559,8 @@ export default function TasksPage() {
                     <Loader2 className="mx-auto h-6 w-6 animate-spin" />
                   </TableCell>
                 </TableRow>
-              ) : filteredTasks.length > 0 ? (
-                filteredTasks.map((task) => (
+              ) : paginatedTasks.length > 0 ? (
+                paginatedTasks.map((task) => (
                   <TableRow key={task.id}>
                     <TableCell>
                       <div className="font-medium capitalize">{task.task_type.replace(/_/g, ' ')}</div>
@@ -611,6 +627,56 @@ export default function TasksPage() {
             </TableBody>
           </Table>
         </div>
+        
+        <div className="flex items-center justify-between px-2">
+            <div className="text-sm text-muted-foreground">
+                Showing <strong>{paginatedTasks.length}</strong> of <strong>{filteredTasks.length}</strong> tasks.
+            </div>
+             <div className="flex items-center gap-6">
+                 <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium">Rows per page</p>
+                    <Select
+                        value={`${rowsPerPage}`}
+                        onValueChange={(value) => setRowsPerPage(Number(value))}
+                    >
+                        <SelectTrigger className="h-8 w-[70px]">
+                            <SelectValue placeholder={rowsPerPage} />
+                        </SelectTrigger>
+                        <SelectContent side="top">
+                            {ROWS_PER_PAGE_OPTIONS.map((pageSize) => (
+                                <SelectItem key={pageSize} value={`${pageSize}`}>
+                                    {pageSize}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        className="h-8 w-8 p-0"
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                    >
+                        <span className="sr-only">Go to previous page</span>
+                        <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm font-medium">
+                        Page {currentPage} of {totalPages || 1}
+                    </span>
+                    <Button
+                        variant="outline"
+                        className="h-8 w-8 p-0"
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage >= totalPages}
+                    >
+                        <span className="sr-only">Go to next page</span>
+                        <ChevronRight className="h-4 w-4" />
+                    </Button>
+                </div>
+             </div>
+        </div>
+
       </div>
       <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <AlertDialogContent>
@@ -784,3 +850,4 @@ export default function TasksPage() {
   );
 }
 
+    
