@@ -21,11 +21,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, ListFilter } from 'lucide-react';
+import { Loader2, ListFilter, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useCurrency } from '@/context/currency-context';
+import { Input } from '@/components/ui/input';
+import Papa from 'papaparse';
 
 type TransactionStatus = 'Completed' | 'Pending' | 'Rejected' | 'Cancelled';
 
@@ -43,10 +45,14 @@ interface WalletTransaction {
   } | null;
 }
 
+const ROWS_PER_PAGE = 20;
+
 export default function PaymentsPage() {
   const [history, setHistory] = useState<WalletTransaction[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilters, setStatusFilters] = useState<TransactionStatus[]>(['Pending', 'Completed', 'Rejected', 'Cancelled']);
+  const [statusFilters, setStatusFilters] = useState<TransactionStatus[]>([]);
+  const [filter, setFilter] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
   const { toast } = useToast();
   const { formatCurrency } = useCurrency();
 
@@ -101,39 +107,98 @@ export default function PaymentsPage() {
     setStatusFilters(prev => 
       prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
     );
+    setCurrentPage(1); // Reset to first page on filter change
   };
 
   const filteredHistory = useMemo(() => {
     return history.filter(item => {
-        return statusFilters.length === 0 || statusFilters.includes(item.status);
+        const matchesStatus = statusFilters.length === 0 || statusFilters.includes(item.status);
+        const matchesSearch = !filter ||
+            (item.users?.full_name?.toLowerCase().includes(filter.toLowerCase())) ||
+            (item.users?.email?.toLowerCase().includes(filter.toLowerCase())) ||
+            (item.type.toLowerCase().includes(filter.toLowerCase())) ||
+            (item.description.toLowerCase().includes(filter.toLowerCase()));
+            
+        return matchesStatus && matchesSearch;
     });
-  }, [history, statusFilters]);
+  }, [history, statusFilters, filter]);
+  
+  const paginatedHistory = useMemo(() => {
+    const startIndex = (currentPage - 1) * ROWS_PER_PAGE;
+    return filteredHistory.slice(startIndex, startIndex + ROWS_PER_PAGE);
+  }, [filteredHistory, currentPage]);
+
+  const totalPages = Math.ceil(filteredHistory.length / ROWS_PER_PAGE);
+  
+  const handleDownloadCSV = () => {
+    if (filteredHistory.length === 0) {
+      toast({ variant: 'destructive', title: 'No data to export' });
+      return;
+    }
+    const csvData = filteredHistory.map(item => ({
+      'User Name': item.users?.full_name,
+      'User Email': item.users?.email,
+      'Amount': item.amount,
+      'Type': item.type,
+      'Description': item.description,
+      'Status': item.status,
+      'Date': item.created_at,
+    }));
+
+    const csv = Papa.unparse(csvData);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', 'payment_history.csv');
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
 
   return (
     <div className="space-y-6">
        <div className="flex justify-between items-center">
             <div>
-                <h1 className="text-3xl font-bold">Wallet History</h1>
+                <h1 className="text-3xl font-bold">Payment History</h1>
                 <p className="text-muted-foreground">
                 View all transactions across all users.
                 </p>
             </div>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="gap-1">
-                    <ListFilter className="h-3.5 w-3.5" />
-                    <span>Filter by Status</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Filter by status</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuCheckboxItem checked={statusFilters.includes('Completed')} onCheckedChange={() => toggleFilter('Completed')}>Completed</DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem checked={statusFilters.includes('Pending')} onCheckedChange={() => toggleFilter('Pending')}>Pending</DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem checked={statusFilters.includes('Rejected')} onCheckedChange={() => toggleFilter('Rejected')}>Rejected</DropdownMenuCheckboxItem>
-                   <DropdownMenuCheckboxItem checked={statusFilters.includes('Cancelled')} onCheckedChange={() => toggleFilter('Cancelled')}>Cancelled</DropdownMenuCheckboxItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex gap-2">
+                <Input 
+                    placeholder="Search name, email, type, desc..."
+                    value={filter}
+                    onChange={(e) => {
+                        setFilter(e.target.value);
+                        setCurrentPage(1); // Reset page on new search
+                    }}
+                    className="max-w-sm"
+                />
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="gap-1">
+                        <ListFilter className="h-3.5 w-3.5" />
+                        <span>Filter by Status</span>
+                    </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Filter by status</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuCheckboxItem checked={statusFilters.includes('Completed')} onCheckedChange={() => toggleFilter('Completed')}>Completed</DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem checked={statusFilters.includes('Pending')} onCheckedChange={() => toggleFilter('Pending')}>Pending</DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem checked={statusFilters.includes('Rejected')} onCheckedChange={() => toggleFilter('Rejected')}>Rejected</DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem checked={statusFilters.includes('Cancelled')} onCheckedChange={() => toggleFilter('Cancelled')}>Cancelled</DropdownMenuCheckboxItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+                 <Button variant="outline" className="gap-1" onClick={handleDownloadCSV}>
+                    <Download className="h-3.5 w-3.5" />
+                    <span>Download CSV</span>
+                 </Button>
+            </div>
        </div>
       
       <div className="border rounded-lg bg-card">
@@ -155,8 +220,8 @@ export default function PaymentsPage() {
                   <Loader2 className="mx-auto h-6 w-6 animate-spin" />
                 </TableCell>
               </TableRow>
-            ) : filteredHistory.length > 0 ? (
-              filteredHistory.map((item) => (
+            ) : paginatedHistory.length > 0 ? (
+              paginatedHistory.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell>
                     <div className="font-medium">{item.users?.full_name || 'N/A'}</div>
@@ -199,6 +264,35 @@ export default function PaymentsPage() {
           </TableBody>
         </Table>
       </div>
+
+       <div className="flex items-center justify-between px-2">
+            <div className="text-sm text-muted-foreground">
+                Showing <strong>{paginatedHistory.length}</strong> of <strong>{filteredHistory.length}</strong> transactions.
+            </div>
+            <div className="flex items-center gap-2">
+                <Button
+                    variant="outline"
+                    className="h-8 w-8 p-0"
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                >
+                    <span className="sr-only">Go to previous page</span>
+                    <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm font-medium">
+                    Page {currentPage} of {totalPages || 1}
+                </span>
+                <Button
+                    variant="outline"
+                    className="h-8 w-8 p-0"
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                >
+                    <span className="sr-only">Go to next page</span>
+                    <ChevronRight className="h-4 w-4" />
+                </Button>
+            </div>
+        </div>
     </div>
   );
 }
