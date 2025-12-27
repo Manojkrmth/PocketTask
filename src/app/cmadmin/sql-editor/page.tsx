@@ -16,7 +16,6 @@ const masterSqlScript = `
 -- =================================================================
 
 -- Step 1: Create a helper function to check for admin role.
--- Using CREATE OR REPLACE ensures the function is updated without dropping dependencies.
 CREATE OR REPLACE FUNCTION is_admin(user_id uuid)
 RETURNS boolean
 LANGUAGE plpgsql
@@ -33,7 +32,6 @@ END;
 $$;
 
 -- Step 2: Create/Update secure functions to fetch data for the admin panel.
--- These functions run with the permissions of the user who defined them (the admin).
 
 -- Function to get all users
 CREATE OR REPLACE FUNCTION get_all_users()
@@ -195,6 +193,11 @@ BEGIN
   -- Get all admin user_ids
   SELECT array_agg(user_id) INTO admin_ids FROM public.admins;
 
+  IF admin_ids IS NULL THEN
+    -- If no admins found, set to empty array to avoid NULL checks
+    admin_ids := ARRAY[]::uuid[];
+  END IF;
+  
   -- Delete from tables, excluding admins
   DELETE FROM public.payments WHERE user_id NOT IN (SELECT unnest(admin_ids));
   DELETE FROM public.wallet_history WHERE user_id NOT IN (SELECT unnest(admin_ids));
@@ -206,9 +209,23 @@ BEGIN
   -- Delete non-admin users from the main users table
   DELETE FROM public.users WHERE id NOT IN (SELECT unnest(admin_ids));
   
-  -- We don't delete from `admins` table, but we can truncate other tables that don't have user_id
+  -- We don't delete from \`admins\` table, but we can truncate other tables that don't have user_id
   TRUNCATE public.notifications RESTART IDENTITY;
   -- We don't truncate settings, featured_offers, etc. as they are configuration.
+END;
+$$;
+
+-- Function to truncate history tables
+CREATE OR REPLACE FUNCTION truncate_history(table_name TEXT, before_date DATE)
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF before_date IS NOT NULL THEN
+        EXECUTE format('DELETE FROM public.%I WHERE created_at < %L', table_name, before_date);
+    ELSE
+        EXECUTE format('TRUNCATE TABLE public.%I RESTART IDENTITY', table_name);
+    END IF;
 END;
 $$;
 
@@ -558,3 +575,5 @@ function SqlCard({ title, description, icon, sql }: { title: string, description
         </Card>
     )
 }
+
+    
