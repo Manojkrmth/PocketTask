@@ -42,6 +42,7 @@ DROP FUNCTION IF EXISTS is_admin(uuid);
 DROP FUNCTION IF EXISTS get_users_with_referral_counts();
 DROP FUNCTION IF EXISTS get_user_financials(uuid);
 DROP FUNCTION IF EXISTS get_all_payment_requests();
+DROP FUNCTION IF EXISTS get_all_admins();
 DROP FUNCTION IF EXISTS get_total_users_count();
 DROP FUNCTION IF EXISTS get_total_users_balance();
 DROP FUNCTION IF EXISTS get_top_referral_users(integer);
@@ -165,6 +166,30 @@ BEGIN
         p.created_at DESC;
 END;
 $$;
+
+-- Recreate get_all_admins function (for Admins page)
+CREATE OR REPLACE FUNCTION get_all_admins()
+RETURNS TABLE(id bigint, user_id uuid, created_at timestamptz, users json)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        a.id,
+        a.user_id,
+        a.created_at,
+        json_build_object('full_name', u.full_name, 'email', u.email)
+    FROM
+        public.admins a
+    JOIN
+        public.users u ON a.user_id = u.id
+    ORDER BY
+        a.created_at DESC;
+END;
+$$;
+
 
 -- Recreate get_total_users_count function (for Dashboard)
 CREATE OR REPLACE FUNCTION get_total_users_count()
