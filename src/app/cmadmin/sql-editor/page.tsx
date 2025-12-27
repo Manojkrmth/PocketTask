@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,9 +11,8 @@ const resetAllSqlScript = `
 -- DANGER: RESET ALL RLS POLICIES & FUNCTIONS
 -- =================================================================
 -- This script will drop ALL RLS policies and ALL custom functions
--- from your database. This is irreversible. It then recreates a
--- few essential functions needed for the admin panel to operate
--- after a reset.
+-- from your database. This is irreversible. It then recreates
+-- essential functions needed for the admin panel to operate.
 -- =================================================================
 
 -- Step 1: Drop all RLS policies from all tables in the public schema.
@@ -162,7 +160,7 @@ $$;
 
 -- Recreate get_all_payment_requests function (for Withdrawals page)
 CREATE OR REPLACE FUNCTION get_all_payment_requests()
-RETURNS TABLE(id int, created_at timestamptz, amount numeric, payment_method varchar, payment_details text, status varchar, user_id uuid, metadata jsonb, users json)
+RETURNS TABLE(id bigint, created_at timestamptz, amount numeric, payment_method varchar, payment_details text, status varchar, user_id uuid, metadata jsonb, users json)
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
