@@ -181,10 +181,18 @@ export default function WithdrawPage() {
     
     const numAmount = parseFloat(amount);
     const amountInr = currency === 'USD' ? numAmount * usdToInrRate : numAmount;
+    const newBalance = balances.available - amountInr;
 
     startTransition(async () => {
         try {
-            // Step 1: Insert into payments table
+            // Step 1: Update user's balance
+            const { error: balanceUpdateError } = await supabase
+                .from('users')
+                .update({ balance_available: newBalance })
+                .eq('id', user.id);
+            if (balanceUpdateError) throw balanceUpdateError;
+
+            // Step 2: Insert into payments table
             const { data: paymentData, error: paymentError } = await supabase
               .from('payments')
               .insert({
@@ -199,12 +207,12 @@ export default function WithdrawPage() {
 
             if (paymentError) throw paymentError;
 
-            // Step 2: Insert into wallet_history as a pending withdrawal
+            // Step 3: Insert into wallet_history as a pending withdrawal
             const { error: historyError } = await supabase
                 .from('wallet_history')
                 .insert({
                     user_id: user.id,
-                    amount: -amountInr, // Negative amount to deduct from balance
+                    amount: -amountInr,
                     type: 'withdrawal_request',
                     status: 'Pending',
                     description: `Withdrawal request for ${formatCurrency(amountInr)} to ${selectedMethod}`,
@@ -213,7 +221,7 @@ export default function WithdrawPage() {
 
             if (historyError) throw historyError;
 
-            // Step 3: Save/update the payment method for the user
+            // Step 4: Save/update the payment method for the user
             const selectedMethodConfig = availableMethods.find((m: any) => m.name === selectedMethod);
             if (selectedMethodConfig) {
                  const { error: saveMethodError } = await supabase
@@ -226,21 +234,31 @@ export default function WithdrawPage() {
                     }, { onConflict: 'user_id, method_id' });
 
                 if (saveMethodError) {
-                    // Log this error but don't block the main flow
                     console.error("Could not save user payment method:", saveMethodError);
                 }
             }
             
-            // Step 4: Optimistically update local state
-            const newBalance = balances.available - amountInr;
+            // Step 5: Update local state
             setBalances(prev => ({...prev, available: newBalance}));
 
             toast({ title: 'Success', description: 'Withdrawal request submitted. Your balance has been updated.' });
             setAmount('');
-            setPaymentDetails('');
+            // Do not clear payment details to allow for quick re-submission if needed
+            
         } catch(error: any) {
-            console.error(error);
-            toast({ variant: 'destructive', title: 'Error', description: error.message });
+            // Rollback balance update if something fails
+            const { error: rollbackError } = await supabase
+                .from('users')
+                .update({ balance_available: balances.available })
+                .eq('id', user.id);
+
+            if(rollbackError) {
+                 console.error("Critical error: Failed to rollback balance update.", rollbackError);
+                 toast({ variant: 'destructive', title: 'Critical Error!', description: "Failed to rollback balance. Please contact support." });
+            } else {
+                 console.error("Withdrawal submission failed:", error);
+                 toast({ variant: 'destructive', title: 'Error', description: error.message });
+            }
         }
     })
   };
