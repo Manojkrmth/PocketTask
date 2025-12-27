@@ -61,26 +61,52 @@ export default function PaymentsPage() {
 
   useEffect(() => {
     const fetchHistory = async () => {
-      setLoading(true);
-      try {
-        const { data: historyData, error: historyError } = await supabase
-            .from('wallet_history')
-            .select('*, users(full_name, email)')
-            .order('created_at', { ascending: false });
+        setLoading(true);
+        try {
+            // Step 1: Fetch all wallet history
+            const { data: historyData, error: historyError } = await supabase
+                .from('wallet_history')
+                .select('*')
+                .order('created_at', { ascending: false });
 
-        if (historyError) throw historyError;
-        setHistory(historyData as WalletTransaction[]);
+            if (historyError) throw historyError;
 
-      } catch (error: any) {
-          console.error("Error fetching wallet history:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
-          toast({
-              variant: "destructive",
-              title: "Error",
-              description: "Could not fetch wallet history. " + error.message,
-          });
-      } finally {
-          setLoading(false);
-      }
+            if (historyData.length === 0) {
+                setHistory([]);
+                setLoading(false);
+                return;
+            }
+
+            // Step 2: Get unique user IDs from the history
+            const userIds = [...new Set(historyData.map(item => item.user_id))];
+
+            // Step 3: Fetch the corresponding users
+            const { data: usersData, error: usersError } = await supabase
+                .from('users')
+                .select('id, full_name, email')
+                .in('id', userIds);
+
+            if (usersError) throw usersError;
+
+            // Step 4: Create a map for quick lookup and combine the data
+            const usersMap = new Map(usersData.map(u => [u.id, u]));
+            const combinedData = historyData.map(item => ({
+                ...item,
+                users: usersMap.get(item.user_id) || null
+            }));
+
+            setHistory(combinedData as WalletTransaction[]);
+
+        } catch (error: any) {
+            console.error("Error fetching wallet history:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: "Could not fetch wallet history. " + error.message,
+            });
+        } finally {
+            setLoading(false);
+        }
     };
     fetchHistory();
   }, [toast]);
