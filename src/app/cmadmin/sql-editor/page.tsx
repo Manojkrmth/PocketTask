@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -576,4 +577,5 @@ function SqlCard({ title, description, icon, sql }: { title: string, description
     )
 }
 
+    
     
