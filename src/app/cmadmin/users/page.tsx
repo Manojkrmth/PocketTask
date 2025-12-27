@@ -217,14 +217,7 @@ export default function UsersPage() {
                 paginatedUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                         <span className="font-medium">{user.full_name || 'N/A'}</span>
-                         <Button variant="outline" size="icon" className="h-7 w-7" asChild>
-                            <Link href={`/cmadmin/users/${user.id}`}>
-                                <Eye className="h-4 w-4" />
-                            </Link>
-                         </Button>
-                      </div>
+                      <div className="font-medium">{user.full_name || 'N/A'}</div>
                       <div className="text-xs text-muted-foreground">
                         ID: {user.id}
                       </div>
@@ -252,6 +245,11 @@ export default function UsersPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-2 justify-end">
+                         <Button variant="outline" size="icon" className="h-8 w-8" asChild>
+                            <Link href={`/cmadmin/users/${user.id}`}>
+                                <Eye className="h-4 w-4" />
+                            </Link>
+                         </Button>
                         {user.status !== 'Blocked' ? (
                             <Button 
                                 variant="outline" 
