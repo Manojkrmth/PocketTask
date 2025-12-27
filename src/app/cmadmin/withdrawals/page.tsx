@@ -145,6 +145,7 @@ export default function WithdrawalsPage() {
             utr: status === 'Approved' ? actionReason : undefined,
         };
         
+        // Update payments table status
         const { error } = await supabase
             .from('payments')
             .update({ status: status, metadata: metadataUpdate })
@@ -152,7 +153,18 @@ export default function WithdrawalsPage() {
 
         if (error) throw error;
         
-        if (status === 'Rejected' || status === 'Cancelled') {
+        if (status === 'Approved') {
+            // Find the corresponding wallet_history entry and update its status
+            const { error: walletHistoryError } = await supabase
+                .from('wallet_history')
+                .update({ status: 'Completed' })
+                .eq('metadata->>payment_id', request.id)
+                .eq('status', 'Pending');
+            
+            if (walletHistoryError) throw new Error(`Could not update wallet history: ${walletHistoryError.message}`);
+
+        } else if (status === 'Rejected' || status === 'Cancelled') {
+            // Refund the user if rejected or cancelled
             const { error: refundError } = await supabase
                 .from('wallet_history')
                 .insert({
