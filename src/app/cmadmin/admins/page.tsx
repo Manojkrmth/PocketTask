@@ -68,6 +68,7 @@ export default function AdminsPage() {
   
   const [selectedAdminToDismiss, setSelectedAdminToDismiss] = useState<AdminUser | null>(null);
   const [selectedAdminToEdit, setSelectedAdminToEdit] = useState<AdminUser | null>(null);
+  const [newPermissionForEdit, setNewPermissionForEdit] = useState<Permission | null>(null);
 
   const [newAdminUserId, setNewAdminUserId] = useState('');
   const [newAdminPermission, setNewAdminPermission] = useState<Permission>('full_access');
@@ -163,16 +164,17 @@ export default function AdminsPage() {
   
   const openEditDialog = (admin: AdminUser) => {
     setSelectedAdminToEdit(admin);
+    setNewPermissionForEdit(admin.permissions);
     setEditDialogOpen(true);
   }
   
   const handleEditAdmin = () => {
-    if (!selectedAdminToEdit) return;
+    if (!selectedAdminToEdit || !newPermissionForEdit) return;
 
     startProcessing(async () => {
         const { error } = await supabase
             .from('admins')
-            .update({ permissions: selectedAdminToEdit.permissions })
+            .update({ permissions: newPermissionForEdit })
             .eq('user_id', selectedAdminToEdit.user_id);
             
         if (error) {
@@ -181,6 +183,7 @@ export default function AdminsPage() {
             toast({ title: 'Success', description: `Permissions for ${selectedAdminToEdit.users?.full_name} have been updated.` });
             setEditDialogOpen(false);
             setSelectedAdminToEdit(null);
+            setNewPermissionForEdit(null);
             await fetchAdmins();
         }
     });
@@ -346,8 +349,8 @@ export default function AdminsPage() {
             <div className="py-4">
                 <Label htmlFor="edit-permission">Permissions</Label>
                 <Select 
-                    value={selectedAdminToEdit?.permissions || 'full_access'} 
-                    onValueChange={(value: Permission) => setSelectedAdminToEdit(prev => prev ? { ...prev, permissions: value } : null)}
+                    value={newPermissionForEdit || 'full_access'} 
+                    onValueChange={(value: Permission) => setNewPermissionForEdit(value)}
                 >
                     <SelectTrigger id="edit-permission">
                         <SelectValue placeholder="Select permissions" />
@@ -370,6 +373,8 @@ export default function AdminsPage() {
     </>
   );
 }
+    
+
     
 
     
