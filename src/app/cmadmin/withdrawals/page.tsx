@@ -327,7 +327,7 @@ export default function WithdrawalsPage() {
                 <TableHead>Amount</TableHead>
                 <TableHead>Method & Details</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Date</TableHead>
+                <TableHead>QR</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -352,6 +352,9 @@ export default function WithdrawalsPage() {
                       <div className="font-medium">{request.users?.full_name || 'N/A'}</div>
                       <div className="text-xs text-muted-foreground">{request.users?.email}</div>
                       <div className="text-xs text-muted-foreground">{request.users?.mobile || 'N/A'}</div>
+                       <div className="text-xs text-muted-foreground mt-1">
+                          {formatDistanceToNow(new Date(request.created_at), { addSuffix: true })}
+                        </div>
                     </TableCell>
                     <TableCell>
                         <div className="font-semibold">{formatCurrency(request.amount)}</div>
@@ -363,12 +366,6 @@ export default function WithdrawalsPage() {
                         <div className="font-medium">{request.payment_method}</div>
                         <div className="flex items-center gap-2 mt-1">
                           <div className="text-xs text-muted-foreground break-all">{request.payment_details}</div>
-                          {isUpi && request.status === 'Pending' && (
-                              <Button variant="outline" size="sm" className="h-7 px-2 shrink-0" onClick={() => handleShowQr(request)}>
-                                  <QrCode className="h-4 w-4 mr-1"/>
-                                  QR
-                              </Button>
-                          )}
                         </div>
                     </TableCell>
                     <TableCell>
@@ -381,8 +378,13 @@ export default function WithdrawalsPage() {
                         {request.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(request.created_at), { addSuffix: true })}
+                    <TableCell>
+                       {isUpi && request.status === 'Pending' && (
+                          <Button variant="outline" size="sm" className="h-7 px-2 shrink-0" onClick={() => handleShowQr(request)}>
+                              <QrCode className="h-4 w-4 mr-1"/>
+                              QR
+                          </Button>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                        {request.status === 'Pending' ? (
