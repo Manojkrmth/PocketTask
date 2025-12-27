@@ -458,7 +458,7 @@ export default function TasksPage() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold">Task Center</h1>
+            <h1 className="text-3xl font-bold">Task Manager</h1>
             <p className="text-muted-foreground">
               Review, approve, or reject user task submissions.
             </p>
