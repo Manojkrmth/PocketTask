@@ -24,7 +24,7 @@ const navItems = [
   { href: '/cmadmin/users', label: 'Users', icon: Users },
   { href: '/cmadmin/task-manager', label: 'Gmail Task Manager', icon: SlidersHorizontal },
   { href: '/cmadmin/tasks', label: 'Task Manager', icon: ListTodo },
-  { href: '/cmadmin/payments', label: 'Payments', icon: IndianRupee },
+  { href: '/cmadmin/withdrawals', label: 'Withdrawals', icon: IndianRupee },
   { href: '/cmadmin/coin-manager', label: 'Coin Manager', icon: Coins },
   { href: '/cmadmin/daily-tasks', label: 'Daily Task', icon: ListChecks },
   { href: '/cmadmin/tickets', label: 'Tickets', icon: MessageSquare },
