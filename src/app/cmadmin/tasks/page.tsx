@@ -59,6 +59,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import Papa from 'papaparse';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { useAdmin } from '../layout';
 
 
 type TaskStatus = 'Pending' | 'Approved' | 'Rejected';
@@ -80,6 +81,7 @@ interface AppTask {
 const ROWS_PER_PAGE_OPTIONS = [10, 20, 30, 40, 50];
 
 export default function TasksPage() {
+  const { isViewOnly } = useAdmin();
   const searchParams = useSearchParams();
   const preselectedUserId = searchParams.get('userId');
 
@@ -532,9 +534,9 @@ export default function TasksPage() {
         <div className="flex items-center gap-2 border p-2 rounded-lg bg-muted/50">
             <p className="text-sm font-semibold">Bulk Actions</p>
             <div className="ml-auto flex gap-2">
-                 <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleBulkActionClick('approve')}><CheckCircle className="mr-2 h-4 w-4"/> Bulk Approve</Button>
-                 <Button size="sm" variant="destructive" onClick={() => handleBulkActionClick('reject')}><XCircle className="mr-2 h-4 w-4"/> Bulk Reject</Button>
-                 <Button size="sm" variant="secondary" className="bg-yellow-400 hover:bg-yellow-500 text-black" onClick={() => setDownloadDialogOpen(true)}>
+                 <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleBulkActionClick('approve')} disabled={isViewOnly}><CheckCircle className="mr-2 h-4 w-4"/> Bulk Approve</Button>
+                 <Button size="sm" variant="destructive" onClick={() => handleBulkActionClick('reject')} disabled={isViewOnly}><XCircle className="mr-2 h-4 w-4"/> Bulk Reject</Button>
+                 <Button size="sm" variant="secondary" className="bg-yellow-400 hover:bg-yellow-500 text-black" onClick={() => setDownloadDialogOpen(true)} disabled={isViewOnly}>
                     <Download className="mr-2 h-4 w-4"/> Download as CSV
                 </Button>
             </div>
@@ -589,7 +591,7 @@ export default function TasksPage() {
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0" disabled={isUpdating || task.status !== 'Pending'}>
+                          <Button variant="ghost" className="h-8 w-8 p-0" disabled={isUpdating || task.status !== 'Pending' || isViewOnly}>
                             <span className="sr-only">Open menu</span>
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
@@ -597,7 +599,7 @@ export default function TasksPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuItem 
-                            disabled={task.status !== 'Pending' || isUpdating} 
+                            disabled={task.status !== 'Pending' || isUpdating || isViewOnly} 
                             onSelect={() => openConfirmationDialog(task, 'Approved')}
                             className="cursor-pointer"
                           >
@@ -605,7 +607,7 @@ export default function TasksPage() {
                             Approve
                           </DropdownMenuItem>
                           <DropdownMenuItem 
-                            disabled={task.status !== 'Pending' || isUpdating} 
+                            disabled={task.status !== 'Pending' || isUpdating || isViewOnly} 
                             onSelect={() => openConfirmationDialog(task, 'Rejected')}
                             className="cursor-pointer text-destructive"
                           >
