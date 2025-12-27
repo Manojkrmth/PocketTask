@@ -110,7 +110,7 @@ export default function SQLEditorPage() {
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Extreme Danger Zone</AlertTitle>
                 <AlertDescription>
-                   The script below is highly destructive and will remove ALL your database security policies and application logic (functions). Use with extreme caution, as this action cannot be undone. Only run this if you want to start from a completely clean slate.
+                   The script below is highly destructive and will remove ALL your database security policies and application logic (functions). Use with extreme caution, as this action cannot be undone.
                 </AlertDescription>
             </Alert>
             
