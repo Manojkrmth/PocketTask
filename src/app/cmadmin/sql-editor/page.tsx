@@ -53,6 +53,7 @@ DROP FUNCTION IF EXISTS get_and_assign_watch_earn_task(uuid);
 DROP FUNCTION IF EXISTS truncate_all_tables();
 DROP FUNCTION IF EXISTS truncate_history(text, date);
 DROP FUNCTION IF EXISTS get_daily_dashboard_stats(integer);
+DROP FUNCTION IF EXISTS get_all_payment_requests_with_mobile();
 
 
 -- =================================================================
@@ -139,8 +140,8 @@ BEGIN
 END;
 $$;
 
--- Recreate get_all_payment_requests function (for Withdrawals page)
-CREATE OR REPLACE FUNCTION get_all_payment_requests()
+-- Recreate get_all_payment_requests_with_mobile function (for Withdrawals page)
+CREATE OR REPLACE FUNCTION get_all_payment_requests_with_mobile()
 RETURNS TABLE(id bigint, created_at timestamptz, amount numeric, payment_method varchar, payment_details text, status varchar, user_id uuid, metadata jsonb, users json)
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -157,7 +158,7 @@ BEGIN
         p.status,
         p.user_id,
         p.metadata,
-        json_build_object('full_name', u.full_name, 'email', u.email)
+        json_build_object('full_name', u.full_name, 'email', u.email, 'mobile', u.mobile)
     FROM
         public.payments p
     JOIN
@@ -329,5 +330,6 @@ function SqlCard({ title, description, icon, sql }: { title: string, description
         </Card>
     )
 }
+
 
     

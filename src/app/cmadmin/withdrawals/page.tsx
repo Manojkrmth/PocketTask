@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, Loader2, CheckCircle, XCircle, ListFilter } from 'lucide-react';
+import { MoreHorizontal, Loader2, CheckCircle, XCircle, ListFilter, Download, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -40,6 +40,9 @@ import { useCurrency } from '@/context/currency-context';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
+import Papa from 'papaparse';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import Link from 'next/link';
 
 type PaymentStatus = 'Pending' | 'Approved' | 'Rejected' | 'Cancelled';
 
@@ -65,6 +68,8 @@ interface WithdrawalSettings {
     methods: any[];
 }
 
+const ROWS_PER_PAGE_OPTIONS = [10, 20, 30, 40, 50, 100];
+
 export default function WithdrawalsPage() {
   const [requests, setRequests] = useState<PaymentRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,23 +87,26 @@ export default function WithdrawalsPage() {
   const { toast } = useToast();
   const { formatCurrency, usdToInrRate } = useCurrency();
   
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(ROWS_PER_PAGE_OPTIONS[1]);
+
+
   useEffect(() => {
     const fetchInitialData = async () => {
         setLoading(true);
         try {
-            const [requestsRes, settingsRes] = await Promise.all([
-                supabase.rpc('get_all_payment_requests'),
-                supabase.from('settings').select('withdrawal_settings').eq('id', 1).single()
-            ]);
+            const { data: requestsData, error: requestsError } = await supabase.rpc('get_all_payment_requests_with_mobile');
 
-            if (requestsRes.error) throw requestsRes.error;
-            setRequests(requestsRes.data as PaymentRequest[]);
+            if (requestsError) throw requestsError;
+            setRequests(requestsData as PaymentRequest[]);
 
-            if (settingsRes.error) {
-                console.error("Could not fetch withdrawal settings:", settingsRes.error);
+            const { data: settingsData, error: settingsError } = await supabase.from('settings').select('withdrawal_settings').eq('id', 1).single();
+
+            if (settingsError) {
+                console.error("Could not fetch withdrawal settings:", settingsError);
                 setWithdrawalSettings({ chargesPercent: 5, minAmount: 500, methods: [] }); // Fallback
             } else {
-                setWithdrawalSettings(settingsRes.data.withdrawal_settings);
+                setWithdrawalSettings(settingsData.withdrawal_settings);
             }
         } catch (error: any) {
             console.error("Error fetching initial data:", error);
@@ -149,8 +157,7 @@ export default function WithdrawalsPage() {
           description: `Request #${request.id} has been ${status.toLowerCase()}.`,
         });
         
-        // Refetch requests after update
-        const { data, error: refetchError } = await supabase.rpc('get_all_payment_requests');
+        const { data, error: refetchError } = await supabase.rpc('get_all_payment_requests_with_mobile');
         if (refetchError) throw refetchError;
         setRequests(data as PaymentRequest[]);
 
@@ -189,6 +196,10 @@ export default function WithdrawalsPage() {
       prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
     );
   };
+  
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, statusFilters, rowsPerPage]);
 
   const filteredRequests = useMemo(() => {
     return requests.filter(request => {
@@ -202,6 +213,44 @@ export default function WithdrawalsPage() {
         return matchesStatus && matchesSearch;
     });
   }, [requests, statusFilters, filter]);
+
+  const totalPages = Math.ceil(filteredRequests.length / rowsPerPage);
+
+  const paginatedRequests = useMemo(() => {
+      const startIndex = (currentPage - 1) * rowsPerPage;
+      return filteredRequests.slice(startIndex, startIndex + rowsPerPage);
+  }, [filteredRequests, currentPage, rowsPerPage]);
+  
+  const handleDownloadCSV = () => {
+      if (filteredRequests.length === 0) {
+        toast({ variant: 'destructive', title: 'No data to export' });
+        return;
+      }
+      const csvData = filteredRequests.map(item => ({
+        'Request ID': item.id,
+        'User Name': item.users?.full_name,
+        'User Email': item.users?.email,
+        'User Mobile': item.users?.mobile,
+        'Amount': item.amount,
+        'Payment Method': item.payment_method,
+        'Payment Details': item.payment_details,
+        'Status': item.status,
+        'Date': item.created_at,
+      }));
+
+      const csv = Papa.unparse(csvData);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'withdrawal_requests.csv');
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+  }
 
 
   return (
@@ -237,6 +286,10 @@ export default function WithdrawalsPage() {
                     <DropdownMenuCheckboxItem checked={statusFilters.includes('Cancelled')} onCheckedChange={() => toggleFilter('Cancelled')}>Cancelled</DropdownMenuCheckboxItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
+                 <Button variant="outline" className="gap-1" onClick={handleDownloadCSV}>
+                    <Download className="h-3.5 w-3.5" />
+                    <span>Download CSV</span>
+                 </Button>
             </div>
         </div>
         
@@ -259,8 +312,8 @@ export default function WithdrawalsPage() {
                     <Loader2 className="mx-auto h-6 w-6 animate-spin" />
                   </TableCell>
                 </TableRow>
-              ) : filteredRequests.length > 0 ? (
-                filteredRequests.map((request) => {
+              ) : paginatedRequests.length > 0 ? (
+                paginatedRequests.map((request) => {
                   const charges = request.amount * ((withdrawalSettings?.chargesPercent || 0) / 100);
                   const finalAmount = request.amount - charges;
                   const isUsdt = request.payment_method.toLowerCase().includes('usdt');
@@ -275,7 +328,7 @@ export default function WithdrawalsPage() {
                     </TableCell>
                     <TableCell>
                         <div className="font-semibold">{formatCurrency(request.amount)}</div>
-                         <div className="text-xs text-muted-foreground">
+                         <div className="text-xs text-muted-foreground font-bold text-green-600">
                             Net: {isUsdt ? `$${finalUsdtAmount}` : formatCurrency(finalAmount)}
                          </div>
                     </TableCell>
@@ -299,6 +352,11 @@ export default function WithdrawalsPage() {
                     <TableCell className="text-right">
                        {request.status === 'Pending' ? (
                           <div className="flex gap-2 justify-end">
+                             <Button asChild variant="outline" size="sm" className="h-8">
+                                <Link href={`/cmadmin/users/${request.user_id}`}>
+                                    <Eye className="mr-2 h-4 w-4"/> View User
+                                </Link>
+                             </Button>
                             <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => openConfirmationDialog(request, 'Approved')} disabled={isUpdating}>
                                 <CheckCircle className="mr-2 h-4 w-4"/> Approve
                             </Button>
@@ -322,6 +380,55 @@ export default function WithdrawalsPage() {
               )}
             </TableBody>
           </Table>
+        </div>
+        
+         <div className="flex items-center justify-between px-2">
+            <div className="text-sm text-muted-foreground">
+                Showing <strong>{paginatedRequests.length}</strong> of <strong>{filteredRequests.length}</strong> requests.
+            </div>
+             <div className="flex items-center gap-6">
+                 <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium">Rows per page</p>
+                    <Select
+                        value={`${rowsPerPage}`}
+                        onValueChange={(value) => setRowsPerPage(Number(value))}
+                    >
+                        <SelectTrigger className="h-8 w-[70px]">
+                            <SelectValue placeholder={rowsPerPage} />
+                        </SelectTrigger>
+                        <SelectContent side="top">
+                            {ROWS_PER_PAGE_OPTIONS.map((pageSize) => (
+                                <SelectItem key={pageSize} value={`${pageSize}`}>
+                                    {pageSize}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        className="h-8 w-8 p-0"
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                    >
+                        <span className="sr-only">Go to previous page</span>
+                        <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm font-medium">
+                        Page {currentPage} of {totalPages || 1}
+                    </span>
+                    <Button
+                        variant="outline"
+                        className="h-8 w-8 p-0"
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage >= totalPages}
+                    >
+                        <span className="sr-only">Go to next page</span>
+                        <ChevronRight className="h-4 w-4" />
+                    </Button>
+                </div>
+             </div>
         </div>
       </div>
 
@@ -370,3 +477,6 @@ export default function WithdrawalsPage() {
     </>
   );
 }
+
+
+    
