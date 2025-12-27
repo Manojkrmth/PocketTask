@@ -66,6 +66,23 @@ DROP FUNCTION IF EXISTS truncate_history(text, date);
 -- after a full reset.
 -- =================================================================
 
+-- Recreate is_admin helper function
+CREATE OR REPLACE FUNCTION is_admin(user_id uuid)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1
+    FROM public.admins
+    WHERE admins.user_id = is_admin.user_id
+  );
+END;
+$$;
+
+
 -- Recreate truncate_all_tables function (for Danger Zone)
 CREATE OR REPLACE FUNCTION truncate_all_tables()
 RETURNS void
@@ -143,6 +160,35 @@ BEGIN
 END;
 $$;
 
+-- Recreate get_all_payment_requests function (for Withdrawals page)
+CREATE OR REPLACE FUNCTION get_all_payment_requests()
+RETURNS TABLE(id int, created_at timestamptz, amount numeric, payment_method varchar, payment_details text, status varchar, user_id uuid, metadata jsonb, users json)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    IF is_admin(auth.uid()) THEN
+        RETURN QUERY
+        SELECT
+            p.id,
+            p.created_at,
+            p.amount,
+            p.payment_method,
+            p.payment_details,
+            p.status,
+            p.user_id,
+            p.metadata,
+            json_build_object('full_name', u.full_name, 'email', u.email)
+        FROM
+            public.payments p
+        JOIN
+            public.users u ON p.user_id = u.id
+        ORDER BY
+            p.created_at DESC;
+    END IF;
+END;
+$$;
 `;
 
 
@@ -199,4 +245,3 @@ function SqlCard({ title, description, icon, sql }: { title: string, description
         </Card>
     )
 }
-
