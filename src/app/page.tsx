@@ -63,13 +63,9 @@ export default function HomePage() {
         if (finError) {
             console.error("Error fetching financials, calculating manually:", finError);
             // Fallback calculation if RPC fails
-            const { data: walletData } = await supabase.from('wallet_history').select('amount, status').eq('user_id', userId);
-            if (walletData) {
-                available = walletData.reduce((acc, item) => {
-                    if (item.status === 'Completed' && item.amount > 0) return acc + item.amount;
-                    if (item.amount < 0) return acc + item.amount;
-                    return acc;
-                }, 0);
+            const { data: profileData } = await supabase.from('users').select('balance_available').eq('id', userId).single();
+            if (profileData) {
+                available = profileData.balance_available || 0;
             }
             const { data: pendingTasks } = await supabase.from('usertasks').select('reward').eq('user_id', userId).eq('status', 'Pending');
             const { data: pendingCoins } = await supabase.from('coinsubmissions').select('reward_inr').eq('user_id', userId).eq('status', 'Pending');

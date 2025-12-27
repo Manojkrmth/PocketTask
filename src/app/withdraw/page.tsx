@@ -59,31 +59,15 @@ export default function WithdrawPage() {
     const fetchData = async (sessionUser: User) => {
         setDataLoading(true);
         
-        const { data: profile } = await supabase.from('users').select('status').eq('id', sessionUser.id).single();
+        const { data: profile, error: profileError } = await supabase.from('users').select('status, balance_available').eq('id', sessionUser.id).single();
         if (profile?.status === 'Blocked') {
             router.push('/blocked');
             return;
         }
         setUserProfileData(profile);
         
-        // Fetch wallet balances
-        const { data: walletData, error: walletError } = await supabase
-            .from('wallet_history')
-            .select('amount, status')
-            .eq('user_id', sessionUser.id);
-        
-        let availableBalance = 0;
-        if (walletData) {
-            availableBalance = walletData.reduce((acc, item) => {
-                if (item.status === 'Completed' && item.amount > 0) {
-                    return acc + item.amount;
-                }
-                if (item.amount < 0) {
-                    return acc + item.amount;
-                }
-                return acc;
-            }, 0);
-        }
+        // Use the balance directly from the users table
+        const availableBalance = profile?.balance_available || 0;
 
         // Fetch hold balance
         const { data: pendingTasks, error: pendingError } = await supabase
