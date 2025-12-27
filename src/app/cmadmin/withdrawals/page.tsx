@@ -81,7 +81,7 @@ export default function WithdrawalsPage() {
 
     if (error) {
       console.error("Error fetching payment requests:", error);
-      const description = 'Could not fetch requests. Please ensure you have admin privileges and have run the "Master RLS & Functions Script" from the SQL Editor page.';
+      const description = 'Could not fetch requests. Please run the "Fix: Withdrawal Requests" script from the SQL Editor page.';
       toast({ variant: 'destructive', title: 'Error Fetching Data', description: description, duration: 10000 });
     } else {
       setRequests(data as any[] as PaymentRequest[]);

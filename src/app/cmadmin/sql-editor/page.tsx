@@ -544,7 +544,7 @@ export default function SQLEditorPage() {
             
             <SqlCard
                 title="Fix: Withdrawal Requests"
-                description="Run this if the Withdrawals page shows an error about a missing function ('get_all_payment_requests'). This script specifically recreates that function. Note: You must run the Master Script afterwards to re-apply other security policies."
+                description="Run this if the Withdrawals page shows an error about a missing function ('get_all_payment_requests'). This script specifically recreates that function."
                 icon={<Wallet className="h-6 w-6 text-red-500"/>}
                 sql={withdrawalFixSqlScript}
             />
