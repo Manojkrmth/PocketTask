@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CopyButton } from '@/components/copy-button';
-import { Copy, AlertTriangle, Database } from 'lucide-react';
+import { Copy, AlertTriangle, Database, IndianRupee } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import QRCode from 'react-qr-code';
 
@@ -293,7 +293,6 @@ CREATE TABLE IF NOT EXISTS public.user_payment_methods (
     method_name text NOT NULL, -- e.g., 'UPI', 'Bank Transfer'
     details text NOT NULL,
     created_at timestamptz DEFAULT now() NOT NULL,
-    updated_at timestamptz DEFAULT now() NOT NULL,
     CONSTRAINT user_payment_methods_user_id_method_id_key UNIQUE (user_id, method_id)
 );
 
@@ -324,10 +323,6 @@ CREATE POLICY "Users can delete their own payment methods"
 ON public.user_payment_methods FOR DELETE
 TO authenticated
 USING (auth.uid() = user_id);
-
--- Add a trigger to update the updated_at timestamp
-CREATE TRIGGER handle_updated_at BEFORE UPDATE ON user_payment_methods
-  FOR EACH ROW EXECUTE PROCEDURE extensions.moddatetime (updated_at);
 
 -- Optional: Add comments on columns
 COMMENT ON COLUMN public.user_payment_methods.method_id IS 'Identifier for the payment method, e.g., ''upi''';
