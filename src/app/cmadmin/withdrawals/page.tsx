@@ -55,7 +55,14 @@ interface PaymentRequest {
   users: {
     full_name: string | null;
     email: string | null;
+    mobile: string | null;
   } | null;
+}
+
+interface WithdrawalSettings {
+    chargesPercent: number;
+    minAmount: number;
+    methods: any[];
 }
 
 export default function WithdrawalsPage() {
@@ -63,6 +70,8 @@ export default function WithdrawalsPage() {
   const [loading, setLoading] = useState(true);
   const [statusFilters, setStatusFilters] = useState<PaymentStatus[]>(['Pending']);
   const [filter, setFilter] = useState('');
+  
+  const [withdrawalSettings, setWithdrawalSettings] = useState<WithdrawalSettings | null>(null);
 
   const [isUpdating, startUpdateTransition] = useTransition();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -71,28 +80,38 @@ export default function WithdrawalsPage() {
   const [actionReason, setActionReason] = useState('');
   
   const { toast } = useToast();
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency, usdToInrRate } = useCurrency();
   
-  const fetchRequests = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.rpc('get_all_payment_requests');
-      if (error) throw error;
-      setRequests(data as PaymentRequest[]);
-    } catch (error: any) {
-      console.error("Error fetching payment requests:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Could not fetch payment requests. Please run the script from the SQL Editor page.",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchRequests();
+    const fetchInitialData = async () => {
+        setLoading(true);
+        try {
+            const [requestsRes, settingsRes] = await Promise.all([
+                supabase.rpc('get_all_payment_requests'),
+                supabase.from('settings').select('withdrawal_settings').eq('id', 1).single()
+            ]);
+
+            if (requestsRes.error) throw requestsRes.error;
+            setRequests(requestsRes.data as PaymentRequest[]);
+
+            if (settingsRes.error) {
+                console.error("Could not fetch withdrawal settings:", settingsRes.error);
+                setWithdrawalSettings({ chargesPercent: 5, minAmount: 500, methods: [] }); // Fallback
+            } else {
+                setWithdrawalSettings(settingsRes.data.withdrawal_settings);
+            }
+        } catch (error: any) {
+            console.error("Error fetching initial data:", error);
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: "Could not fetch page data. Please run the script from the SQL Editor page.",
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+    fetchInitialData();
   }, [toast]);
   
   const handleUpdateStatus = (request: PaymentRequest, status: PaymentStatus) => {
@@ -130,7 +149,10 @@ export default function WithdrawalsPage() {
           description: `Request #${request.id} has been ${status.toLowerCase()}.`,
         });
         
-        await fetchRequests(); // Refresh data
+        // Refetch requests after update
+        const { data, error: refetchError } = await supabase.rpc('get_all_payment_requests');
+        if (refetchError) throw refetchError;
+        setRequests(data as PaymentRequest[]);
 
       } catch (error: any) {
           toast({
@@ -238,14 +260,24 @@ export default function WithdrawalsPage() {
                   </TableCell>
                 </TableRow>
               ) : filteredRequests.length > 0 ? (
-                filteredRequests.map((request) => (
+                filteredRequests.map((request) => {
+                  const charges = request.amount * ((withdrawalSettings?.chargesPercent || 0) / 100);
+                  const finalAmount = request.amount - charges;
+                  const isUsdt = request.payment_method.toLowerCase().includes('usdt');
+                  const finalUsdtAmount = isUsdt ? (finalAmount / usdToInrRate).toFixed(4) : null;
+
+                  return (
                   <TableRow key={request.id}>
                     <TableCell>
                       <div className="font-medium">{request.users?.full_name || 'N/A'}</div>
                       <div className="text-xs text-muted-foreground">{request.users?.email}</div>
+                      <div className="text-xs text-muted-foreground">{request.users?.mobile || 'N/A'}</div>
                     </TableCell>
-                    <TableCell className="font-semibold">
-                      {formatCurrency(request.amount)}
+                    <TableCell>
+                        <div className="font-semibold">{formatCurrency(request.amount)}</div>
+                         <div className="text-xs text-muted-foreground">
+                            Net: {isUsdt ? `$${finalUsdtAmount}` : formatCurrency(finalAmount)}
+                         </div>
                     </TableCell>
                     <TableCell>
                         <div className="font-medium">{request.payment_method}</div>
@@ -265,28 +297,22 @@ export default function WithdrawalsPage() {
                       {formatDistanceToNow(new Date(request.created_at), { addSuffix: true })}
                     </TableCell>
                     <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                           <Button variant="ghost" className="h-8 w-8 p-0" disabled={isUpdating || request.status !== 'Pending'}>
-                            <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onSelect={() => openConfirmationDialog(request, 'Approved')} className="cursor-pointer">
-                            <CheckCircle className="mr-2 h-4 w-4 text-green-600"/>
-                            Approve
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => openConfirmationDialog(request, 'Rejected')} className="cursor-pointer text-destructive">
-                             <XCircle className="mr-2 h-4 w-4"/>
-                            Reject
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                       {request.status === 'Pending' ? (
+                          <div className="flex gap-2 justify-end">
+                            <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => openConfirmationDialog(request, 'Approved')} disabled={isUpdating}>
+                                <CheckCircle className="mr-2 h-4 w-4"/> Approve
+                            </Button>
+                             <Button size="sm" variant="destructive" onClick={() => openConfirmationDialog(request, 'Rejected')} disabled={isUpdating}>
+                               <XCircle className="mr-2 h-4 w-4"/> Reject
+                            </Button>
+                          </div>
+                       ) : (
+                           <span className="text-xs text-muted-foreground">No actions</span>
+                       )}
                     </TableCell>
                   </TableRow>
-                ))
+                  )
+                })
               ) : (
                 <TableRow>
                   <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">

@@ -266,7 +266,7 @@ export default function UserDetailsPage() {
                     </Link>
                  </Button>
                  <Button variant="outline" asChild>
-                    <Link href={`/withdraw/history?userId=${userId}`}>
+                    <Link href={`/cmadmin/payments?userId=${userId}`}>
                         <History className="mr-2 h-4 w-4" /> View Wallet History
                     </Link>
                  </Button>
