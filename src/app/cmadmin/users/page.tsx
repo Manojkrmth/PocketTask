@@ -43,6 +43,7 @@ import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useAdmin } from '../layout';
 
 interface AppUser {
   id: string;
@@ -62,6 +63,7 @@ type SortByType = 'latest' | 'balance' | 'referrals';
 const ROWS_PER_PAGE_OPTIONS = [20, 30, 40, 50, 100];
 
 export default function UsersPage() {
+  const { isViewOnly } = useAdmin();
   const [allUsers, setAllUsers] = useState<AppUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
@@ -256,7 +258,7 @@ export default function UsersPage() {
                                 size="icon" 
                                 className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
                                 onClick={() => openConfirmationDialog(user, 'Block')}
-                                disabled={isUpdating && selectedUser?.id === user.id}
+                                disabled={isUpdating && selectedUser?.id === user.id || isViewOnly}
                             >
                                {isUpdating && selectedUser?.id === user.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <UserX className="h-4 w-4"/>}
                             </Button>
@@ -266,7 +268,7 @@ export default function UsersPage() {
                                 size="icon" 
                                 className="h-8 w-8 text-green-600 hover:bg-green-100/80 hover:text-green-700"
                                 onClick={() => openConfirmationDialog(user, 'Unblock')}
-                                disabled={isUpdating && selectedUser?.id === user.id}
+                                disabled={isUpdating && selectedUser?.id === user.id || isViewOnly}
                             >
                                {isUpdating && selectedUser?.id === user.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <UserCheck className="h-4 w-4"/>}
                             </Button>

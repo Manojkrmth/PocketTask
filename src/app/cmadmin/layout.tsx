@@ -33,7 +33,7 @@ const allNavItems = [
   { href: '/cmadmin/tasks', label: 'Task Manager', icon: ListTodo, requiredPermission: ['full_access', 'view_only'] },
   { href: '/cmadmin/withdrawals', label: 'Withdrawals', icon: IndianRupee, requiredPermission: ['full_access', 'view_only'] },
   { href: '/cmadmin/payments', label: 'Wallet History', icon: History, requiredPermission: ['full_access', 'view_only'] },
-  { href: '/cmadmin/coin-manager', label: 'Coin Manager', icon: Coins, requiredPermission: ['full_access'] },
+  { href: '/cmadmin/coin-manager', label: 'Coin Manager', icon: Coins, requiredPermission: ['full_access', 'view_only'] },
   { href: '/cmadmin/daily-tasks', label: 'Daily Task', icon: ListChecks, requiredPermission: ['full_access'] },
   { href: '/cmadmin/tickets', label: 'Tickets', icon: MessageSquare, requiredPermission: ['full_access', 'view_only'] },
   { href: '/cmadmin/notifications', label: 'Notifications', icon: Bell, requiredPermission: ['full_access'] },
