@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, ListFilter, Wallet, IndianRupee, ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
+import { Loader2, ListFilter } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -54,14 +54,37 @@ export default function PaymentsPage() {
     const fetchHistory = async () => {
       setLoading(true);
       try {
-          const { data, error } = await supabase
+        const { data: historyData, error: historyError } = await supabase
             .from('wallet_history')
-            .select('*, users:user_id(full_name, email)')
+            .select('*')
             .order('created_at', { ascending: false });
 
-          if (error) throw error;
-          setHistory(data as WalletTransaction[]);
+        if (historyError) throw historyError;
+
+        const userIds = [...new Set(historyData.map(item => item.user_id))];
+        
+        if (userIds.length > 0) {
+            const { data: usersData, error: usersError } = await supabase
+                .from('users')
+                .select('id, full_name, email')
+                .in('id', userIds);
+            
+            if (usersError) throw usersError;
+
+            const usersMap = new Map(usersData.map(u => [u.id, u]));
+            
+            const combinedData = historyData.map(item => ({
+                ...item,
+                users: usersMap.get(item.user_id) || null
+            }));
+
+            setHistory(combinedData as WalletTransaction[]);
+        } else {
+             setHistory([]);
+        }
+
       } catch (error: any) {
+          console.error("Error fetching wallet history:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
           toast({
               variant: "destructive",
               title: "Error",
