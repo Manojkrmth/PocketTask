@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { CopyButton } from '@/components/copy-button';
 import { Copy, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import QRCode from "react-qr-code";
 
 const resetAllSqlScript = `
 -- =================================================================
@@ -277,8 +276,6 @@ END;
 $$;
 `;
 
-const upiLink = "upi://pay?pa=realspg@ybl&pn=Real%20SPG&am=200&cu=INR";
-
 
 export default function SQLEditorPage() {
     return (
@@ -291,18 +288,6 @@ export default function SQLEditorPage() {
                     </p>
                 </div>
             </div>
-            
-             <Card>
-                <CardHeader>
-                    <CardTitle>Donate via UPI</CardTitle>
-                    <CardDescription>
-                        Scan this QR code to make a fixed payment of ₹200.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="flex justify-center items-center p-4 bg-white">
-                    <QRCode value={upiLink} size={160} />
-                </CardContent>
-            </Card>
 
             <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
@@ -345,5 +330,3 @@ function SqlCard({ title, description, icon, sql }: { title: string, description
         </Card>
     )
 }
-
-    

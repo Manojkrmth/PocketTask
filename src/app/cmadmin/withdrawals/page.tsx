@@ -30,9 +30,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, Loader2, CheckCircle, XCircle, ListFilter, Download, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
+import { MoreHorizontal, Loader2, CheckCircle, XCircle, ListFilter, Download, ChevronLeft, ChevronRight, Eye, QrCode } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -43,6 +51,7 @@ import { Input } from '@/components/ui/input';
 import Papa from 'papaparse';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Link from 'next/link';
+import QRCode from "react-qr-code";
 
 type PaymentStatus = 'Pending' | 'Approved' | 'Rejected' | 'Cancelled';
 
@@ -84,6 +93,9 @@ export default function WithdrawalsPage() {
   const [newStatus, setNewStatus] = useState<PaymentStatus | null>(null);
   const [actionReason, setActionReason] = useState('');
   
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
+  const [selectedQrData, setSelectedQrData] = useState<{ upiId: string, amount: number, name: string } | null>(null);
+
   const { toast } = useToast();
   const { formatCurrency, usdToInrRate } = useCurrency();
   
@@ -251,6 +263,18 @@ export default function WithdrawalsPage() {
         document.body.removeChild(link);
       }
   }
+  
+  const handleShowQr = (request: PaymentRequest) => {
+    const charges = request.amount * ((withdrawalSettings?.chargesPercent || 0) / 100);
+    const finalAmount = request.amount - charges;
+
+    setSelectedQrData({
+      upiId: request.payment_details,
+      amount: finalAmount,
+      name: request.users?.full_name || 'User'
+    });
+    setQrDialogOpen(true);
+  }
 
 
   return (
@@ -316,6 +340,7 @@ export default function WithdrawalsPage() {
                 paginatedRequests.map((request) => {
                   const charges = request.amount * ((withdrawalSettings?.chargesPercent || 0) / 100);
                   const finalAmount = request.amount - charges;
+                  const isUpi = request.payment_method.toLowerCase().includes('upi');
                   const isUsdt = request.payment_method.toLowerCase().includes('usdt');
                   const finalUsdtAmount = isUsdt ? (finalAmount / usdToInrRate).toFixed(4) : null;
 
@@ -328,13 +353,21 @@ export default function WithdrawalsPage() {
                     </TableCell>
                     <TableCell>
                         <div className="font-semibold">{formatCurrency(request.amount)}</div>
-                         <div className="text-xs text-muted-foreground font-bold text-green-600">
+                         <div className="text-xs text-muted-foreground font-bold text-green-600 bg-green-100 px-1 py-0.5 rounded">
                             Net: {isUsdt ? `$${finalUsdtAmount}` : formatCurrency(finalAmount)}
                          </div>
                     </TableCell>
                     <TableCell>
                         <div className="font-medium">{request.payment_method}</div>
-                        <div className="text-xs text-muted-foreground break-all">{request.payment_details}</div>
+                        <div className="flex items-center gap-2">
+                           <div className="text-xs text-muted-foreground break-all">{request.payment_details}</div>
+                            {isUpi && request.status === 'Pending' && (
+                                <Button variant="outline" size="sm" className="h-7 px-2" onClick={() => handleShowQr(request)}>
+                                    <QrCode className="h-4 w-4 mr-1"/>
+                                    QR
+                                </Button>
+                           )}
+                        </div>
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className={cn(
@@ -474,9 +507,25 @@ export default function WithdrawalsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Scan to Pay</DialogTitle>
+             <DialogDescription>
+                Scan this QR code with any UPI app to pay <span className="font-bold">{formatCurrency(selectedQrData?.amount || 0)}</span> to <span className="font-bold">{selectedQrData?.name}</span>.
+             </DialogDescription>
+          </DialogHeader>
+           {selectedQrData && (
+              <div className="flex justify-center items-center p-4 bg-white rounded-md my-4">
+                <QRCode 
+                    value={`upi://pay?pa=${selectedQrData.upiId}&pn=${encodeURIComponent(selectedQrData.name)}&am=${selectedQrData.amount.toFixed(2)}&cu=INR`}
+                    size={200}
+                />
+              </div>
+           )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
-
-
-    
