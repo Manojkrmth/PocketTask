@@ -151,7 +151,7 @@ export default function PaymentsPage() {
     if (link.download !== undefined) {
       const url = URL.createObjectURL(blob);
       link.setAttribute('href', url);
-      link.setAttribute('download', 'payment_history.csv');
+      link.setAttribute('download', 'wallet_history.csv');
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
@@ -163,7 +163,7 @@ export default function PaymentsPage() {
     <div className="space-y-6">
        <div className="flex justify-between items-center">
             <div>
-                <h1 className="text-3xl font-bold">Payment History</h1>
+                <h1 className="text-3xl font-bold">Wallet History</h1>
                 <p className="text-muted-foreground">
                 View all transactions across all users.
                 </p>
