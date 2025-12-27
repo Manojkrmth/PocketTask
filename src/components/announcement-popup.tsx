@@ -75,7 +75,7 @@ export function AnnouncementPopup() {
   const fallbackContent = {
     text: "BIG SALE! 50% OFF!",
     styles: {
-      container: "bg-gradient-to-br from-red-500 to-orange-500",
+      container: "bg-gradient-to-br from-blue-400 to-primary",
       text: "text-white font-black text-5xl tracking-tighter",
     }
   };
@@ -118,7 +118,7 @@ export function AnnouncementPopup() {
                     className="w-full h-full object-cover"
                 />
             ) : (
-                <div className={cn("p-8 text-center", fallbackContent.styles.container, fallbackContent.styles.text)}>
+                <div className={cn("p-8 text-center w-full h-full flex items-center justify-center", fallbackContent.styles.container, fallbackContent.styles.text)}>
                     {notice.text || fallbackContent.text}
                 </div>
             )}
