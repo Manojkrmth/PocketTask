@@ -51,6 +51,7 @@ DROP FUNCTION IF EXISTS get_and_assign_visit_earn_task(uuid);
 DROP FUNCTION IF EXISTS get_and_assign_watch_earn_task(uuid);
 DROP FUNCTION IF EXISTS truncate_all_tables();
 DROP FUNCTION IF EXISTS truncate_history(text, date);
+DROP FUNCTION IF EXISTS get_daily_dashboard_stats(integer);
 
 
 -- =================================================================
@@ -210,6 +211,43 @@ BEGIN
     limit_count;
 END;
 $$;
+
+-- Recreate get_daily_dashboard_stats function (for Dashboard)
+CREATE OR REPLACE FUNCTION get_daily_dashboard_stats(days_count integer)
+RETURNS TABLE (
+    date date,
+    total_revenue numeric,
+    total_withdrawals numeric,
+    new_users_count integer
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN QUERY
+  WITH date_series AS (
+    SELECT generate_series(
+        CURRENT_DATE - (days_count - 1) * INTERVAL '1 day',
+        CURRENT_DATE,
+        '1 day'
+    )::date AS day
+  )
+  SELECT
+      d.day,
+      COALESCE(SUM(wh.amount) FILTER (WHERE wh.type IN ('task_reward', 'coin_credit', 'spin_win', 'referral_bonus') AND wh.status = 'Completed'), 0) AS total_revenue,
+      COALESCE(SUM(p.amount) FILTER (WHERE p.status = 'Approved'), 0) AS total_withdrawals,
+      (SELECT COUNT(*)::integer FROM public.users u WHERE u.created_at::date = d.day) AS new_users_count
+  FROM
+      date_series d
+  LEFT JOIN
+      public.wallet_history wh ON wh.created_at::date = d.day
+  LEFT JOIN
+      public.payments p ON p.created_at::date = d.day
+  GROUP BY
+      d.day
+  ORDER BY
+      d.day;
+END;
+$$;
 `;
 
 
@@ -266,3 +304,5 @@ function SqlCard({ title, description, icon, sql }: { title: string, description
         </Card>
     )
 }
+
+    
