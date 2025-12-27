@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
+import { useToast } from '@/hooks/use-toast';
 
 type Permission = 'full_access' | 'view_only';
 
@@ -69,6 +70,7 @@ export default function AdminLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [adminProfile, setAdminProfile] = useState<AdminProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -97,8 +99,25 @@ export default function AdminLayout({
         .eq('user_id', session.user.id)
         .single();
     
-    if (adminError || !adminData || !adminData.permissions) {
-        console.error("Admin permission check failed or no permissions set:", adminError);
+    // PGRST116 means no rows found, which is expected for non-admin users.
+    if (adminError && adminError.code !== 'PGRST116') {
+        console.error("Admin permission check failed:", adminError);
+        toast({
+            variant: "destructive",
+            title: "Database Error",
+            description: "Could not verify admin permissions. " + adminError.message,
+        });
+        router.push('/');
+        return;
+    }
+
+    if (!adminData || !adminData.permissions) {
+        console.log("Unauthorized attempt to access admin panel by user:", session.user.email);
+        toast({
+            variant: "destructive",
+            title: "Unauthorized Access",
+            description: "You do not have permission to view this page.",
+        });
         router.push('/');
         return;
     }
@@ -106,7 +125,7 @@ export default function AdminLayout({
     setAdminProfile({ id: session.user.id, role: 'admin', permissions: adminData.permissions as Permission });
     setUser(session.user);
     setLoading(false);
-  }, [router]);
+  }, [router, toast]);
 
   useEffect(() => {
     checkUser();
