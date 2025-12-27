@@ -58,39 +58,68 @@ DROP FUNCTION IF EXISTS truncate_history(text, date);
 
 
 -- =================================================================
--- RECREATE DANGER ZONE FUNCTIONS
+-- RECREATE ESSENTIAL FUNCTIONS
 -- =================================================================
--- These functions are recreated so the Danger Zone page continues
--- to work after a full reset.
+-- These functions are recreated so critical pages continue to work
+-- after a full reset.
 -- =================================================================
 
--- Recreate truncate_all_tables function
+-- Recreate truncate_all_tables function (for Danger Zone)
 CREATE OR REPLACE FUNCTION truncate_all_tables()
 RETURNS void
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    -- This function will truncate all user-related data tables.
-    -- Be extremely careful.
     TRUNCATE TABLE public.users, public.payments, public.usertasks, public.wallet_history, public.support_tickets, public.notifications, public.spin_rewards, public.coinsubmissions RESTART IDENTITY;
 END;
 $$;
 
--- Recreate truncate_history function
+-- Recreate truncate_history function (for Danger Zone)
 CREATE OR REPLACE FUNCTION truncate_history(table_name text, before_date date DEFAULT NULL)
 RETURNS void
 LANGUAGE plpgsql
 AS $$
 BEGIN
     IF before_date IS NULL THEN
-        -- If no date is provided, truncate the whole table
         EXECUTE 'TRUNCATE TABLE public.' || quote_ident(table_name) || ' RESTART IDENTITY;';
     ELSE
-        -- If a date is provided, delete records before that date
         EXECUTE 'DELETE FROM public.' || quote_ident(table_name) || ' WHERE created_at < ''' || before_date || ''';';
     END IF;
 END;
 $$;
+
+-- Recreate get_users_with_referral_counts function (for Users page)
+CREATE OR REPLACE FUNCTION get_users_with_referral_counts()
+RETURNS TABLE (
+    id uuid,
+    full_name text,
+    email text,
+    mobile text,
+    status text,
+    created_at timestamptz,
+    referral_code text,
+    balance_available numeric,
+    referral_count bigint
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    u.id,
+    u.full_name,
+    u.email,
+    u.mobile,
+    u.status,
+    u.created_at,
+    u.referral_code,
+    u.balance_available,
+    (SELECT count(*) FROM public.users AS r WHERE r.referred_by = u.referral_code) AS referral_count
+  FROM
+    public.users u;
+END;
+$$;
+
 `;
 
 
@@ -116,7 +145,7 @@ export default function SQLEditorPage() {
             
             <SqlCard
                 title="RESET ALL POLICIES & FUNCTIONS"
-                description="This script drops ALL Row Level Security policies and custom functions. It then recreates the essential functions needed for the 'Danger Zone' page to work, allowing you to reset data. Run this only if you want to start over."
+                description="This script drops ALL Row Level Security policies and custom functions. It then recreates the essential functions needed for the 'Danger Zone' and 'Users' pages to work, allowing you to reset data. Run this only if you want to start over."
                 icon={<AlertTriangle className="h-6 w-6 text-destructive"/>}
                 sql={resetAllSqlScript}
             />
@@ -147,3 +176,4 @@ function SqlCard({ title, description, icon, sql }: { title: string, description
         </Card>
     )
 }
+
