@@ -59,12 +59,14 @@ interface AppUser {
 type ActionType = 'Block' | 'Unblock';
 type SortByType = 'latest' | 'balance' | 'referrals';
 
+const ROWS_PER_PAGE_OPTIONS = [20, 30, 40, 50, 100];
+
 export default function UsersPage() {
   const [allUsers, setAllUsers] = useState<AppUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
   const [sortBy, setSortBy] = useState<SortByType>('latest');
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(ROWS_PER_PAGE_OPTIONS[0]);
   const [currentPage, setCurrentPage] = useState(1);
   
   const { formatCurrency } = useCurrency();
@@ -143,6 +145,7 @@ export default function UsersPage() {
   }, [allUsers, filter, sortBy]);
   
   const totalPages = Math.ceil(sortedAndFilteredUsers.length / rowsPerPage);
+  
   const paginatedUsers = useMemo(() => {
     const startIndex = (currentPage - 1) * rowsPerPage;
     return sortedAndFilteredUsers.slice(startIndex, startIndex + rowsPerPage);
@@ -300,7 +303,7 @@ export default function UsersPage() {
                             <SelectValue placeholder={rowsPerPage} />
                         </SelectTrigger>
                         <SelectContent side="top">
-                            {[10, 20, 50, 100].map((pageSize) => (
+                            {ROWS_PER_PAGE_OPTIONS.map((pageSize) => (
                                 <SelectItem key={pageSize} value={`${pageSize}`}>
                                     {pageSize}
                                 </SelectItem>
@@ -308,10 +311,10 @@ export default function UsersPage() {
                         </SelectContent>
                     </Select>
                 </div>
-                <div className="text-sm font-medium">
-                    Page {currentPage} of {totalPages}
-                </div>
-                 <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
+                    <div className="text-sm font-medium">
+                        Page {currentPage} of {totalPages || 1}
+                    </div>
                     <Button
                         variant="outline"
                         className="h-8 w-8 p-0"
@@ -325,7 +328,7 @@ export default function UsersPage() {
                         variant="outline"
                         className="h-8 w-8 p-0"
                         onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                        disabled={currentPage === totalPages}
+                        disabled={currentPage >= totalPages}
                     >
                         <span className="sr-only">Go to next page</span>
                         <ChevronRight className="h-4 w-4" />
@@ -357,4 +360,5 @@ export default function UsersPage() {
     </>
   );
 }
+
 

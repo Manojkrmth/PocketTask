@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -28,6 +27,7 @@ import { cn } from '@/lib/utils';
 import { useCurrency } from '@/context/currency-context';
 import { Input } from '@/components/ui/input';
 import Papa from 'papaparse';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type TransactionStatus = 'Completed' | 'Pending' | 'Rejected' | 'Cancelled';
 
@@ -45,7 +45,7 @@ interface WalletTransaction {
   } | null;
 }
 
-const ROWS_PER_PAGE = 20;
+const ROWS_PER_PAGE_OPTIONS = [20, 30, 40, 50, 100];
 
 export default function PaymentsPage() {
   const [history, setHistory] = useState<WalletTransaction[]>([]);
@@ -53,6 +53,7 @@ export default function PaymentsPage() {
   const [statusFilters, setStatusFilters] = useState<TransactionStatus[]>([]);
   const [filter, setFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(ROWS_PER_PAGE_OPTIONS[0]);
   const { toast } = useToast();
   const { formatCurrency } = useCurrency();
 
@@ -107,8 +108,11 @@ export default function PaymentsPage() {
     setStatusFilters(prev => 
       prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
     );
-    setCurrentPage(1); // Reset to first page on filter change
   };
+  
+  useEffect(() => {
+    setCurrentPage(1); // Reset to first page on any filter/search change
+  }, [filter, statusFilters, rowsPerPage]);
 
   const filteredHistory = useMemo(() => {
     return history.filter(item => {
@@ -123,13 +127,13 @@ export default function PaymentsPage() {
     });
   }, [history, statusFilters, filter]);
   
-  const paginatedHistory = useMemo(() => {
-    const startIndex = (currentPage - 1) * ROWS_PER_PAGE;
-    return filteredHistory.slice(startIndex, startIndex + ROWS_PER_PAGE);
-  }, [filteredHistory, currentPage]);
+  const totalPages = Math.ceil(filteredHistory.length / rowsPerPage);
 
-  const totalPages = Math.ceil(filteredHistory.length / ROWS_PER_PAGE);
-  
+  const paginatedHistory = useMemo(() => {
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    return filteredHistory.slice(startIndex, startIndex + rowsPerPage);
+  }, [filteredHistory, currentPage, rowsPerPage]);
+
   const handleDownloadCSV = () => {
     if (filteredHistory.length === 0) {
       toast({ variant: 'destructive', title: 'No data to export' });
@@ -172,10 +176,7 @@ export default function PaymentsPage() {
                 <Input 
                     placeholder="Search name, email, type, desc..."
                     value={filter}
-                    onChange={(e) => {
-                        setFilter(e.target.value);
-                        setCurrentPage(1); // Reset page on new search
-                    }}
+                    onChange={(e) => setFilter(e.target.value)}
                     className="max-w-sm"
                 />
                 <DropdownMenu>
@@ -269,29 +270,49 @@ export default function PaymentsPage() {
             <div className="text-sm text-muted-foreground">
                 Showing <strong>{paginatedHistory.length}</strong> of <strong>{filteredHistory.length}</strong> transactions.
             </div>
-            <div className="flex items-center gap-2">
-                <Button
-                    variant="outline"
-                    className="h-8 w-8 p-0"
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    disabled={currentPage === 1}
-                >
-                    <span className="sr-only">Go to previous page</span>
-                    <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="text-sm font-medium">
-                    Page {currentPage} of {totalPages || 1}
-                </span>
-                <Button
-                    variant="outline"
-                    className="h-8 w-8 p-0"
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    disabled={currentPage === totalPages}
-                >
-                    <span className="sr-only">Go to next page</span>
-                    <ChevronRight className="h-4 w-4" />
-                </Button>
-            </div>
+            <div className="flex items-center gap-6">
+                 <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium">Rows per page</p>
+                    <Select
+                        value={`${rowsPerPage}`}
+                        onValueChange={(value) => setRowsPerPage(Number(value))}
+                    >
+                        <SelectTrigger className="h-8 w-[70px]">
+                            <SelectValue placeholder={rowsPerPage} />
+                        </SelectTrigger>
+                        <SelectContent side="top">
+                            {ROWS_PER_PAGE_OPTIONS.map((pageSize) => (
+                                <SelectItem key={pageSize} value={`${pageSize}`}>
+                                    {pageSize}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        className="h-8 w-8 p-0"
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                    >
+                        <span className="sr-only">Go to previous page</span>
+                        <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm font-medium">
+                        Page {currentPage} of {totalPages || 1}
+                    </span>
+                    <Button
+                        variant="outline"
+                        className="h-8 w-8 p-0"
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage >= totalPages}
+                    >
+                        <span className="sr-only">Go to next page</span>
+                        <ChevronRight className="h-4 w-4" />
+                    </Button>
+                </div>
+             </div>
         </div>
     </div>
   );
