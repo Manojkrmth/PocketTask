@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, useTransition } from 'react';
@@ -79,7 +78,7 @@ export default function FinancialPage() {
     const { data, error } = await supabase.rpc('get_all_payment_requests');
 
     if (error) {
-      console.error("Error fetching payment requests:", error);
+      console.error("Error fetching payment requests:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
       const description = 'Could not fetch requests. Please run the "Fix: Withdrawal Requests" script from the SQL Editor page.';
       toast({ variant: 'destructive', title: 'Error Fetching Data', description: description, duration: 10000 });
     } else {
