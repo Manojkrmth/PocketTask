@@ -160,11 +160,8 @@ export default function WalletHistoryPage() {
       if(canGoBack) setCurrentPage(prev => prev - 1);
   }
   
-  const getTransactionIcon = (type: string) => {
-    if (type === 'withdrawal_pending' && history.find(h => h.type === 'withdrawal_refund' && h.metadata?.payment_id === h.metadata?.payment_id)) {
-        return transactionIcons['withdrawal_refund'];
-    }
-    return transactionIcons[type] || transactionIcons['default'];
+  const getTransactionIcon = (item: any) => {
+      return transactionIcons[item.type] || transactionIcons['default'];
   }
 
   return (
@@ -245,7 +242,7 @@ export default function WalletHistoryPage() {
               {!isHistoryLoading && currentItems.map((item: any) => (
                 <div key={item.id} className="flex items-start gap-4 py-3 border-b last:border-b-0">
                     <div className="p-2 bg-muted rounded-full mt-1">
-                       {getTransactionIcon(item.type)}
+                       {getTransactionIcon(item)}
                     </div>
                     <div className="flex-1">
                         <div className="flex justify-between items-start">
@@ -284,7 +281,7 @@ export default function WalletHistoryPage() {
                         {item.metadata?.utr && (
                             <p className="text-xs text-blue-600 mt-1">UTR: {item.metadata.utr}</p>
                         )}
-                        {item.metadata?.reason && (item.status === 'Rejected' || item.status === 'Cancelled') && (
+                        {item.metadata?.reason && (item.type === 'withdrawal_refund') && (
                              <p className="text-xs text-destructive mt-1">Reason: {item.metadata.reason}</p>
                         )}
                     </div>

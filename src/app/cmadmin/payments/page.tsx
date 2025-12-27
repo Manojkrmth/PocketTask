@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -20,7 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, ListFilter, Download, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, ListFilter, Download, ChevronLeft, ChevronRight, Hash } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -39,6 +40,7 @@ interface WalletTransaction {
   description: string;
   status: TransactionStatus;
   user_id: string;
+  metadata: any;
   users: {
     full_name: string | null;
     email: string | null;
@@ -63,32 +65,11 @@ export default function PaymentsPage() {
       try {
         const { data: historyData, error: historyError } = await supabase
             .from('wallet_history')
-            .select('*')
+            .select('*, users(full_name, email)')
             .order('created_at', { ascending: false });
 
         if (historyError) throw historyError;
-
-        const userIds = [...new Set(historyData.map(item => item.user_id))];
-        
-        if (userIds.length > 0) {
-            const { data: usersData, error: usersError } = await supabase
-                .from('users')
-                .select('id, full_name, email')
-                .in('id', userIds);
-            
-            if (usersError) throw usersError;
-
-            const usersMap = new Map(usersData.map(u => [u.id, u]));
-            
-            const combinedData = historyData.map(item => ({
-                ...item,
-                users: usersMap.get(item.user_id) || null
-            }));
-
-            setHistory(combinedData as WalletTransaction[]);
-        } else {
-             setHistory([]);
-        }
+        setHistory(historyData as WalletTransaction[]);
 
       } catch (error: any) {
           console.error("Error fetching wallet history:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
@@ -147,6 +128,8 @@ export default function PaymentsPage() {
       'Description': item.description,
       'Status': item.status,
       'Date': item.created_at,
+      'UTR': item.metadata?.utr,
+      'Reason': item.metadata?.reason,
     }));
 
     const csv = Papa.unparse(csvData);
@@ -208,8 +191,7 @@ export default function PaymentsPage() {
             <TableRow>
               <TableHead>User</TableHead>
               <TableHead>Amount</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Description</TableHead>
+              <TableHead>Type & Details</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Date</TableHead>
             </TableRow>
@@ -217,7 +199,7 @@ export default function PaymentsPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
+                <TableCell colSpan={5} className="h-24 text-center">
                   <Loader2 className="mx-auto h-6 w-6 animate-spin" />
                 </TableCell>
               </TableRow>
@@ -236,9 +218,9 @@ export default function PaymentsPage() {
                   </TableCell>
                    <TableCell>
                     <div className="font-medium capitalize">{item.type.replace(/_/g, ' ')}</div>
-                  </TableCell>
-                   <TableCell>
-                    <div className="text-sm max-w-xs truncate">{item.description}</div>
+                    <div className="text-sm text-muted-foreground max-w-xs truncate">{item.description}</div>
+                    {item.metadata?.utr && <p className="text-xs text-blue-600 mt-1">UTR: {item.metadata.utr}</p>}
+                    {item.metadata?.reason && <p className="text-xs text-destructive mt-1">Reason: {item.metadata.reason}</p>}
                   </TableCell>
                   <TableCell>
                      <Badge variant="outline" className={cn(
@@ -257,7 +239,7 @@ export default function PaymentsPage() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                   No transactions found for the selected filters.
                 </TableCell>
               </TableRow>

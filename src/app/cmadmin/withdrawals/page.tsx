@@ -141,7 +141,7 @@ export default function WithdrawalsPage() {
       try {
         const metadataUpdate = {
             ...(request.metadata || {}),
-            reason: actionReason || undefined,
+            reason: (status === 'Rejected' || status === 'Cancelled') ? actionReason : undefined,
             utr: status === 'Approved' ? actionReason : undefined,
         };
         
@@ -165,10 +165,21 @@ export default function WithdrawalsPage() {
                 });
             if (refundError) throw new Error(`Could not refund user: ${refundError.message}`);
         }
+        
+        // Send a notification to the user
+        const notificationTitle = `Withdrawal ${status}`;
+        const notificationDescription = `Your withdrawal request for ${formatCurrency(request.amount)} has been ${status.toLowerCase()}.`;
+
+        await supabase.from('notifications').insert({
+            user_id: request.user_id,
+            title: notificationTitle,
+            description: notificationDescription,
+            is_read: false
+        });
 
         toast({
           title: "Success",
-          description: `Request #${request.id} has been ${status.toLowerCase()}.`,
+          description: `Request #${request.id} has been ${status.toLowerCase()}. A notification has been sent.`,
         });
         
         const { data, error: refetchError } = await supabase.rpc('get_all_payment_requests_with_mobile');
@@ -347,6 +358,7 @@ export default function WithdrawalsPage() {
                   const isUpi = request.payment_method.toLowerCase().includes('upi');
                   const isUsdt = request.payment_method.toLowerCase().includes('usdt');
                   const finalUsdtAmount = isUsdt ? (finalAmount / usdToInrRate).toFixed(4) : null;
+                  const metadata = request.metadata || {};
 
                   return (
                   <TableRow key={request.id}>
@@ -369,6 +381,8 @@ export default function WithdrawalsPage() {
                         <div className="flex items-center gap-2 mt-1">
                           <div className="text-xs text-muted-foreground break-all">{request.payment_details}</div>
                         </div>
+                         {metadata.utr && <p className="text-xs text-blue-600 mt-1">UTR: {metadata.utr}</p>}
+                         {metadata.reason && <p className="text-xs text-destructive mt-1">Reason: {metadata.reason}</p>}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className={cn(
