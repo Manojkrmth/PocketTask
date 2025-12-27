@@ -111,6 +111,9 @@ RETURNS TABLE (
     total_earnings numeric,
     total_withdrawn numeric
 )
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
 AS $$
 BEGIN
     RETURN QUERY
@@ -142,7 +145,7 @@ BEGIN
         (SELECT total_credits FROM wallet_summary) as total_earnings,
         (SELECT total_withdrawn FROM withdrawals) as total_withdrawn;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 
 -- Function to get user counts with referrals

@@ -87,8 +87,8 @@ export default function UserDetailsPage() {
       const { data: finData, error: finError } = await supabase.rpc('get_user_financials', { p_user_id: userId });
        if (finError) {
         console.error('Error fetching financials:', finError);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch financial stats.' });
-      } else {
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch financial stats. Please run the master SQL script.' });
+      } else if (finData) {
         setFinancials(finData[0]);
       }
       
