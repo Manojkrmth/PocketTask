@@ -54,39 +54,33 @@ export default function HomePage() {
   const autoplay = React.useRef(Autoplay({ delay: 2000, stopOnInteraction: false }));
 
   React.useEffect(() => {
-    const fetchWalletBalances = async (userId: string) => {
-        const { data: walletData, error: walletError } = await supabase
-            .from('wallet_history')
-            .select('amount, status')
-            .eq('user_id', userId);
+    const fetchUserFinancials = async (userId: string) => {
+        const { data: finData, error: finError } = await supabase.rpc('get_user_financials', { p_user_id: userId });
+        
+        let available = 0;
+        let hold = 0;
 
-        let availableBalance = 0;
-        if (walletData) {
-            availableBalance = walletData.reduce((acc, item) => {
-                // Only completed credits add to the balance
-                if (item.status === 'Completed' && item.amount > 0) {
-                    return acc + item.amount;
-                }
-                // All debits (withdrawals) are subtracted, regardless of status (as they are 'held' from balance)
-                 if (item.amount < 0) {
-                    return acc + item.amount; // amount is already negative
-                }
-                return acc;
-            }, 0);
-        }
-
-        const { data: pendingTasks, error: pendingError } = await supabase
-            .from('usertasks')
-            .select('reward')
-            .eq('user_id', userId)
-            .eq('status', 'Pending');
-            
-        let holdBalance = 0;
-        if (pendingTasks) {
-            holdBalance = pendingTasks.reduce((acc, task) => acc + task.reward, 0);
+        if (finError) {
+            console.error("Error fetching financials, calculating manually:", finError);
+            // Fallback calculation if RPC fails
+            const { data: walletData } = await supabase.from('wallet_history').select('amount, status').eq('user_id', userId);
+            if (walletData) {
+                available = walletData.reduce((acc, item) => {
+                    if (item.status === 'Completed' && item.amount > 0) return acc + item.amount;
+                    if (item.amount < 0) return acc + item.amount;
+                    return acc;
+                }, 0);
+            }
+            const { data: pendingTasks } = await supabase.from('usertasks').select('reward').eq('user_id', userId).eq('status', 'Pending');
+            const { data: pendingCoins } = await supabase.from('coinsubmissions').select('reward_inr').eq('user_id', userId).eq('status', 'Pending');
+            if(pendingTasks) hold += pendingTasks.reduce((acc, task) => acc + task.reward, 0);
+            if(pendingCoins) hold += pendingCoins.reduce((acc, task) => acc + (task.reward_inr || 0), 0);
+        } else if (finData && finData.length > 0) {
+            available = finData[0].available_balance;
+            hold = finData[0].pending_balance;
         }
         
-        setBalances({ available: availableBalance, hold: holdBalance });
+        setBalances({ available, hold });
     };
 
     const fetchNotificationCount = async () => {
@@ -149,7 +143,7 @@ export default function HomePage() {
 
 
       await Promise.all([
-        fetchWalletBalances(sessionUser.id),
+        fetchUserFinancials(sessionUser.id),
         fetchNotificationCount(),
         fetchTaskCounts(sessionUser.id),
         fetchOffers(),

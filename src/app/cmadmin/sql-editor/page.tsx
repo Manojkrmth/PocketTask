@@ -103,6 +103,48 @@ BEGIN
 END;
 $$;
 
+-- Function to get user financials (pending balance, total earnings, etc.)
+CREATE OR REPLACE FUNCTION get_user_financials(p_user_id uuid)
+RETURNS TABLE (
+    available_balance numeric,
+    pending_balance numeric,
+    total_earnings numeric,
+    total_withdrawn numeric
+)
+AS $$
+BEGIN
+    RETURN QUERY
+    WITH wallet_summary AS (
+        SELECT
+            SUM(CASE WHEN type IN ('task_reward', 'referral_bonus', 'manual_credit', 'spin_win', 'coin_credit') AND status = 'Completed' THEN amount ELSE 0 END) AS total_credits,
+            SUM(CASE WHEN type IN ('withdrawal_pending') AND status = 'Completed' THEN amount ELSE 0 END) AS total_debits
+        FROM public.wallet_history
+        WHERE user_id = p_user_id
+    ),
+    pending_tasks AS (
+        SELECT COALESCE(SUM(reward), 0) as pending_amount
+        FROM public.usertasks
+        WHERE user_id = p_user_id AND status = 'Pending'
+    ),
+    pending_coins AS (
+        SELECT COALESCE(SUM(reward_inr), 0) as pending_amount
+        FROM public.coinsubmissions
+        WHERE user_id = p_user_id AND status = 'Pending'
+    ),
+    withdrawals AS (
+        SELECT COALESCE(SUM(amount), 0) as total_withdrawn
+        FROM public.payments
+        WHERE user_id = p_user_id AND status = 'Approved'
+    )
+    SELECT
+        (SELECT u.balance_available FROM public.users u WHERE u.id = p_user_id) as available_balance,
+        (SELECT pending_amount FROM pending_tasks) + (SELECT pending_amount FROM pending_coins) as pending_balance,
+        (SELECT total_credits FROM wallet_summary) as total_earnings,
+        (SELECT total_withdrawn FROM withdrawals) as total_withdrawn;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
 -- Function to get user counts with referrals
 CREATE OR REPLACE FUNCTION get_users_with_referral_counts()
 RETURNS TABLE(
@@ -390,10 +432,6 @@ const withdrawalFixSqlScript = `
 -- Run this if you see an error on the Withdrawals page.
 -- =================================================================
 
--- Drop the old functions if they exist, cascading to remove dependent policies temporarily
-DROP FUNCTION IF EXISTS get_all_payment_requests();
-DROP FUNCTION IF EXISTS is_admin(uuid);
-
 -- Recreate the is_admin helper function
 CREATE OR REPLACE FUNCTION is_admin(user_id uuid)
 RETURNS boolean
@@ -439,9 +477,6 @@ BEGIN
     END IF;
 END;
 $$;
-
--- Note: You must run the MASTER SCRIPT after this to re-apply all RLS policies
--- that were dropped by the CASCADE command.
 `;
 
 

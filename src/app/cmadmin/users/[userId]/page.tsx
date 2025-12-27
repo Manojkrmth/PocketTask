@@ -174,7 +174,7 @@ export default function UserDetailsPage() {
   const formattedDate = format(new Date(user.created_at), 'PPP p');
 
   const stats = [
-    { label: 'Available Balance', value: formatCurrency(user.balance_available || 0), icon: Wallet, color: 'text-green-500' },
+    { label: 'Available Balance', value: formatCurrency(financials?.available_balance || 0), icon: Wallet, color: 'text-green-500' },
     { label: 'Pending Balance', value: formatCurrency(financials?.pending_balance || 0), icon: Clock, color: 'text-yellow-500' },
     { label: 'Total Earnings', value: formatCurrency(financials?.total_earnings || 0), icon: ArrowUp, color: 'text-blue-500' },
     { label: 'Total Withdrawn', value: formatCurrency(financials?.total_withdrawn || 0), icon: ArrowDown, color: 'text-red-500' },
