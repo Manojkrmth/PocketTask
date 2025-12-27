@@ -157,7 +157,7 @@ export default function WithdrawalsPage() {
             const { error: walletHistoryError } = await supabase
                 .from('wallet_history')
                 .update({ status: 'Completed' })
-                .eq('metadata->>payment_id', request.id)
+                .eq('metadata->>payment_id', request.id.toString())
                 .eq('status', 'Pending');
             
             if (walletHistoryError) throw new Error(`Could not update wallet history: ${walletHistoryError.message}`);

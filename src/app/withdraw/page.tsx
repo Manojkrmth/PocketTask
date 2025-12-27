@@ -221,7 +221,7 @@ export default function WithdrawPage() {
                 .insert({
                     user_id: user.id,
                     amount: -amountInr, // Negative amount to deduct from balance
-                    type: 'withdrawal_pending',
+                    type: 'withdrawal_request',
                     status: 'Pending',
                     description: `Withdrawal request for ${formatCurrency(amountInr)} to ${selectedMethod}`,
                     metadata: { payment_id: paymentData.id.toString() }
