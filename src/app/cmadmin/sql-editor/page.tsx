@@ -44,6 +44,7 @@ DROP FUNCTION IF EXISTS get_user_financials(uuid);
 DROP FUNCTION IF EXISTS get_all_payment_requests();
 DROP FUNCTION IF EXISTS get_total_users_count();
 DROP FUNCTION IF EXISTS get_total_users_balance();
+DROP FUNCTION IF EXISTS get_top_referral_users(integer);
 DROP FUNCTION IF EXISTS get_batch_stats(integer);
 DROP FUNCTION IF EXISTS get_and_assign_gmail_task(uuid);
 DROP FUNCTION IF EXISTS get_and_assign_visit_earn_task(uuid);
@@ -181,6 +182,32 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
     RETURN (SELECT COALESCE(SUM(balance_available), 0) FROM public.users);
+END;
+$$;
+
+-- Recreate get_top_referral_users function (for Dashboard)
+CREATE OR REPLACE FUNCTION get_top_referral_users(limit_count integer)
+RETURNS TABLE (
+    id uuid,
+    full_name text,
+    email text,
+    referral_count bigint
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    u.id,
+    u.full_name,
+    u.email,
+    (SELECT count(*) FROM public.users AS r WHERE r.referred_by = u.referral_code) AS referral_count
+  FROM
+    public.users u
+  ORDER BY
+    referral_count DESC
+  LIMIT
+    limit_count;
 END;
 $$;
 `;
