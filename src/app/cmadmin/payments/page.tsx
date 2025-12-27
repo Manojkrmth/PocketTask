@@ -56,7 +56,7 @@ export default function PaymentsPage() {
       try {
           const { data, error } = await supabase
             .from('wallet_history')
-            .select('*, users(full_name, email)')
+            .select('*, users:user_id(full_name, email)')
             .order('created_at', { ascending: false });
 
           if (error) throw error;
@@ -179,4 +179,3 @@ export default function PaymentsPage() {
     </div>
   );
 }
-
