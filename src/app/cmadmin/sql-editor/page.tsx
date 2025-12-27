@@ -111,9 +111,11 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow admins to read all users" ON public.users;
 DROP POLICY IF EXISTS "Allow individual users to read their own data" ON public.users;
 DROP POLICY IF EXISTS "Allow users to update their own profile" ON public.users;
+DROP POLICY IF EXISTS "Allow users to create their own profile" ON public.users;
 CREATE POLICY "Allow admins to read all users" ON public.users FOR SELECT USING (is_admin(auth.uid()));
 CREATE POLICY "Allow individual users to read their own data" ON public.users FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "Allow users to update their own profile" ON public.users FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+CREATE POLICY "Allow users to create their own profile" ON public.users FOR INSERT WITH CHECK (auth.uid() = id);
 
 
 -- ADMINS Table
@@ -631,5 +633,3 @@ export default function SqlEditorPage() {
   );
 }
 
-
-    
