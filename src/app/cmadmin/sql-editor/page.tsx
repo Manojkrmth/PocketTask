@@ -12,7 +12,9 @@ const resetAllSqlScript = `
 -- DANGER: RESET ALL RLS POLICIES & FUNCTIONS
 -- =================================================================
 -- This script will drop ALL RLS policies and ALL custom functions
--- from your database. This is irreversible.
+-- from your database. This is irreversible. It then recreates a
+-- few essential functions needed for the admin panel to operate
+-- after a reset.
 -- =================================================================
 
 -- Step 1: Drop all RLS policies from all tables in the public schema.
@@ -120,6 +122,27 @@ BEGIN
 END;
 $$;
 
+-- Recreate get_user_financials function (for User Details page)
+CREATE OR REPLACE FUNCTION get_user_financials(p_user_id uuid)
+RETURNS TABLE (
+  available_balance numeric,
+  pending_balance numeric,
+  total_earnings numeric,
+  total_withdrawn numeric
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    (SELECT u.balance_available FROM public.users u WHERE u.id = p_user_id) AS available_balance,
+    (SELECT COALESCE(SUM(reward), 0) FROM public.usertasks WHERE user_id = p_user_id AND status = 'Pending') + 
+    (SELECT COALESCE(SUM(reward_inr), 0) FROM public.coinsubmissions WHERE user_id = p_user_id AND status = 'Pending') AS pending_balance,
+    (SELECT COALESCE(SUM(amount), 0) FROM public.wallet_history WHERE user_id = p_user_id AND amount > 0 AND type <> 'withdrawal_refund' AND status = 'Completed') AS total_earnings,
+    (SELECT COALESCE(SUM(ABS(amount)), 0) FROM public.payments WHERE user_id = p_user_id AND status = 'Approved') AS total_withdrawn;
+END;
+$$;
+
 `;
 
 
@@ -139,13 +162,13 @@ export default function SQLEditorPage() {
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Extreme Danger Zone</AlertTitle>
                 <AlertDescription>
-                   The script below is highly destructive and will remove ALL your database security policies and application logic (functions). Use with extreme caution, as this action cannot be undone.
+                   The script below is highly destructive and will remove ALL your database security policies and application logic (functions). Use with extreme caution, as this action cannot be undone. It then recreates some essential functions required for the admin panel to run.
                 </AlertDescription>
             </Alert>
             
             <SqlCard
                 title="RESET ALL POLICIES & FUNCTIONS"
-                description="This script drops ALL Row Level Security policies and custom functions. It then recreates the essential functions needed for the 'Danger Zone' and 'Users' pages to work, allowing you to reset data. Run this only if you want to start over."
+                description="This script drops ALL Row Level Security policies and custom functions. It then recreates the essential functions needed for some pages to work. Run this only if you want to start over from a clean slate."
                 icon={<AlertTriangle className="h-6 w-6 text-destructive"/>}
                 sql={resetAllSqlScript}
             />
