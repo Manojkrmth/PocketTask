@@ -505,7 +505,7 @@ export default function CoinManagerPage() {
                         <Label htmlFor="approval-note" className="font-semibold">Approval Note (Optional)</Label>
                          <Textarea 
                             id="approval-note"
-                            placeholder='Optional approval note...'}
+                            placeholder={'Optional approval note...'}
                             value={actionReason}
                             onChange={(e) => setActionReason(e.target.value)}
                         />
