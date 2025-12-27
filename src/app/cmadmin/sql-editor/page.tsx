@@ -39,20 +39,15 @@ END $$;
 
 -- Step 3: Drop all custom functions created for the admin panel.
 DROP FUNCTION IF EXISTS is_admin(uuid);
-DROP FUNCTION IF EXISTS get_all_users();
-DROP FUNCTION IF EXISTS get_all_admins();
-DROP FUNCTION IF EXISTS get_all_payment_requests();
-DROP FUNCTION IF EXISTS get_user_financials(uuid);
 DROP FUNCTION IF EXISTS get_users_with_referral_counts();
-DROP FUNCTION IF EXISTS get_daily_dashboard_stats(integer);
+DROP FUNCTION IF EXISTS get_user_financials(uuid);
+DROP FUNCTION IF EXISTS get_all_payment_requests();
+DROP FUNCTION IF EXISTS get_total_users_count();
+DROP FUNCTION IF EXISTS get_total_users_balance();
 DROP FUNCTION IF EXISTS get_batch_stats(integer);
 DROP FUNCTION IF EXISTS get_and_assign_gmail_task(uuid);
 DROP FUNCTION IF EXISTS get_and_assign_visit_earn_task(uuid);
 DROP FUNCTION IF EXISTS get_and_assign_watch_earn_task(uuid);
-DROP FUNCTION IF EXISTS get_total_users_balance();
-DROP FUNCTION IF EXISTS get_total_users_count();
-DROP FUNCTION IF EXISTS get_top_referral_users(integer);
--- Drop the truncate functions before recreating them
 DROP FUNCTION IF EXISTS truncate_all_tables();
 DROP FUNCTION IF EXISTS truncate_history(text, date);
 
@@ -63,23 +58,6 @@ DROP FUNCTION IF EXISTS truncate_history(text, date);
 -- These functions are recreated so critical pages continue to work
 -- after a full reset.
 -- =================================================================
-
--- Recreate is_admin helper function
-CREATE OR REPLACE FUNCTION is_admin(user_id uuid)
-RETURNS boolean
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  RETURN EXISTS (
-    SELECT 1
-    FROM public.admins
-    WHERE admins.user_id = is_admin.user_id
-  );
-END;
-$$;
-
 
 -- Recreate truncate_all_tables function (for Danger Zone)
 CREATE OR REPLACE FUNCTION truncate_all_tables()
@@ -166,25 +144,43 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-    IF is_admin(auth.uid()) THEN
-        RETURN QUERY
-        SELECT
-            p.id,
-            p.created_at,
-            p.amount,
-            p.payment_method,
-            p.payment_details,
-            p.status,
-            p.user_id,
-            p.metadata,
-            json_build_object('full_name', u.full_name, 'email', u.email)
-        FROM
-            public.payments p
-        JOIN
-            public.users u ON p.user_id = u.id
-        ORDER BY
-            p.created_at DESC;
-    END IF;
+    RETURN QUERY
+    SELECT
+        p.id,
+        p.created_at,
+        p.amount,
+        p.payment_method,
+        p.payment_details,
+        p.status,
+        p.user_id,
+        p.metadata,
+        json_build_object('full_name', u.full_name, 'email', u.email)
+    FROM
+        public.payments p
+    JOIN
+        public.users u ON p.user_id = u.id
+    ORDER BY
+        p.created_at DESC;
+END;
+$$;
+
+-- Recreate get_total_users_count function (for Dashboard)
+CREATE OR REPLACE FUNCTION get_total_users_count()
+RETURNS integer
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN (SELECT COUNT(*) FROM public.users);
+END;
+$$;
+
+-- Recreate get_total_users_balance function (for Dashboard)
+CREATE OR REPLACE FUNCTION get_total_users_balance()
+RETURNS numeric
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN (SELECT COALESCE(SUM(balance_available), 0) FROM public.users);
 END;
 $$;
 `;
