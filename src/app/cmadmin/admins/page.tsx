@@ -183,20 +183,9 @@ export default function AdminsPage() {
             toast({ variant: 'destructive', title: 'Update Failed', description: error.message });
         } else {
             toast({ title: 'Success', description: `Permissions for ${selectedAdminToEdit.users?.full_name} have been updated.` });
-            
-            // Optimistically update the UI before refetching
-            setAdmins(prevAdmins => 
-                prevAdmins.map(admin => 
-                    admin.user_id === selectedAdminToEdit.user_id 
-                        ? { ...admin, permissions: newPermissionForEdit } 
-                        : admin
-                )
-            );
-
             setEditDialogOpen(false);
             setSelectedAdminToEdit(null);
-            // Optionally refetch to ensure data consistency
-            await fetchAdmins();
+            await fetchAdmins(); // Refetch data to ensure UI consistency
         }
     });
   }
