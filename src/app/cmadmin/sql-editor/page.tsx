@@ -54,8 +54,6 @@ DROP FUNCTION IF EXISTS get_and_assign_watch_earn_task(uuid);
 DROP FUNCTION IF EXISTS get_total_users_balance();
 DROP FUNCTION IF EXISTS get_total_users_count();
 DROP FUNCTION IF EXISTS get_top_referral_users(integer);
-
-RAISE NOTICE 'All specified policies and functions have been dropped.';
 `;
 
 
