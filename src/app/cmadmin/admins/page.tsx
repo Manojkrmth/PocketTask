@@ -31,18 +31,22 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
-import { Loader2, PlusCircle, UserPlus, Shield, UserX } from 'lucide-react';
+import { Loader2, PlusCircle, UserPlus, Shield, UserX, Edit } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+type Permission = 'full_access' | 'view_only';
 
 interface AdminUser {
   id: number;
   user_id: string;
   created_at: string;
+  permissions: Permission | null;
   users: {
     full_name: string | null;
     email: string | null;
@@ -59,10 +63,14 @@ export default function AdminsPage() {
   const [isProcessing, startProcessing] = useTransition();
 
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [dismissDialogOpen, setDismissDialogOpen] = useState(false);
+  
   const [selectedAdminToDismiss, setSelectedAdminToDismiss] = useState<AdminUser | null>(null);
+  const [selectedAdminToEdit, setSelectedAdminToEdit] = useState<AdminUser | null>(null);
 
   const [newAdminUserId, setNewAdminUserId] = useState('');
+  const [newAdminPermission, setNewAdminPermission] = useState<Permission>('full_access');
 
   const { toast } = useToast();
 
@@ -106,7 +114,11 @@ export default function AdminsPage() {
         // Now, add the user to the admins table
         const { error: insertError } = await supabase
             .from('admins')
-            .insert({ user_id: newAdminUserId.trim(), role: 'admin' });
+            .insert({ 
+                user_id: newAdminUserId.trim(), 
+                role: 'admin', 
+                permissions: newAdminPermission 
+            });
 
         if (insertError) {
              if (insertError.code === '23505') { // unique constraint violation
@@ -117,6 +129,7 @@ export default function AdminsPage() {
         } else {
             toast({ title: 'Success', description: 'New admin has been added.' });
             setNewAdminUserId('');
+            setNewAdminPermission('full_access');
             setAddDialogOpen(false);
             await fetchAdmins();
         }
@@ -147,6 +160,31 @@ export default function AdminsPage() {
         }
       });
   }
+  
+  const openEditDialog = (admin: AdminUser) => {
+    setSelectedAdminToEdit(admin);
+    setEditDialogOpen(true);
+  }
+  
+  const handleEditAdmin = () => {
+    if (!selectedAdminToEdit) return;
+
+    startProcessing(async () => {
+        const { error } = await supabase
+            .from('admins')
+            .update({ permissions: selectedAdminToEdit.permissions })
+            .eq('user_id', selectedAdminToEdit.user_id);
+            
+        if (error) {
+            toast({ variant: 'destructive', title: 'Update Failed', description: error.message });
+        } else {
+            toast({ title: 'Success', description: `Permissions for ${selectedAdminToEdit.users?.full_name} have been updated.` });
+            setEditDialogOpen(false);
+            setSelectedAdminToEdit(null);
+            await fetchAdmins();
+        }
+    });
+  }
 
   return (
     <>
@@ -155,7 +193,7 @@ export default function AdminsPage() {
           <div>
             <h1 className="text-3xl font-bold">Admin Management</h1>
             <p className="text-muted-foreground">
-              Add or remove administrators.
+              Add, remove, and manage administrator permissions.
             </p>
           </div>
           <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
@@ -165,17 +203,31 @@ export default function AdminsPage() {
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Add New Admin</DialogTitle>
-                    <DialogDescription>Enter the User ID of the user you want to make an admin.</DialogDescription>
+                    <DialogDescription>Enter the User ID and set permissions for the new admin.</DialogDescription>
                 </DialogHeader>
-                <div className="py-4 space-y-2">
-                    <Label htmlFor="user-id">User ID</Label>
-                    <Input 
-                        id="user-id" 
-                        value={newAdminUserId}
-                        onChange={(e) => setNewAdminUserId(e.target.value)}
-                        placeholder="Enter the full User ID"
-                        disabled={isProcessing}
-                    />
+                <div className="py-4 space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="user-id">User ID</Label>
+                        <Input 
+                            id="user-id" 
+                            value={newAdminUserId}
+                            onChange={(e) => setNewAdminUserId(e.target.value)}
+                            placeholder="Enter the full User ID"
+                            disabled={isProcessing}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="permission">Permissions</Label>
+                        <Select value={newAdminPermission} onValueChange={(value: Permission) => setNewAdminPermission(value)}>
+                            <SelectTrigger id="permission">
+                                <SelectValue placeholder="Select permissions" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="full_access">Full Access</SelectItem>
+                                <SelectItem value="view_only">View Only</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setAddDialogOpen(false)} disabled={isProcessing}>Cancel</Button>
@@ -194,6 +246,7 @@ export default function AdminsPage() {
               <TableRow>
                 <TableHead>Admin User</TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead>Permission</TableHead>
                 <TableHead>Added On</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -201,7 +254,7 @@ export default function AdminsPage() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="h-24 text-center">
+                  <TableCell colSpan={5} className="h-24 text-center">
                     <Loader2 className="mx-auto h-6 w-6 animate-spin" />
                   </TableCell>
                 </TableRow>
@@ -222,28 +275,42 @@ export default function AdminsPage() {
                     <TableCell>
                       <div className="text-sm text-muted-foreground">{admin.users?.email}</div>
                     </TableCell>
+                    <TableCell>
+                       {admin.user_id === nonDeletableAdminId ? (
+                         <Badge variant="secondary">All</Badge>
+                       ) : (
+                         <Badge variant={admin.permissions === 'full_access' ? 'default' : 'outline'} className={cn(admin.permissions === 'full_access' && 'bg-green-600')}>
+                            {admin.permissions === 'full_access' ? 'Full Access' : 'View Only'}
+                         </Badge>
+                       )}
+                    </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {formatDistanceToNow(new Date(admin.created_at), { addSuffix: true })}
                     </TableCell>
                     <TableCell className="text-right">
                        {admin.user_id !== nonDeletableAdminId && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                onClick={() => openDismissDialog(admin)}
-                                disabled={isProcessing}
-                            >
-                                <UserX className="mr-2 h-4 w-4" />
-                                Dismiss Admin
-                            </Button>
+                           <div className="flex gap-2 justify-end">
+                                <Button variant="outline" size="sm" onClick={() => openEditDialog(admin)} disabled={isProcessing}>
+                                    <Edit className="mr-2 h-4 w-4" /> Edit
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                    onClick={() => openDismissDialog(admin)}
+                                    disabled={isProcessing}
+                                >
+                                    <UserX className="mr-2 h-4 w-4" />
+                                    Dismiss
+                                </Button>
+                           </div>
                        )}
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={4} className="h-24 text-center">
+                  <TableCell colSpan={5} className="h-24 text-center">
                     No admins found.
                   </TableCell>
                 </TableRow>
@@ -269,7 +336,40 @@ export default function AdminsPage() {
             </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Edit Permissions</DialogTitle>
+                <DialogDescription>Change the permission level for <span className="font-bold">{selectedAdminToEdit?.users?.full_name}</span>.</DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+                <Label htmlFor="edit-permission">Permissions</Label>
+                <Select 
+                    value={selectedAdminToEdit?.permissions || 'full_access'} 
+                    onValueChange={(value: Permission) => setSelectedAdminToEdit(prev => prev ? { ...prev, permissions: value } : null)}
+                >
+                    <SelectTrigger id="edit-permission">
+                        <SelectValue placeholder="Select permissions" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="full_access">Full Access</SelectItem>
+                        <SelectItem value="view_only">View Only</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+            <DialogFooter>
+                <Button variant="outline" onClick={() => setEditDialogOpen(false)} disabled={isProcessing}>Cancel</Button>
+                <Button onClick={handleEditAdmin} disabled={isProcessing}>
+                    {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                    Save Changes
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
+    
+
     

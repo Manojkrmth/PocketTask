@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CopyButton } from '@/components/copy-button';
-import { Copy, AlertTriangle, Database, IndianRupee } from 'lucide-react';
+import { Copy, AlertTriangle, Database, IndianRupee, Shield } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import QRCode from 'react-qr-code';
 
@@ -171,7 +171,7 @@ $$;
 
 -- Recreate get_all_admins function (for Admins page)
 CREATE OR REPLACE FUNCTION get_all_admins()
-RETURNS TABLE(id bigint, user_id uuid, created_at timestamptz, users json)
+RETURNS TABLE(id bigint, user_id uuid, created_at timestamptz, permissions text, users json)
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
@@ -182,6 +182,7 @@ BEGIN
         a.id,
         a.user_id,
         a.created_at,
+        a.permissions,
         json_build_object('full_name', u.full_name, 'email', u.email)
     FROM
         public.admins a
@@ -329,6 +330,26 @@ COMMENT ON COLUMN public.user_payment_methods.method_id IS 'Identifier for the p
 COMMENT ON COLUMN public.user_payment_methods.details IS 'The actual payment details, like UPI ID or bank account info';
 `;
 
+const addPermissionsColumnSql = `
+-- =================================================================
+-- ADD PERMISSIONS TO ADMINS TABLE
+-- =================================================================
+-- This script adds a 'permissions' column to the 'admins' table
+-- to allow for role-based access control.
+-- Run this script ONE TIME.
+-- =================================================================
+
+-- Add the new column to the table
+ALTER TABLE public.admins
+ADD COLUMN IF NOT EXISTS permissions TEXT;
+
+-- Set a default value for existing admins to avoid null values
+-- You can change 'full_access' to 'view_only' if you prefer a more restrictive default
+UPDATE public.admins
+SET permissions = 'full_access'
+WHERE permissions IS NULL;
+`;
+
 
 export default function SQLEditorPage() {
     return (
@@ -341,6 +362,14 @@ export default function SQLEditorPage() {
                     </p>
                 </div>
             </div>
+
+             <SqlCard
+                title="ADD ADMIN PERMISSIONS COLUMN"
+                description="Run this script ONE TIME to add the 'permissions' column to your 'admins' table. This is required for the new admin permission system."
+                icon={<Shield className="h-6 w-6 text-green-500"/>}
+                sql={addPermissionsColumnSql}
+                cardClassName="border-green-500"
+            />
 
              <SqlCard
                 title="CREATE PAYMENT METHODS TABLE"
