@@ -334,7 +334,7 @@ export default function AdminsPage() {
             </AlertDialogHeader>
             <AlertDialogFooter>
                 <AlertDialogCancel disabled={isProcessing}>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDismissAdmin} disabled={isProcessing}>
+                <AlertDialogAction onClick={handleDismissAdmin} disabled={isProcessing} className="bg-red-600 hover:bg-red-700">
                     {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
                     Confirm Dismissal
                 </AlertDialogAction>
@@ -380,3 +380,4 @@ export default function AdminsPage() {
     
 
     
+
