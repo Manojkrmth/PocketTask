@@ -105,8 +105,7 @@ export default function WithdrawalsPage() {
   const [rowsPerPage, setRowsPerPage] = useState(ROWS_PER_PAGE_OPTIONS[1]);
 
 
-  useEffect(() => {
-    const fetchInitialData = async () => {
+  const fetchInitialData = async () => {
         setLoading(true);
         try {
             const { data: requestsData, error: requestsError } = await supabase.rpc('get_all_payment_requests_with_mobile');
@@ -133,6 +132,8 @@ export default function WithdrawalsPage() {
             setLoading(false);
         }
     };
+  
+  useEffect(() => {
     fetchInitialData();
   }, [toast]);
   
@@ -145,30 +146,27 @@ export default function WithdrawalsPage() {
             utr: status === 'Approved' ? actionReason : undefined,
         };
         
-        // Update payments table status
-        const { error } = await supabase
+        const { error: paymentUpdateError } = await supabase
             .from('payments')
             .update({ status: status, metadata: metadataUpdate })
             .eq('id', request.id);
 
-        if (error) throw error;
+        if (paymentUpdateError) throw new Error(`Failed to update payment status: ${paymentUpdateError.message}`);
         
         if (status === 'Approved') {
             const { error: walletHistoryError } = await supabase
                 .from('wallet_history')
-                .update({ status: 'Completed' })
-                .eq('metadata->>payment_id', request.id.toString())
-                .eq('status', 'Pending');
+                .update({ status: 'Completed', metadata: metadataUpdate })
+                .eq('metadata->>payment_id', String(request.id));
             
             if (walletHistoryError) throw new Error(`Could not update wallet history: ${walletHistoryError.message}`);
 
         } else if (status === 'Rejected' || status === 'Cancelled') {
-            // Refund the user if rejected or cancelled
             const { error: refundError } = await supabase
                 .from('wallet_history')
                 .insert({
                     user_id: request.user_id,
-                    amount: request.amount, // Positive amount to refund
+                    amount: request.amount, 
                     type: 'withdrawal_refund',
                     status: 'Completed',
                     description: `Refund for ${status.toLowerCase()} withdrawal request #${request.id}`,
@@ -192,9 +190,7 @@ export default function WithdrawalsPage() {
           description: `Request #${request.id} has been ${status.toLowerCase()}. A notification has been sent.`,
         });
         
-        const { data, error: refetchError } = await supabase.rpc('get_all_payment_requests_with_mobile');
-        if (refetchError) throw refetchError;
-        setRequests(data as PaymentRequest[]);
+        await fetchInitialData();
 
       } catch (error: any) {
           toast({
