@@ -17,7 +17,8 @@ import {
   History,
   Wallet,
   Mail,
-  MessageSquare
+  MessageSquare,
+  Banknote
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -101,11 +102,18 @@ function ReferrerInfoCard({ referralCode }: { referralCode: string }) {
     );
 }
 
+interface SavedPaymentMethod {
+  id: number;
+  method_name: string;
+  details: string;
+}
+
 export default function ProfilePage() {
   const router = useRouter();
   const { toast } = useToast();
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [savedMethods, setSavedMethods] = useState<SavedPaymentMethod[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   const [settings, setSettings] = useState<any>(null);
@@ -132,6 +140,13 @@ export default function ProfilePage() {
     // Fetch system settings
     const { data: appSettings } = await supabase.from('settings').select('*').eq('id', 1).single();
     setSettings(appSettings || {});
+
+    // Fetch saved payment methods
+    const { data: methodsData } = await supabase
+        .from('user_payment_methods')
+        .select('*')
+        .eq('user_id', sessionUser.id);
+    setSavedMethods(methodsData || []);
 
     setIsLoading(false);
   }, [router]);
@@ -199,6 +214,24 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
+        {savedMethods.length > 0 && (
+           <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Banknote className="h-5 w-5 text-primary"/> Saved Accounts</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-3">
+                    {savedMethods.map(method => (
+                         <div key={method.id} className="text-sm p-3 border rounded-md bg-muted/50">
+                            <p className="font-semibold">{method.method_name}</p>
+                            <p className="text-muted-foreground break-all">{method.details}</p>
+                        </div>
+                    ))}
+                </div>
+            </CardContent>
+        </Card>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle>Connect with Us</CardTitle>
@@ -255,3 +288,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+    

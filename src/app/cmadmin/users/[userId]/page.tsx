@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Loader2, User, Mail, Phone, Calendar, Hash, Wallet, BarChart, Shield,
   ArrowLeftRight, Edit, UserPlus, CheckCircle, Clock, XCircle, ArrowUp, ArrowDown,
-  History, ListTodo,
+  History, ListTodo, Banknote,
 } from 'lucide-react';
 import { useCurrency } from '@/context/currency-context';
 import { format } from 'date-fns';
@@ -50,6 +50,12 @@ interface FinancialStats {
   total_withdrawn: number;
 }
 
+interface SavedPaymentMethod {
+  id: number;
+  method_name: string;
+  details: string;
+}
+
 export default function UserDetailsPage() {
   const params = useParams();
   const router = useRouter();
@@ -60,6 +66,7 @@ export default function UserDetailsPage() {
   const [user, setUser] = useState<AppUser | null>(null);
   const [financials, setFinancials] = useState<FinancialStats | null>(null);
   const [referralCount, setReferralCount] = useState(0);
+  const [savedMethods, setSavedMethods] = useState<SavedPaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [isBalanceDialogOpen, setIsBalanceDialogOpen] = useState(false);
@@ -97,6 +104,17 @@ export default function UserDetailsPage() {
         console.error('Error fetching referral count:', refError);
       } else {
         setReferralCount(count || 0);
+      }
+
+      const { data: methodsData, error: methodsError } = await supabase
+        .from('user_payment_methods')
+        .select('id, method_name, details')
+        .eq('user_id', userId);
+      
+      if (methodsError) {
+        console.error('Error fetching saved payment methods:', methodsError);
+      } else {
+        setSavedMethods(methodsData || []);
       }
       
       setLoading(false);
@@ -251,6 +269,26 @@ export default function UserDetailsPage() {
                 </CardContent>
             </Card>
         </div>
+
+         <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Banknote className="h-5 w-5 text-primary"/> Saved Payment Methods</CardTitle>
+            </CardHeader>
+            <CardContent>
+                {savedMethods.length > 0 ? (
+                    <div className="space-y-3">
+                        {savedMethods.map(method => (
+                             <div key={method.id} className="text-sm p-3 border rounded-md bg-muted/50">
+                                <p className="font-semibold">{method.method_name}</p>
+                                <p className="text-muted-foreground break-all">{method.details}</p>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-sm text-muted-foreground">No payment methods saved for this user yet.</p>
+                )}
+            </CardContent>
+        </Card>
         
         <Card>
             <CardHeader>
@@ -312,3 +350,5 @@ export default function UserDetailsPage() {
     </>
   );
 }
+
+    

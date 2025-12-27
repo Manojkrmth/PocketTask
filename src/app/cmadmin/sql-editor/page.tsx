@@ -3,8 +3,9 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CopyButton } from '@/components/copy-button';
-import { Copy, AlertTriangle } from 'lucide-react';
+import { Copy, AlertTriangle, Database } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import QRCode from 'react-qr-code';
 
 const resetAllSqlScript = `
 -- =================================================================
@@ -276,6 +277,75 @@ END;
 $$;
 `;
 
+const createPaymentMethodsTableSql = `
+-- =================================================================
+-- CREATE USER PAYMENT METHODS TABLE
+-- =================================================================
+-- This script creates a new table to store saved payment methods
+-- for each user. This will allow auto-filling withdrawal details.
+-- =================================================================
+
+-- Create the table
+CREATE TABLE IF NOT EXISTS public.user_payment_methods (
+    id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    user_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    method_id text NOT NULL, -- e.g., 'upi', 'bank', 'usdt_bep20'
+    method_name text NOT NULL, -- e.g., 'UPI', 'Bank Transfer'
+    details text NOT NULL,
+    created_at timestamptz DEFAULT now() NOT NULL,
+    updated_at timestamptz DEFAULT now() NOT NULL,
+    CONSTRAINT user_payment_methods_user_id_method_id_key UNIQUE (user_id, method_id)
+);
+
+-- Enable Row Level Security
+ALTER TABLE public.user_payment_methods ENABLE ROW LEVEL SECURITY;
+
+-- Create policies for RLS
+-- Users can view their own payment methods.
+CREATE POLICY "Users can view their own payment methods"
+ON public.user_payment_methods FOR SELECT
+TO authenticated
+USING (auth.uid() = user_id);
+
+-- Users can insert their own payment methods.
+CREATE POLICY "Users can insert their own payment methods"
+ON public.user_payment_methods FOR INSERT
+TO authenticated
+WITH CHECK (auth.uid() = user_id);
+
+-- Users can update their own payment methods.
+CREATE POLICY "Users can update their own payment methods"
+ON public.user_payment_methods FOR UPDATE
+TO authenticated
+USING (auth.uid() = user_id);
+
+-- Users can delete their own payment methods.
+CREATE POLICY "Users can delete their own payment methods"
+ON public.user_payment_methods FOR DELETE
+TO authenticated
+USING (auth.uid() = user_id);
+
+-- Admins can access all payment methods.
+-- Note: For this to work, you need an 'is_admin' function.
+-- If you don't have one, you can run this policy creation
+-- after setting up admin roles.
+-- CREATE POLICY "Admins have full access"
+-- ON public.user_payment_methods FOR ALL
+-- TO authenticated
+-- USING (is_admin(auth.uid()))
+-- WITH CHECK (is_admin(auth.uid()));
+
+-- Add a trigger to update the updated_at timestamp
+CREATE OR REPLACE TRIGGER on_user_payment_methods_update
+BEFORE UPDATE ON public.user_payment_methods
+FOR EACH ROW
+EXECUTE FUNCTION public.moddatetime('updated_at');
+
+-- Optional: Add comments on columns
+COMMENT ON COLUMN public.user_payment_methods.method_id IS 'Identifier for the payment method, e.g., ''upi''';
+COMMENT ON COLUMN public.user_payment_methods.details IS 'The actual payment details, like UPI ID or bank account info';
+`;
+
 
 export default function SQLEditorPage() {
     return (
@@ -288,6 +358,14 @@ export default function SQLEditorPage() {
                     </p>
                 </div>
             </div>
+
+             <SqlCard
+                title="CREATE PAYMENT METHODS TABLE"
+                description="Run this script ONE TIME to create the new `user_payment_methods` table. This table is required for the new auto-save and auto-fill withdrawal feature."
+                icon={<Database className="h-6 w-6 text-blue-500"/>}
+                sql={createPaymentMethodsTableSql}
+                cardClassName="border-blue-500"
+            />
 
             <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
@@ -302,14 +380,15 @@ export default function SQLEditorPage() {
                 description="This script drops ALL Row Level Security policies and custom functions. It then recreates the essential functions needed for some pages to work. Run this only if you want to start over from a clean slate."
                 icon={<AlertTriangle className="h-6 w-6 text-destructive"/>}
                 sql={resetAllSqlScript}
+                cardClassName="border-destructive"
             />
         </div>
     );
 }
 
-function SqlCard({ title, description, icon, sql }: { title: string, description: string, icon: React.ReactNode, sql: string }) {
+function SqlCard({ title, description, icon, sql, cardClassName }: { title: string, description: string, icon: React.ReactNode, sql: string, cardClassName?: string }) {
     return (
-        <Card className="border-destructive">
+        <Card className={cardClassName}>
             <CardHeader>
                 <div className="flex items-start gap-4">
                     {icon}
@@ -330,3 +409,5 @@ function SqlCard({ title, description, icon, sql }: { title: string, description
         </Card>
     )
 }
+
+    

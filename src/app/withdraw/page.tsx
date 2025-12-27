@@ -35,12 +35,19 @@ import { PageHeader } from '@/components/page-header';
 import { useRouter } from 'next/navigation';
 import BannerAd from '@/components/ads/banner-ad';
 
+interface SavedPaymentMethod {
+  method_id: string;
+  method_name: string;
+  details: string;
+}
+
 export default function WithdrawPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [balances, setBalances] = useState({ available: 0, hold: 0 });
   const [settingsData, setSettingsData] = useState<any>(null);
+  const [savedMethods, setSavedMethods] = useState<SavedPaymentMethod[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
 
   const [isSubmitting, startTransition] = useTransition();
@@ -98,6 +105,14 @@ export default function WithdrawPage() {
         } else {
             setSettingsData(appSettings.withdrawal_settings);
         }
+
+        const { data: methods, error: methodsError } = await supabase
+            .from('user_payment_methods')
+            .select('*')
+            .eq('user_id', sessionUser.id);
+        if (!methodsError) {
+            setSavedMethods(methods);
+        }
         
         setDataLoading(false);
     };
@@ -123,6 +138,17 @@ export default function WithdrawPage() {
   
   const withdrawalSettings = settingsData || { chargesPercent: 2, minAmount: 500, methods: [] };
   const availableMethods = (withdrawalSettings.methods || []).filter((m: any) => m.enabled);
+  
+  const handleMethodChange = (methodName: string) => {
+      setSelectedMethod(methodName);
+      const selectedMethodConfig = availableMethods.find((m: any) => m.name === methodName);
+      if (selectedMethodConfig) {
+          const savedMethod = savedMethods.find(m => m.method_id === selectedMethodConfig.id);
+          setPaymentDetails(savedMethod?.details || '');
+      } else {
+          setPaymentDetails('');
+      }
+  };
 
 
   const getPlaceholder = (methodId: string) => {
@@ -202,8 +228,26 @@ export default function WithdrawPage() {
                 });
 
             if (historyError) throw historyError;
+
+            // Step 3: Save/update the payment method for the user
+            const selectedMethodConfig = availableMethods.find((m: any) => m.name === selectedMethod);
+            if (selectedMethodConfig) {
+                 const { error: saveMethodError } = await supabase
+                    .from('user_payment_methods')
+                    .upsert({
+                        user_id: user.id,
+                        method_id: selectedMethodConfig.id,
+                        method_name: selectedMethodConfig.name,
+                        details: paymentDetails,
+                    }, { onConflict: 'user_id, method_id' });
+
+                if (saveMethodError) {
+                    // Log this error but don't block the main flow
+                    console.error("Could not save user payment method:", saveMethodError);
+                }
+            }
             
-            // Step 3: Optimistically update local state
+            // Step 4: Optimistically update local state
             const newBalance = balances.available - amountInr;
             setBalances(prev => ({...prev, available: newBalance}));
 
@@ -278,7 +322,7 @@ export default function WithdrawPage() {
           <CardContent className="space-y-4">
             <div>
               <Label className="font-bold">Withdrawal Method</Label>
-              <Select onValueChange={setSelectedMethod} value={selectedMethod} disabled={isLoading || isUserBlocked}>
+              <Select onValueChange={handleMethodChange} value={selectedMethod} disabled={isLoading || isUserBlocked}>
                   <SelectTrigger className="w-full mt-1">
                       <SelectValue placeholder="Select a method" />
                   </SelectTrigger>
@@ -410,3 +454,5 @@ export default function WithdrawPage() {
     </div>
   );
 }
+
+    
