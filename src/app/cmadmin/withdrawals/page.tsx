@@ -154,7 +154,6 @@ export default function WithdrawalsPage() {
         if (error) throw error;
         
         if (status === 'Approved') {
-            // Find the corresponding wallet_history entry and update its status
             const { error: walletHistoryError } = await supabase
                 .from('wallet_history')
                 .update({ status: 'Completed' })
@@ -178,7 +177,6 @@ export default function WithdrawalsPage() {
             if (refundError) throw new Error(`Could not refund user: ${refundError.message}`);
         }
         
-        // Send a notification to the user
         const notificationTitle = `Withdrawal ${status}`;
         const notificationDescription = `Your withdrawal request for ${formatCurrency(request.amount)} has been ${status.toLowerCase()}.`;
 

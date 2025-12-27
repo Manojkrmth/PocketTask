@@ -224,7 +224,7 @@ export default function WithdrawPage() {
                     type: 'withdrawal_pending',
                     status: 'Pending',
                     description: `Withdrawal request for ${formatCurrency(amountInr)} to ${selectedMethod}`,
-                    metadata: { payment_id: paymentData.id }
+                    metadata: { payment_id: paymentData.id.toString() }
                 });
 
             if (historyError) throw historyError;
@@ -454,5 +454,3 @@ export default function WithdrawPage() {
     </div>
   );
 }
-
-    

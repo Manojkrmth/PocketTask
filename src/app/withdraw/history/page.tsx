@@ -281,7 +281,7 @@ export default function WalletHistoryPage() {
                         {item.metadata?.utr && (
                             <p className="text-xs text-blue-600 mt-1">UTR: {item.metadata.utr}</p>
                         )}
-                        {item.metadata?.reason && (item.type === 'withdrawal_refund') && (
+                        {item.metadata?.reason && (
                              <p className="text-xs text-destructive mt-1">Reason: {item.metadata.reason}</p>
                         )}
                     </div>
