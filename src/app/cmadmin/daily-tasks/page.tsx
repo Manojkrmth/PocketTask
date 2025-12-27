@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import {
@@ -32,7 +32,9 @@ import {
   ListChecks,
   Eye,
   Video,
-  AlertTriangle
+  AlertTriangle,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -61,6 +63,8 @@ interface DailyTask {
 
 type TaskType = 'visit-earn' | 'watch-earn';
 
+const ROWS_PER_PAGE_OPTIONS = [10, 20, 30, 40, 50];
+
 export default function DailyTasksAdminPage() {
   const { toast } = useToast();
   const [tasks, setTasks] = useState<{ [key in TaskType]: DailyTask[] }>({
@@ -72,6 +76,11 @@ export default function DailyTasksAdminPage() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<DailyTask & { type: TaskType } | null>(null);
+  
+  const [pagination, setPagination] = useState<{ [key in TaskType]: { currentPage: number, rowsPerPage: number } }>({
+    'visit-earn': { currentPage: 1, rowsPerPage: ROWS_PER_PAGE_OPTIONS[1] },
+    'watch-earn': { currentPage: 1, rowsPerPage: ROWS_PER_PAGE_OPTIONS[1] }
+  });
 
   const fetchTasks = async () => {
     setLoading(true);
@@ -99,6 +108,17 @@ export default function DailyTasksAdminPage() {
   useEffect(() => {
     fetchTasks();
   }, []);
+  
+  const handlePaginationChange = (type: TaskType, key: 'currentPage' | 'rowsPerPage', value: number) => {
+    setPagination(prev => ({
+        ...prev,
+        [type]: {
+            ...prev[type],
+            [key]: value,
+            currentPage: key === 'rowsPerPage' ? 1 : value
+        }
+    }));
+  }
 
   const handleEditClick = (task: DailyTask, type: TaskType) => {
     setEditingTask({ ...task, type });
@@ -168,13 +188,29 @@ export default function DailyTasksAdminPage() {
         }
      });
   };
+  
+  const paginatedTasks = (type: TaskType) => {
+    const { currentPage, rowsPerPage } = pagination[type];
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    return tasks[type].slice(startIndex, startIndex + rowsPerPage);
+  };
+  
+  const totalPages = (type: TaskType) => {
+      const { rowsPerPage } = pagination[type];
+      return Math.ceil(tasks[type].length / rowsPerPage);
+  }
 
-  const renderTaskList = (type: TaskType) => (
+  const renderTaskList = (type: TaskType) => {
+    const currentTasks = paginatedTasks(type);
+    const pages = totalPages(type);
+    const { currentPage, rowsPerPage } = pagination[type];
+
+    return (
     <div className="space-y-4">
       {loading ? (
         <div className="flex justify-center items-center h-40"><Loader2 className="animate-spin h-8 w-8" /></div>
       ) : tasks[type].length > 0 ? (
-        tasks[type].map(task => (
+        currentTasks.map(task => (
           <Card key={task.id}>
             <CardHeader className="pb-2">
               <div className="flex justify-between items-start gap-4">
@@ -201,8 +237,59 @@ export default function DailyTasksAdminPage() {
       ) : (
         <p className="text-center text-muted-foreground py-10">No tasks found for this category.</p>
       )}
+       {tasks[type].length > 0 && (
+         <div className="flex items-center justify-between px-2">
+            <div className="text-sm text-muted-foreground">
+                Showing <strong>{currentTasks.length}</strong> of <strong>{tasks[type].length}</strong> tasks.
+            </div>
+             <div className="flex items-center gap-6">
+                 <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium">Rows per page</p>
+                    <Select
+                        value={`${rowsPerPage}`}
+                        onValueChange={(value) => handlePaginationChange(type, 'rowsPerPage', Number(value))}
+                    >
+                        <SelectTrigger className="h-8 w-[70px]">
+                            <SelectValue placeholder={rowsPerPage} />
+                        </SelectTrigger>
+                        <SelectContent side="top">
+                            {ROWS_PER_PAGE_OPTIONS.map((pageSize) => (
+                                <SelectItem key={pageSize} value={`${pageSize}`}>
+                                    {pageSize}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        className="h-8 w-8 p-0"
+                        onClick={() => handlePaginationChange(type, 'currentPage', Math.max(currentPage - 1, 1))}
+                        disabled={currentPage === 1}
+                    >
+                        <span className="sr-only">Go to previous page</span>
+                        <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm font-medium">
+                        Page {currentPage} of {pages || 1}
+                    </span>
+                    <Button
+                        variant="outline"
+                        className="h-8 w-8 p-0"
+                        onClick={() => handlePaginationChange(type, 'currentPage', Math.min(currentPage + 1, pages))}
+                        disabled={currentPage >= pages}
+                    >
+                        <span className="sr-only">Go to next page</span>
+                        <ChevronRight className="h-4 w-4" />
+                    </Button>
+                </div>
+             </div>
+        </div>
+       )}
     </div>
-  );
+    )
+  };
 
   return (
     <>
@@ -351,5 +438,3 @@ function TaskFormDialog({ isOpen, onOpenChange, task, onSave, onUpdate, isSubmit
         </Dialog>
     )
 }
-
-    
