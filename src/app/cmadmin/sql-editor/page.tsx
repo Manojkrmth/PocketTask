@@ -325,21 +325,9 @@ ON public.user_payment_methods FOR DELETE
 TO authenticated
 USING (auth.uid() = user_id);
 
--- Admins can access all payment methods.
--- Note: For this to work, you need an 'is_admin' function.
--- If you don't have one, you can run this policy creation
--- after setting up admin roles.
--- CREATE POLICY "Admins have full access"
--- ON public.user_payment_methods FOR ALL
--- TO authenticated
--- USING (is_admin(auth.uid()))
--- WITH CHECK (is_admin(auth.uid()));
-
 -- Add a trigger to update the updated_at timestamp
-CREATE OR REPLACE TRIGGER on_user_payment_methods_update
-BEFORE UPDATE ON public.user_payment_methods
-FOR EACH ROW
-EXECUTE FUNCTION public.moddatetime('updated_at');
+CREATE TRIGGER handle_updated_at BEFORE UPDATE ON user_payment_methods
+  FOR EACH ROW EXECUTE PROCEDURE extensions.moddatetime (updated_at);
 
 -- Optional: Add comments on columns
 COMMENT ON COLUMN public.user_payment_methods.method_id IS 'Identifier for the payment method, e.g., ''upi''';
