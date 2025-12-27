@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useTransition, useMemo } from 'react';
@@ -162,6 +163,25 @@ export default function WithdrawalsPage() {
             if (walletHistoryError) throw new Error(`Could not update wallet history: ${walletHistoryError.message}`);
 
         } else if (status === 'Rejected' || status === 'Cancelled') {
+            // Refund the user's balance
+            const { data: user, error: userError } = await supabase
+              .from('users')
+              .select('balance_available')
+              .eq('id', request.user_id)
+              .single();
+
+            if (userError || !user) throw new Error("Could not fetch user to refund.");
+            
+            const newBalance = (user.balance_available || 0) + request.amount;
+
+            const { error: balanceUpdateError } = await supabase
+              .from('users')
+              .update({ balance_available: newBalance })
+              .eq('id', request.user_id);
+            
+            if (balanceUpdateError) throw new Error("Failed to refund user balance.");
+
+
             const { error: refundError } = await supabase
                 .from('wallet_history')
                 .insert({
@@ -172,22 +192,26 @@ export default function WithdrawalsPage() {
                     description: `Refund for ${status.toLowerCase()} withdrawal request #${request.id}`,
                     metadata: { payment_id: request.id, reason: actionReason }
                 });
-            if (refundError) throw new Error(`Could not refund user: ${refundError.message}`);
+            if (refundError) throw new Error(`Could not create refund history: ${refundError.message}`);
         }
         
         const notificationTitle = `Withdrawal ${status}`;
         const notificationDescription = `Your withdrawal request for ${formatCurrency(request.amount)} has been ${status.toLowerCase()}.`;
 
-        await supabase.from('notifications').insert({
-            user_id: request.user_id,
-            title: notificationTitle,
-            description: notificationDescription,
-            is_read: false
-        });
+        // This table doesn't support user-specific notifications
+        // const { error: notificationError } = await supabase.from('notifications').insert({
+        //     user_id: request.user_id,
+        //     title: notificationTitle,
+        //     description: notificationDescription,
+        //     is_read: false
+        // });
+        // if (notificationError) {
+        //     console.error("Failed to send notification:", notificationError);
+        // }
 
         toast({
           title: "Success",
-          description: `Request #${request.id} has been ${status.toLowerCase()}. A notification has been sent.`,
+          description: `Request #${request.id} has been ${status.toLowerCase()}.`,
         });
         
         await fetchInitialData();
@@ -555,3 +579,4 @@ export default function WithdrawalsPage() {
     </>
   );
 }
+
