@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, createContext, useContext } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { LoadingScreen } from '@/components/loading-screen';
@@ -18,7 +18,7 @@ type Permission = 'full_access' | 'view_only';
 interface AdminProfile {
     id: string;
     role: 'super_admin' | 'admin';
-    permissions: Permission | null;
+    permissions: Permission;
 }
 
 const SUPER_ADMIN_USER_IDS = [
@@ -45,6 +45,22 @@ const adminNavItems = [
   { href: '/cmadmin/admins', label: 'Admins', icon: Shield, requiredPermission: [] }, // Super admin only
   { href: '/cmadmin/sql-editor', label: 'SQL Editor', icon: Database, requiredPermission: [] }, // Super admin only
 ]
+
+interface AdminContextType {
+    profile: AdminProfile | null;
+    isSuperAdmin: boolean;
+    isViewOnly: boolean;
+}
+
+const AdminContext = createContext<AdminContextType | null>(null);
+
+export const useAdmin = () => {
+    const context = useContext(AdminContext);
+    if (!context) {
+        throw new Error('useAdmin must be used within an AdminLayout');
+    }
+    return context;
+};
 
 export default function AdminLayout({
   children,
@@ -81,7 +97,8 @@ export default function AdminLayout({
         .eq('user_id', session.user.id)
         .single();
     
-    if (adminError || !adminData) {
+    if (adminError || !adminData || !adminData.permissions) {
+        console.error("Admin permission check failed or no permissions set:", adminError);
         router.push('/');
         return;
     }
@@ -102,14 +119,14 @@ export default function AdminLayout({
     const userPermissions = adminProfile.permissions;
 
     const main = allNavItems.filter(item => 
-        isSuper || (userPermissions && item.requiredPermission.includes(userPermissions))
+        isSuper || item.requiredPermission.includes(userPermissions)
     );
     
     const admin = adminNavItems.filter(item => {
         if (item.href === '/cmadmin/admins' || item.href === '/cmadmin/sql-editor') {
             return isSuper;
         }
-        return isSuper || (userPermissions && item.requiredPermission.includes(userPermissions));
+        return isSuper || item.requiredPermission.includes(userPermissions);
     });
 
     return { main, admin };
@@ -123,7 +140,7 @@ export default function AdminLayout({
     router.push('/login');
   };
 
-  if (loading) {
+  if (loading || !adminProfile) {
     return <LoadingScreen />;
   }
   
@@ -134,7 +151,14 @@ export default function AdminLayout({
     return 'Admin';
   }
 
+  const contextValue: AdminContextType = {
+      profile: adminProfile,
+      isSuperAdmin: adminProfile.role === 'super_admin',
+      isViewOnly: adminProfile.permissions === 'view_only',
+  };
+
   return (
+    <AdminContext.Provider value={contextValue}>
     <div className="admin-panel">
        <aside className={cn(
         "bg-card border-r flex flex-col transition-all duration-300 ease-in-out",
@@ -207,7 +231,6 @@ export default function AdminLayout({
         </main>
       </div>
     </div>
+    </AdminContext.Provider>
   );
 }
-
-    

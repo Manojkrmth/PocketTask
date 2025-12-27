@@ -19,6 +19,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
+import { useAdmin } from '../layout';
 
 
 interface AdConfig {
@@ -75,6 +76,7 @@ const defaultAdLocations: AdConfig[] = [
 ];
 
 export default function AdsManagerPage() {
+    const { isViewOnly } = useAdmin();
     const { toast } = useToast();
     const [adConfigs, setAdConfigs] = useState<AdConfig[]>(defaultAdLocations);
     const [areAdsGloballyEnabled, setAreAdsGloballyEnabled] = useState(true);
@@ -194,7 +196,7 @@ export default function AdsManagerPage() {
                             id="global-ads-enabled"
                             checked={areAdsGloballyEnabled}
                             onCheckedChange={setAreAdsGloballyEnabled}
-                            disabled={isSaving}
+                            disabled={isSaving || isViewOnly}
                         />
                     </div>
                 </CardContent>
@@ -223,7 +225,7 @@ export default function AdsManagerPage() {
                                     id={`enabled-${ad.id}`}
                                     checked={ad.isEnabled}
                                     onCheckedChange={(checked) => handleAdChange(ad.id, 'isEnabled', checked)}
-                                    disabled={isSaving}
+                                    disabled={isSaving || isViewOnly}
                                 />
                             </div>
                            
@@ -237,20 +239,20 @@ export default function AdsManagerPage() {
                                   <CardContent className="space-y-4">
                                       <div className="space-y-2">
                                           <Label>Ad Key</Label>
-                                          <Input value={ad.script.key} onChange={(e) => handleScriptChange(ad.id, 'key', e.target.value)} disabled={isSaving} />
+                                          <Input value={ad.script.key} onChange={(e) => handleScriptChange(ad.id, 'key', e.target.value)} disabled={isSaving || isViewOnly} />
                                       </div>
                                       <div className="space-y-2">
                                           <Label>Invoke.js URL</Label>
-                                          <Input value={ad.script.invokeJs} onChange={(e) => handleScriptChange(ad.id, 'invokeJs', e.target.value)} disabled={isSaving} />
+                                          <Input value={ad.script.invokeJs} onChange={(e) => handleScriptChange(ad.id, 'invokeJs', e.target.value)} disabled={isSaving || isViewOnly} />
                                       </div>
                                       <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
                                             <Label>Height (px)</Label>
-                                            <Input type="number" value={ad.script.height} onChange={(e) => handleScriptChange(ad.id, 'height', e.target.value)} disabled={isSaving} />
+                                            <Input type="number" value={ad.script.height} onChange={(e) => handleScriptChange(ad.id, 'height', e.target.value)} disabled={isSaving || isViewOnly} />
                                         </div>
                                          <div className="space-y-2">
                                             <Label>Width (px)</Label>
-                                            <Input type="number" value={ad.script.width} onChange={(e) => handleScriptChange(ad.id, 'width', e.target.value)} disabled={isSaving} />
+                                            <Input type="number" value={ad.script.width} onChange={(e) => handleScriptChange(ad.id, 'width', e.target.value)} disabled={isSaving || isViewOnly} />
                                         </div>
                                       </div>
                                   </CardContent>
@@ -264,15 +266,15 @@ export default function AdsManagerPage() {
                                     <CardContent className="space-y-4">
                                        <div className="space-y-2">
                                           <Label className="flex items-center gap-2"><ImageIcon/> Image URL</Label>
-                                          <Input value={ad.customAd.imageUrl} onChange={(e) => handleCustomAdChange(ad.id, 'imageUrl', e.target.value)} disabled={isSaving} />
+                                          <Input value={ad.customAd.imageUrl} onChange={(e) => handleCustomAdChange(ad.id, 'imageUrl', e.target.value)} disabled={isSaving || isViewOnly} />
                                       </div>
                                        <div className="space-y-2">
                                           <Label className="flex items-center gap-2"><LinkIcon/> External Link</Label>
-                                          <Input value={ad.customAd.externalLink} onChange={(e) => handleCustomAdChange(ad.id, 'externalLink', e.target.value)} disabled={isSaving} />
+                                          <Input value={ad.customAd.externalLink} onChange={(e) => handleCustomAdChange(ad.id, 'externalLink', e.target.value)} disabled={isSaving || isViewOnly} />
                                       </div>
                                        <div className="space-y-2">
                                           <Label className="flex items-center gap-2"><Text/> Ad Text (Optional)</Label>
-                                          <Textarea value={ad.customAd.text} onChange={(e) => handleCustomAdChange(ad.id, 'text', e.target.value)} disabled={isSaving} />
+                                          <Textarea value={ad.customAd.text} onChange={(e) => handleCustomAdChange(ad.id, 'text', e.target.value)} disabled={isSaving || isViewOnly} />
                                       </div>
                                     </CardContent>
                                 </Card>
@@ -287,7 +289,7 @@ export default function AdsManagerPage() {
             </Accordion>
 
             <div className="flex justify-end gap-2 mt-6">
-                <Button onClick={handleSaveChanges} disabled={isSaving || loading}>
+                <Button onClick={handleSaveChanges} disabled={isSaving || loading || isViewOnly}>
                     {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                     Save All Ad Settings
                 </Button>

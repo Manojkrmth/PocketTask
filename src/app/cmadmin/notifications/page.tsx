@@ -21,6 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useAdmin } from '../layout';
 
 interface Notification {
   id: number;
@@ -30,6 +31,7 @@ interface Notification {
 }
 
 export default function NotificationsAdminPage() {
+    const { isViewOnly } = useAdmin();
     const { toast } = useToast();
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
@@ -131,7 +133,7 @@ export default function NotificationsAdminPage() {
                                 value={title}
                                 onChange={(e) => setTitle(e.target.value)}
                                 placeholder="e.g., Important Maintenance"
-                                disabled={isSubmitting}
+                                disabled={isSubmitting || isViewOnly}
                             />
                         </div>
                          <div className="space-y-2">
@@ -141,11 +143,11 @@ export default function NotificationsAdminPage() {
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
                                 placeholder="e.g., The app will be down for maintenance..."
-                                disabled={isSubmitting}
+                                disabled={isSubmitting || isViewOnly}
                                 rows={4}
                             />
                         </div>
-                        <Button className="w-full" onClick={handleCreateNotification} disabled={isSubmitting || !title}>
+                        <Button className="w-full" onClick={handleCreateNotification} disabled={isSubmitting || !title || isViewOnly}>
                             {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
                             Send Notification
                         </Button>
@@ -176,7 +178,7 @@ export default function NotificationsAdminPage() {
                                             size="icon" 
                                             className="h-8 w-8 shrink-0 text-destructive hover:bg-destructive/10"
                                             onClick={() => openDeleteDialog(notification)}
-                                            disabled={isDeleting && selectedNotification?.id === notification.id}
+                                            disabled={isDeleting && selectedNotification?.id === notification.id || isViewOnly}
                                         >
                                            {isDeleting && selectedNotification?.id === notification.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                                         </Button>
@@ -206,8 +208,7 @@ export default function NotificationsAdminPage() {
                 Confirm Delete
                 </AlertDialogAction>
             </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+        </AlertDialogContent>
         </>
     );
 }

@@ -44,6 +44,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { updateTaskStatus } from '@/lib/task-actions';
 import { Textarea } from '@/components/ui/textarea';
+import { useAdmin } from '../layout';
 
 
 interface Batch {
@@ -63,6 +64,7 @@ interface Batch {
 }
 
 export default function TaskManagerPage() {
+  const { isViewOnly } = useAdmin();
   const { toast } = useToast();
   const [batches, setBatches] = useState<Batch[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -502,11 +504,11 @@ export default function TaskManagerPage() {
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="batch-name">Batch Name</Label>
-              <Input id="batch-name" placeholder="e.g., June Week 1" value={batchName} onChange={e => setBatchName(e.target.value)} disabled={isUploading}/>
+              <Input id="batch-name" placeholder="e.g., June Week 1" value={batchName} onChange={e => setBatchName(e.target.value)} disabled={isUploading || isViewOnly}/>
             </div>
              <div className="space-y-1.5">
               <Label htmlFor="task-category">Task Category</Label>
-              <Select value={taskCategory} onValueChange={setTaskCategory} disabled={isUploading}>
+              <Select value={taskCategory} onValueChange={setTaskCategory} disabled={isUploading || isViewOnly}>
                 <SelectTrigger id="task-category"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="gmail">Gmail</SelectItem>
@@ -517,15 +519,15 @@ export default function TaskManagerPage() {
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="reward-price">Reward Price (INR)</Label>
-              <Input id="reward-price" type="number" placeholder="e.g., 5" value={rewardPrice} onChange={e => setRewardPrice(e.target.value)} disabled={isUploading}/>
+              <Input id="reward-price" type="number" placeholder="e.g., 5" value={rewardPrice} onChange={e => setRewardPrice(e.target.value)} disabled={isUploading || isViewOnly}/>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="csv-file">CSV File</Label>
-              <Input id="csv-file" type="file" accept=".csv" onChange={e => setCsvFile(e.target.files ? e.target.files[0] : null)} disabled={isUploading}/>
+              <Input id="csv-file" type="file" accept=".csv" onChange={e => setCsvFile(e.target.files ? e.target.files[0] : null)} disabled={isUploading || isViewOnly}/>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button onClick={handleFileUpload} disabled={isUploading || !batchName || !csvFile || !rewardPrice}>
+            <Button onClick={handleFileUpload} disabled={isUploading || !batchName || !csvFile || !rewardPrice || isViewOnly}>
               {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
               Upload Batch
             </Button>
@@ -540,8 +542,8 @@ export default function TaskManagerPage() {
       <div className="flex items-center gap-2 border p-2 rounded-lg bg-muted/50">
         <p className="text-sm font-semibold">Global Bulk Actions (All Gmail Tasks)</p>
         <div className="ml-auto flex gap-2">
-            <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleGlobalBulkActionClick('approve')}><CheckCircle className="mr-2 h-4 w-4"/> Bulk Approve</Button>
-            <Button size="sm" variant="destructive" onClick={() => handleGlobalBulkActionClick('reject')}><XCircle className="mr-2 h-4 w-4"/> Bulk Reject</Button>
+            <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleGlobalBulkActionClick('approve')} disabled={isViewOnly}><CheckCircle className="mr-2 h-4 w-4"/> Bulk Approve</Button>
+            <Button size="sm" variant="destructive" onClick={() => handleGlobalBulkActionClick('reject')} disabled={isViewOnly}><XCircle className="mr-2 h-4 w-4"/> Bulk Reject</Button>
         </div>
       </div>
 
@@ -575,20 +577,20 @@ export default function TaskManagerPage() {
                                         <Badge variant={batch.status === 'active' ? 'default' : 'secondary'} className={cn(batch.status === 'active' && 'bg-green-600')}>{batch.status}</Badge>
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
-                                                 <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4"/></Button>
+                                                 <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isViewOnly}><MoreHorizontal className="h-4 w-4"/></Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onSelect={() => handleStatusToggle(batch)}>
+                                                <DropdownMenuItem onSelect={() => handleStatusToggle(batch)} disabled={isViewOnly}>
                                                     {batch.status === 'active' ? <Pause className="mr-2 h-4 w-4"/> : <Play className="mr-2 h-4 w-4"/>}
                                                     {batch.status === 'active' ? 'Pause' : 'Resume'}
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem onSelect={() => handleEditBatch(batch)}>
+                                                <DropdownMenuItem onSelect={() => handleEditBatch(batch)} disabled={isViewOnly}>
                                                     <Edit className="mr-2 h-4 w-4"/> Edit Batch
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator />
                                                 <AlertDialog>
                                                     <AlertDialogTrigger asChild>
-                                                        <div className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 text-destructive">
+                                                        <div className={cn("relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 text-destructive", isViewOnly && "pointer-events-none opacity-50")}>
                                                             <Trash2 className="mr-2 h-4 w-4"/> Delete Batch
                                                         </div>
                                                     </AlertDialogTrigger>
@@ -625,14 +627,14 @@ export default function TaskManagerPage() {
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                    <Button variant="outline" size="sm" onClick={() => handleDownloadByStatus(batch.id, 'todo')}>To-Do CSV ({todoCount})</Button>
-                                    <Button variant="outline" size="sm" onClick={() => handleDownloadByStatus(batch.id, 'Pending')}>Pending CSV ({stats.pending})</Button>
-                                    <Button variant="outline" size="sm" onClick={() => handleDownloadByStatus(batch.id, 'Approved')}>Approved CSV ({stats.approved})</Button>
-                                    <Button variant="outline" size="sm" onClick={() => handleDownloadByStatus(batch.id, 'Rejected')}>Rejected CSV ({stats.rejected})</Button>
+                                    <Button variant="outline" size="sm" onClick={() => handleDownloadByStatus(batch.id, 'todo')} disabled={isViewOnly}>To-Do CSV ({todoCount})</Button>
+                                    <Button variant="outline" size="sm" onClick={() => handleDownloadByStatus(batch.id, 'Pending')} disabled={isViewOnly}>Pending CSV ({stats.pending})</Button>
+                                    <Button variant="outline" size="sm" onClick={() => handleDownloadByStatus(batch.id, 'Approved')} disabled={isViewOnly}>Approved CSV ({stats.approved})</Button>
+                                    <Button variant="outline" size="sm" onClick={() => handleDownloadByStatus(batch.id, 'Rejected')} disabled={isViewOnly}>Rejected CSV ({stats.rejected})</Button>
                                 </div>
                                 <div className="flex gap-2">
-                                     <Button variant="outline" size="sm" className="bg-green-50 hover:bg-green-100 border-green-200 text-green-700" onClick={() => handleBatchBulkActionClick('approve', batch)}><CheckCircle className="h-4 w-4"/> Bulk Approve</Button>
-                                     <Button variant="outline" size="sm" className="bg-red-50 hover:bg-red-100 border-red-200 text-red-700" onClick={() => handleBatchBulkActionClick('reject', batch)}><XCircle className="h-4 w-4"/> Bulk Reject</Button>
+                                     <Button variant="outline" size="sm" className="bg-green-50 hover:bg-green-100 border-green-200 text-green-700" onClick={() => handleBatchBulkActionClick('approve', batch)} disabled={isViewOnly}><CheckCircle className="h-4 w-4"/> Bulk Approve</Button>
+                                     <Button variant="outline" size="sm" className="bg-red-50 hover:bg-red-100 border-red-200 text-red-700" onClick={() => handleBatchBulkActionClick('reject', batch)} disabled={isViewOnly}><XCircle className="h-4 w-4"/> Bulk Reject</Button>
                                 </div>
                             </CardContent>
                         </Card>
@@ -830,4 +832,3 @@ export default function TaskManagerPage() {
     </>
   );
 }
-

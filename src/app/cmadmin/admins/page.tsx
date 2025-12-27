@@ -39,6 +39,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useAdmin } from '../layout';
 
 type Permission = 'full_access' | 'view_only';
 
@@ -57,6 +58,7 @@ interface AdminUser {
 const nonDeletableAdminId = '98cda2fc-f09d-4840-9f47-ec0c749a6bbd';
 
 export default function AdminsPage() {
+  const { isViewOnly } = useAdmin();
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -90,7 +92,7 @@ export default function AdminsPage() {
   
   useEffect(() => {
     fetchAdmins();
-  }, [toast]);
+  }, []);
 
 
   const handleAddAdmin = () => {
@@ -201,7 +203,7 @@ export default function AdminsPage() {
           </div>
           <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
             <DialogTrigger asChild>
-                <Button><PlusCircle className="mr-2 h-4 w-4"/> Add New Admin</Button>
+                <Button disabled={isViewOnly}><PlusCircle className="mr-2 h-4 w-4"/> Add New Admin</Button>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
@@ -293,7 +295,7 @@ export default function AdminsPage() {
                     <TableCell className="text-right">
                        {admin.user_id !== nonDeletableAdminId && (
                            <div className="flex gap-2 justify-end">
-                                <Button variant="outline" size="sm" onClick={() => openEditDialog(admin)} disabled={isProcessing}>
+                                <Button variant="outline" size="sm" onClick={() => openEditDialog(admin)} disabled={isProcessing || isViewOnly}>
                                     <Edit className="mr-2 h-4 w-4" /> Edit
                                 </Button>
                                 <Button
@@ -301,7 +303,7 @@ export default function AdminsPage() {
                                     size="sm"
                                     className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                                     onClick={() => openDismissDialog(admin)}
-                                    disabled={isProcessing}
+                                    disabled={isProcessing || isViewOnly}
                                 >
                                     <UserX className="mr-2 h-4 w-4" />
                                     Dismiss

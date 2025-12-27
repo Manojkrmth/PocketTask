@@ -14,6 +14,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useAdmin } from '../../layout';
 
 type TicketStatus = 'Open' | 'In Progress' | 'Closed';
 
@@ -33,6 +34,7 @@ interface SupportTicket {
 }
 
 export default function TicketDetailsPage() {
+  const { isViewOnly } = useAdmin();
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
@@ -173,7 +175,7 @@ export default function TicketDetailsPage() {
                               value={replyMessage}
                               onChange={(e) => setReplyMessage(e.target.value)}
                               rows={4}
-                              disabled={isUpdating}
+                              disabled={isUpdating || isViewOnly}
                           />
                       </div>
                   </CardContent>
@@ -203,7 +205,7 @@ export default function TicketDetailsPage() {
                   <CardContent className="space-y-4">
                       <div>
                         <Label>Status</Label>
-                         <Select value={newStatus || ticket.status} onValueChange={(value: TicketStatus) => setNewStatus(value)}>
+                         <Select value={newStatus || ticket.status} onValueChange={(value: TicketStatus) => setNewStatus(value)} disabled={isViewOnly}>
                             <SelectTrigger disabled={isUpdating}>
                                 <SelectValue placeholder="Select status" />
                             </SelectTrigger>
@@ -229,7 +231,7 @@ export default function TicketDetailsPage() {
 
       <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={() => router.back()} disabled={isUpdating}>Cancel</Button>
-          <Button onClick={handleUpdate} disabled={isUpdating || (!replyMessage && newStatus === ticket.status)}>
+          <Button onClick={handleUpdate} disabled={isUpdating || isViewOnly || (!replyMessage && newStatus === ticket.status)}>
               {isUpdating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Send className="mr-2 h-4 w-4" />}
               Update Ticket
           </Button>

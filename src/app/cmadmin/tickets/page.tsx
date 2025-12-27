@@ -38,6 +38,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
+import { useAdmin } from '../layout';
 
 type TicketStatus = 'Open' | 'In Progress' | 'Closed';
 
@@ -54,6 +55,7 @@ interface SupportTicket {
 }
 
 export default function AdminTicketsPage() {
+  const { isViewOnly } = useAdmin();
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
@@ -236,8 +238,9 @@ export default function AdminTicketsPage() {
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 
-                            className="text-destructive"
-                            onSelect={() => openDeleteDialog(ticket)}
+                            className={cn("text-destructive", isViewOnly && "text-muted-foreground opacity-50")}
+                            onSelect={() => !isViewOnly && openDeleteDialog(ticket)}
+                            disabled={isViewOnly}
                           >
                             <Trash2 className="mr-2 h-4 w-4"/>
                             Delete Ticket

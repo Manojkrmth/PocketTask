@@ -12,15 +12,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-  DropdownMenuCheckboxItem,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -52,6 +43,16 @@ import Papa from 'papaparse';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Link from 'next/link';
 import QRCode from "react-qr-code";
+import { useAdmin } from '../layout';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 type PaymentStatus = 'Pending' | 'Approved' | 'Rejected' | 'Cancelled';
 
@@ -80,6 +81,7 @@ interface WithdrawalSettings {
 const ROWS_PER_PAGE_OPTIONS = [10, 20, 30, 40, 50, 100];
 
 export default function WithdrawalsPage() {
+  const { isViewOnly } = useAdmin();
   const [requests, setRequests] = useState<PaymentRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilters, setStatusFilters] = useState<PaymentStatus[]>(['Pending']);
@@ -312,7 +314,7 @@ export default function WithdrawalsPage() {
                     <DropdownMenuCheckboxItem checked={statusFilters.includes('Cancelled')} onCheckedChange={() => toggleFilter('Cancelled')}>Cancelled</DropdownMenuCheckboxItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
-                 <Button variant="outline" className="gap-1" onClick={handleDownloadCSV}>
+                 <Button variant="outline" className="gap-1" onClick={handleDownloadCSV} disabled={isViewOnly}>
                     <Download className="h-3.5 w-3.5" />
                     <span>Download CSV</span>
                  </Button>
@@ -394,10 +396,10 @@ export default function WithdrawalsPage() {
                                     <Eye className="mr-2 h-4 w-4"/> View User
                                 </Link>
                              </Button>
-                            <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => openConfirmationDialog(request, 'Approved')} disabled={isUpdating}>
+                            <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => openConfirmationDialog(request, 'Approved')} disabled={isUpdating || isViewOnly}>
                                 <CheckCircle className="mr-2 h-4 w-4"/> Approve
                             </Button>
-                             <Button size="sm" variant="destructive" onClick={() => openConfirmationDialog(request, 'Rejected')} disabled={isUpdating}>
+                             <Button size="sm" variant="destructive" onClick={() => openConfirmationDialog(request, 'Rejected')} disabled={isUpdating || isViewOnly}>
                                <XCircle className="mr-2 h-4 w-4"/> Reject
                             </Button>
                           </div>

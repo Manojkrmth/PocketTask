@@ -43,6 +43,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useAdmin } from '../layout';
 
 type SubmissionStatus = 'Pending' | 'Approved' | 'Rejected';
 
@@ -66,6 +67,7 @@ interface CoinSubmission {
 const ROWS_PER_PAGE_OPTIONS = [20, 30, 40, 50];
 
 export default function CoinManagerPage() {
+  const { isViewOnly } = useAdmin();
   const searchParams = useSearchParams();
   const preselectedUserId = searchParams.get('userId');
 
@@ -361,7 +363,7 @@ export default function CoinManagerPage() {
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0" disabled={isUpdating || item.status !== 'Pending'}>
+                          <Button variant="ghost" className="h-8 w-8 p-0" disabled={isUpdating || item.status !== 'Pending' || isViewOnly}>
                             <span className="sr-only">Open menu</span>
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
@@ -369,7 +371,7 @@ export default function CoinManagerPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuItem 
-                            disabled={item.status !== 'Pending' || isUpdating} 
+                            disabled={item.status !== 'Pending' || isUpdating || isViewOnly} 
                             onSelect={() => openConfirmationDialog(item, 'Approved')}
                             className="cursor-pointer"
                           >
@@ -377,7 +379,7 @@ export default function CoinManagerPage() {
                             Approve
                           </DropdownMenuItem>
                           <DropdownMenuItem 
-                            disabled={item.status !== 'Pending' || isUpdating} 
+                            disabled={item.status !== 'Pending' || isUpdating || isViewOnly} 
                             onSelect={() => openConfirmationDialog(item, 'Rejected')}
                             className="cursor-pointer text-destructive"
                           >
@@ -524,5 +526,3 @@ export default function CoinManagerPage() {
     </>
   );
 }
-
-    

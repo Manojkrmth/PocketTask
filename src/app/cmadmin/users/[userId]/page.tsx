@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useEffect, useState, useTransition, useCallback } from 'react';
@@ -30,6 +29,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { useAdmin } from '../../layout';
 
 
 interface AppUser {
@@ -57,6 +57,7 @@ interface SavedPaymentMethod {
 }
 
 export default function UserDetailsPage() {
+  const { isViewOnly } = useAdmin();
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
@@ -295,7 +296,7 @@ export default function UserDetailsPage() {
                 <CardTitle className="flex items-center gap-2"><ArrowLeftRight className="h-5 w-5 text-primary"/> Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                 <Button variant="outline" onClick={() => setIsBalanceDialogOpen(true)}>
+                 <Button variant="outline" onClick={() => setIsBalanceDialogOpen(true)} disabled={isViewOnly}>
                     <Edit className="mr-2 h-4 w-4" /> Edit Balance
                  </Button>
                  <Button variant="outline" asChild>
@@ -350,5 +351,3 @@ export default function UserDetailsPage() {
     </>
   );
 }
-
-    
