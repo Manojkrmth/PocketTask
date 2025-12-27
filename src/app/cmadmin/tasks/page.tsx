@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useMemo, useTransition } from 'react';
@@ -417,39 +418,63 @@ export default function TasksPage() {
   const getSubmissionDetail = (task: AppTask) => {
     const data = task.submission_data;
     if (!data) return null;
-    
-    let detailIcon: React.ReactNode = null;
-    let detailText: string | null = null;
-    
+
+    const email = data.gmail || data.email;
+    const password = data.password || data.originalPassword;
+    const uid = data.uid;
+    const fileName = data.file_name;
+    const code = data.code;
+    const name = data.name;
+    const appName = data.appName;
+
     switch (task.task_type) {
       case 'gmail':
       case 'hot-mail':
       case 'outlook-mail':
       case 'used-mail-single':
-        detailIcon = <Mail className="h-3 w-3 text-muted-foreground" />;
-        detailText = data.gmail || data.email;
-        break;
+        return (
+          <div className="flex flex-col gap-1 mt-1 text-xs text-muted-foreground">
+            {email && (
+              <div className="flex items-center gap-1.5">
+                <Mail className="h-3 w-3" />
+                <span className="truncate">{email}</span>
+              </div>
+            )}
+            {password && (
+              <div className="flex items-center gap-1.5">
+                <KeyRound className="h-3 w-3" />
+                <span className="truncate">{password}</span>
+              </div>
+            )}
+          </div>
+        );
       case 'instagram':
       case 'facebook':
-        detailIcon = <Fingerprint className="h-3 w-3 text-muted-foreground" />;
-        detailText = data.uid;
-        break;
+        return (
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground truncate mt-1">
+            <Fingerprint className="h-3 w-3" />
+            <span className="truncate">{uid}</span>
+          </div>
+        );
       case 'used-mail-bulk':
-        detailIcon = <FileCheck2 className="h-3 w-3 text-muted-foreground" />;
-        detailText = data.file_name;
-        break;
+        return (
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground truncate mt-1">
+            <FileCheck2 className="h-3 w-3" />
+            <span className="truncate">{fileName}</span>
+          </div>
+        );
       default:
+        if (code) {
+           return <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1"><ListFilter className="h-3 w-3"/> Code: {code}</div>;
+        }
+        if(appName) {
+            return <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1"><ListFilter className="h-3 w-3"/> {appName}</div>;
+        }
+         if (name) {
+          return <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1"><ListFilter className="h-3 w-3"/> {name}</div>;
+        }
         return null;
     }
-    
-    if (!detailText) return null;
-
-    return (
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground truncate mt-1">
-        {detailIcon}
-        <span className="truncate">{detailText}</span>
-      </div>
-    );
   };
 
 
@@ -758,3 +783,4 @@ export default function TasksPage() {
     </>
   );
 }
+
