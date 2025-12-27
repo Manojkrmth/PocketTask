@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, Loader2, ListFilter, CheckCircle, XCircle, Coins, IndianRupee } from 'lucide-react';
+import { MoreHorizontal, Loader2, ListFilter, CheckCircle, XCircle, Coins, IndianRupee, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { useCurrency } from '@/context/currency-context';
@@ -42,7 +42,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type SubmissionStatus = 'Pending' | 'Approved' | 'Rejected';
 
@@ -63,6 +63,8 @@ interface CoinSubmission {
   } | null;
 }
 
+const ROWS_PER_PAGE_OPTIONS = [20, 30, 40, 50];
+
 export default function CoinManagerPage() {
   const searchParams = useSearchParams();
   const preselectedUserId = searchParams.get('userId');
@@ -80,6 +82,9 @@ export default function CoinManagerPage() {
   
   const [editableCoinAmount, setEditableCoinAmount] = useState(0);
   const [editableRate, setEditableRate] = useState(0);
+
+  const [rowsPerPage, setRowsPerPage] = useState(ROWS_PER_PAGE_OPTIONS[0]);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const { formatCurrency } = useCurrency();
   const { toast } = useToast();
@@ -135,6 +140,10 @@ export default function CoinManagerPage() {
   useEffect(() => {
     fetchSubmissions();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, statusFilters, rowsPerPage]);
   
   const calculatedReward = useMemo(() => {
     if (editableCoinAmount <= 0 || editableRate <= 0) return 0;
@@ -250,6 +259,13 @@ export default function CoinManagerPage() {
     });
   }, [submissions, filter, statusFilters]);
   
+  const totalPages = Math.ceil(filteredSubmissions.length / rowsPerPage);
+
+  const paginatedSubmissions = useMemo(() => {
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    return filteredSubmissions.slice(startIndex, startIndex + rowsPerPage);
+  }, [filteredSubmissions, currentPage, rowsPerPage]);
+
   const toggleFilter = (status: SubmissionStatus) => {
     setStatusFilters(prev => 
       prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
@@ -310,8 +326,8 @@ export default function CoinManagerPage() {
                     <Loader2 className="mx-auto h-6 w-6 animate-spin" />
                   </TableCell>
                 </TableRow>
-              ) : filteredSubmissions.length > 0 ? (
-                filteredSubmissions.map((item) => (
+              ) : paginatedSubmissions.length > 0 ? (
+                paginatedSubmissions.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell>
                       <div className="font-medium capitalize flex items-center gap-2">
@@ -382,6 +398,55 @@ export default function CoinManagerPage() {
               )}
             </TableBody>
           </Table>
+        </div>
+        
+         <div className="flex items-center justify-between px-2">
+            <div className="text-sm text-muted-foreground">
+                Showing <strong>{paginatedSubmissions.length}</strong> of <strong>{filteredSubmissions.length}</strong> submissions.
+            </div>
+             <div className="flex items-center gap-6">
+                 <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium">Rows per page</p>
+                    <Select
+                        value={`${rowsPerPage}`}
+                        onValueChange={(value) => setRowsPerPage(Number(value))}
+                    >
+                        <SelectTrigger className="h-8 w-[70px]">
+                            <SelectValue placeholder={rowsPerPage} />
+                        </SelectTrigger>
+                        <SelectContent side="top">
+                            {ROWS_PER_PAGE_OPTIONS.map((pageSize) => (
+                                <SelectItem key={pageSize} value={`${pageSize}`}>
+                                    {pageSize}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        className="h-8 w-8 p-0"
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                    >
+                        <span className="sr-only">Go to previous page</span>
+                        <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm font-medium">
+                        Page {currentPage} of {totalPages || 1}
+                    </span>
+                    <Button
+                        variant="outline"
+                        className="h-8 w-8 p-0"
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage >= totalPages}
+                    >
+                        <span className="sr-only">Go to next page</span>
+                        <ChevronRight className="h-4 w-4" />
+                    </Button>
+                </div>
+             </div>
         </div>
       </div>
       <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -459,3 +524,5 @@ export default function CoinManagerPage() {
     </>
   );
 }
+
+    
