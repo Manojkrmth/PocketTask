@@ -4,502 +4,58 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CopyButton } from '@/components/copy-button';
-import { Copy, AlertTriangle, AreaChart, BarChart, Users, Wallet } from 'lucide-react';
+import { Copy, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-const masterSqlScript = `
+const resetAllSqlScript = `
 -- =================================================================
--- MASTER RLS & FUNCTIONS SCRIPT
+-- DANGER: RESET ALL RLS POLICIES & FUNCTIONS
 -- =================================================================
--- This script fixes all data access issues in the admin panel.
--- It creates secure helper functions and applies the correct RLS policies.
--- Run this entire script ONCE in your Supabase SQL Editor.
+-- This script will drop ALL RLS policies and ALL custom functions
+-- from your database. This is irreversible.
 -- =================================================================
 
--- Step 1: Create a helper function to check for admin role.
-CREATE OR REPLACE FUNCTION is_admin(user_id uuid)
-RETURNS boolean
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  RETURN EXISTS (
-    SELECT 1
-    FROM public.admins
-    WHERE admins.user_id = is_admin.user_id
-  );
-END;
-$$;
-
--- Step 2: Create/Update secure functions to fetch data for the admin panel.
-
--- Function to get all users
-CREATE OR REPLACE FUNCTION get_all_users()
-RETURNS SETOF users
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-    IF is_admin(auth.uid()) THEN
-        RETURN QUERY SELECT * FROM public.users;
-    END IF;
-END;
-$$;
-
--- Function to get all admins
-CREATE OR REPLACE FUNCTION get_all_admins()
-RETURNS TABLE(id bigint, user_id uuid, created_at timestamptz, users json)
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  IF is_admin(auth.uid()) THEN
-    RETURN QUERY
-    SELECT
-        a.id,
-        a.user_id,
-        a.created_at,
-        json_build_object('full_name', u.full_name, 'email', u.email)
-    FROM
-        public.admins a
-    JOIN
-        public.users u ON a.user_id = u.id;
-  END IF;
-END;
-$$;
-
-
--- Function to get all payment requests
-DROP FUNCTION IF EXISTS get_all_payment_requests();
-CREATE OR REPLACE FUNCTION get_all_payment_requests()
-RETURNS TABLE(id int, created_at timestamptz, amount numeric, payment_method varchar, payment_details text, status varchar, user_id uuid, metadata jsonb, users json)
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-    IF is_admin(auth.uid()) THEN
-        RETURN QUERY
-        SELECT
-            p.id,
-            p.created_at,
-            p.amount,
-            p.payment_method,
-            p.payment_details,
-            p.status,
-            p.user_id,
-            p.metadata,
-            json_build_object('full_name', u.full_name, 'email', u.email)
-        FROM
-            public.payments p
-        JOIN
-            public.users u ON p.user_id = u.id
-        ORDER BY
-            p.created_at DESC;
-    END IF;
-END;
-$$;
-
--- Function to get user financials (pending balance, total earnings, etc.)
-CREATE OR REPLACE FUNCTION get_user_financials(p_user_id uuid)
-RETURNS TABLE (
-    available_balance numeric,
-    pending_balance numeric,
-    total_earnings numeric,
-    total_withdrawn numeric
-)
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-    RETURN QUERY
-    WITH wallet_summary AS (
-        SELECT
-            SUM(CASE WHEN type IN ('task_reward', 'referral_bonus', 'manual_credit', 'spin_win', 'coin_credit') AND status = 'Completed' THEN amount ELSE 0 END) AS total_credits,
-            SUM(CASE WHEN type IN ('withdrawal_pending') AND status = 'Completed' THEN amount ELSE 0 END) AS total_debits
-        FROM public.wallet_history
-        WHERE user_id = p_user_id
-    ),
-    pending_tasks AS (
-        SELECT COALESCE(SUM(reward), 0) as pending_amount
-        FROM public.usertasks
-        WHERE user_id = p_user_id AND status = 'Pending'
-    ),
-    pending_coins AS (
-        SELECT COALESCE(SUM(reward_inr), 0) as pending_amount
-        FROM public.coinsubmissions
-        WHERE user_id = p_user_id AND status = 'Pending'
-    ),
-    withdrawals AS (
-        SELECT COALESCE(SUM(amount), 0) as total_withdrawn
-        FROM public.payments
-        WHERE user_id = p_user_id AND status = 'Approved'
-    )
-    SELECT
-        (SELECT u.balance_available FROM public.users u WHERE u.id = p_user_id) as available_balance,
-        (SELECT pending_amount FROM pending_tasks) + (SELECT pending_amount FROM pending_coins) as pending_balance,
-        (SELECT total_credits FROM wallet_summary) as total_earnings,
-        (SELECT total_withdrawn FROM withdrawals) as total_withdrawn;
-END;
-$$;
-
-
--- Function to get user counts with referrals
-CREATE OR REPLACE FUNCTION get_users_with_referral_counts()
-RETURNS TABLE(
-    id uuid,
-    full_name text,
-    email text,
-    mobile text,
-    status text,
-    created_at timestamptz,
-    referral_code text,
-    balance_available numeric,
-    referral_count bigint
-)
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-    IF is_admin(auth.uid()) THEN
-        RETURN QUERY
-        SELECT
-            u.id,
-            u.full_name,
-            u.email,
-            u.mobile,
-            u.status,
-            u.created_at,
-            u.referral_code,
-            u.balance_available,
-            (SELECT count(*) FROM public.users AS r WHERE r.referred_by = u.referral_code) AS referral_count
-        FROM
-            public.users u;
-    END IF;
-END;
-$$;
-
--- Function to truncate tables, EXCLUDING admins
-CREATE OR REPLACE FUNCTION truncate_all_tables()
-RETURNS void
-LANGUAGE plpgsql
-AS $$
+-- Step 1: Drop all RLS policies from all tables in the public schema.
+DO $$
 DECLARE
-  admin_ids uuid[];
+    p RECORD;
 BEGIN
-  -- Get all admin user_ids
-  SELECT array_agg(user_id) INTO admin_ids FROM public.admins;
+    FOR p IN (SELECT policyname, tablename FROM pg_policies WHERE schemaname = 'public') LOOP
+        EXECUTE 'DROP POLICY IF EXISTS ' || quote_ident(p.policyname) || ' ON public.' || quote_ident(p.tablename) || ';';
+        RAISE NOTICE 'Dropped policy % on table %', p.policyname, p.tablename;
+    END LOOP;
+END $$;
 
-  IF admin_ids IS NULL THEN
-    -- If no admins found, set to empty array to avoid NULL checks
-    admin_ids := ARRAY[]::uuid[];
-  END IF;
-  
-  -- Delete from tables, excluding admins
-  DELETE FROM public.payments WHERE user_id NOT IN (SELECT unnest(admin_ids));
-  DELETE FROM public.wallet_history WHERE user_id NOT IN (SELECT unnest(admin_ids));
-  DELETE FROM public.usertasks WHERE user_id NOT IN (SELECT unnest(admin_ids));
-  DELETE FROM public.support_tickets WHERE user_id NOT IN (SELECT unnest(admin_ids));
-  DELETE FROM public.spin_rewards WHERE user_id NOT IN (SELECT unnest(admin_ids));
-  DELETE FROM public.coinsubmissions WHERE user_id NOT IN (SELECT unnest(admin_ids));
-  
-  -- Delete non-admin users from the main users table
-  DELETE FROM public.users WHERE id NOT IN (SELECT unnest(admin_ids));
-  
-  -- We don't delete from \`admins\` table, but we can truncate other tables that don't have user_id
-  TRUNCATE public.notifications RESTART IDENTITY;
-  -- We don't truncate settings, featured_offers, etc. as they are configuration.
-END;
-$$;
-
--- Function to truncate history tables
-CREATE OR REPLACE FUNCTION truncate_history(table_name TEXT, before_date DATE)
-RETURNS void
-LANGUAGE plpgsql
-AS $$
+-- Step 2: Disable RLS on all tables in the public schema.
+DO $$
+DECLARE
+    r RECORD;
 BEGIN
-    IF before_date IS NOT NULL THEN
-        EXECUTE format('DELETE FROM public.%I WHERE created_at < %L', table_name, before_date);
-    ELSE
-        EXECUTE format('TRUNCATE TABLE public.%I RESTART IDENTITY', table_name);
-    END IF;
-END;
-$$;
+    FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
+        EXECUTE 'ALTER TABLE public.' || quote_ident(r.tablename) || ' DISABLE ROW LEVEL SECURITY;';
+        RAISE NOTICE 'Disabled RLS on table %', r.tablename;
+    END LOOP;
+END $$;
 
-
--- Step 3: Apply RLS Policies to all necessary tables.
-
--- USERS Table
-ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Allow admins to read all users" ON public.users;
-DROP POLICY IF EXISTS "Allow individual users to read their own data" ON public.users;
-DROP POLICY IF EXISTS "Allow users to update their own profile" ON public.users;
-DROP POLICY IF EXISTS "Allow users to create their own profile" ON public.users;
-CREATE POLICY "Allow admins to read all users" ON public.users FOR SELECT USING (is_admin(auth.uid()));
-CREATE POLICY "Allow individual users to read their own data" ON public.users FOR SELECT USING (auth.uid() = id);
-CREATE POLICY "Allow users to update their own profile" ON public.users FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
-CREATE POLICY "Allow users to create their own profile" ON public.users FOR INSERT WITH CHECK (auth.uid() = id);
-
-
--- ADMINS Table
-ALTER TABLE public.admins ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Allow admins to manage other admins" ON public.admins;
-CREATE POLICY "Allow admins to manage other admins" ON public.admins FOR ALL USING (is_admin(auth.uid()));
-
--- PAYMENTS Table
-ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Allow admins to manage payments" ON public.payments;
-DROP POLICY IF EXISTS "Allow users to see their own payments" ON public.payments;
-DROP POLICY IF EXISTS "Allow users to create their own payment requests" ON public.payments;
-CREATE POLICY "Allow admins to manage payments" ON public.payments FOR ALL USING (is_admin(auth.uid()));
-CREATE POLICY "Allow users to see their own payments" ON public.payments FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Allow users to create their own payment requests" ON public.payments FOR INSERT WITH CHECK (auth.uid() = user_id);
-
--- WALLET_HISTORY Table
-ALTER TABLE public.wallet_history ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Allow admins to see all wallet history" ON public.wallet_history;
-DROP POLICY IF EXISTS "Allow users to see their own wallet history" ON public.wallet_history;
-DROP POLICY IF EXISTS "Allow admins to create wallet history" ON public.wallet_history;
-CREATE POLICY "Allow admins to see all wallet history" ON public.wallet_history FOR SELECT USING (is_admin(auth.uid()));
-CREATE POLICY "Allow users to see their own wallet history" ON public.wallet_history FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Allow admins to create wallet history" ON public.wallet_history FOR INSERT WITH CHECK (is_admin(auth.uid()));
-
--- USER_TASKS Table
-ALTER TABLE public.usertasks ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Allow admins to manage all user tasks" ON public.usertasks;
-DROP POLICY IF EXISTS "Allow users to manage their own tasks" ON public.usertasks;
-CREATE POLICY "Allow admins to manage all user tasks" ON public.usertasks FOR ALL USING (is_admin(auth.uid()));
-CREATE POLICY "Allow users to manage their own tasks" ON public.usertasks FOR ALL USING (auth.uid() = user_id);
-
--- NOTIFICATIONS Table
-ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Allow admins to manage notifications" ON public.notifications;
-DROP POLICY IF EXISTS "Allow all users to read notifications" ON public.notifications;
-CREATE POLICY "Allow admins to manage notifications" ON public.notifications FOR ALL USING (is_admin(auth.uid()));
-CREATE POLICY "Allow all users to read notifications" ON public.notifications FOR SELECT USING (true);
-
--- SETTINGS Table
-ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Allow admins to manage settings" ON public.settings;
-DROP POLICY IF EXISTS "Allow all users to read settings" ON public.settings;
-CREATE POLICY "Allow admins to manage settings" ON public.settings FOR ALL USING (is_admin(auth.uid()));
-CREATE POLICY "Allow all users to read settings" ON public.settings FOR SELECT USING (true);
-
--- SUPPORT_TICKETS Table
-ALTER TABLE public.support_tickets ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Allow admins to manage all tickets" ON public.support_tickets;
-DROP POLICY IF EXISTS "Allow users to manage their own tickets" ON public.support_tickets;
-CREATE POLICY "Allow admins to manage all tickets" ON public.support_tickets FOR ALL USING (is_admin(auth.uid()));
-CREATE POLICY "Allow users to manage their own tickets" ON public.support_tickets FOR ALL USING (auth.uid() = user_id);
-
--- SPIN_REWARDS Table
-ALTER TABLE public.spin_rewards ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Allow admins to view all spin rewards" ON public.spin_rewards;
-DROP POLICY IF EXISTS "Allow users to manage their own spin rewards" ON public.spin_rewards;
-CREATE POLICY "Allow admins to view all spin rewards" ON public.spin_rewards FOR SELECT USING (is_admin(auth.uid()));
-CREATE POLICY "Allow users to manage their own spin rewards" ON public.spin_rewards FOR ALL USING (auth.uid() = user_id);
-
--- FEATURED_OFFERS Table
-ALTER TABLE public.featured_offers ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Allow admins to manage featured offers" ON public.featured_offers;
-DROP POLICY IF EXISTS "Allow all users to read featured offers" ON public.featured_offers;
-CREATE POLICY "Allow admins to manage featured offers" ON public.featured_offers FOR ALL USING (is_admin(auth.uid()));
-CREATE POLICY "Allow all users to read featured offers" ON public.featured_offers FOR SELECT USING (true);
-
--- DAILY TASKS (VISIT & WATCH EARN)
-ALTER TABLE public.visit_earn_tasks ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Allow admins to manage visit earn tasks" ON public.visit_earn_tasks;
-DROP POLICY IF EXISTS "Allow all users to read active visit earn tasks" ON public.visit_earn_tasks;
-CREATE POLICY "Allow admins to manage visit earn tasks" ON public.visit_earn_tasks FOR ALL USING (is_admin(auth.uid()));
-CREATE POLICY "Allow all users to read active visit earn tasks" ON public.visit_earn_tasks FOR SELECT USING (is_active = true);
-
-ALTER TABLE public.watch_earn_tasks ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Allow admins to manage watch earn tasks" ON public.watch_earn_tasks;
-DROP POLICY IF EXISTS "Allow all users to read active watch earn tasks" ON public.watch_earn_tasks;
-CREATE POLICY "Allow admins to manage watch earn tasks" ON public.watch_earn_tasks FOR ALL USING (is_admin(auth.uid()));
-CREATE POLICY "Allow all users to read active watch earn tasks" ON public.watch_earn_tasks FOR SELECT USING (is_active = true);
-
--- COINSUBMISSIONS Table
-ALTER TABLE public.coinsubmissions ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Allow admins to manage coin submissions" ON public.coinsubmissions;
-DROP POLICY IF EXISTS "Allow users to manage their own coin submissions" ON public.coinsubmissions;
-CREATE POLICY "Allow admins to manage coin submissions" ON public.coinsubmissions FOR ALL USING (is_admin(auth.uid()));
-CREATE POLICY "Allow users to manage their own coin submissions" ON public.coinsubmissions FOR ALL USING (auth.uid() = user_id);
-
-`;
-
-const analyticsSqlScript = `
--- =================================================================
--- ANALYTICS SCRIPT (for your new project)
--- =================================================================
--- This script creates functions to calculate daily statistics for
--- the admin dashboard. Run this once in your Supabase SQL Editor.
--- =================================================================
-
--- Add the new column to the settings table if it doesn't exist
-ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS is_analytics_enabled boolean DEFAULT true;
-
--- Function to get daily statistics
-CREATE OR REPLACE FUNCTION get_daily_dashboard_stats(days_count integer)
-RETURNS TABLE(
-    date date,
-    total_revenue numeric,
-    total_withdrawals numeric,
-    new_users_count integer
-)
-LANGUAGE plpgsql
-AS $$
-BEGIN
-    RETURN QUERY
-    WITH date_series AS (
-        SELECT generate_series(
-            (CURRENT_DATE - (days_count - 1) * interval '1 day'),
-            CURRENT_DATE,
-            '1 day'::interval
-        )::date AS date
-    ),
-    daily_revenue AS (
-        SELECT
-            (t.created_at AT TIME ZONE 'UTC')::date AS date,
-            SUM(t.amount) AS total_revenue
-        FROM wallet_history t
-        WHERE t.type IN ('task_reward', 'coin_credit', 'spin_win', 'referral_bonus')
-          AND t.status = 'Completed'
-          AND t.created_at >= (CURRENT_DATE - (days_count - 1) * interval '1 day')
-        GROUP BY 1
-    ),
-    daily_withdrawals AS (
-        SELECT
-            (p.created_at AT TIME ZONE 'UTC')::date AS date,
-            SUM(p.amount) AS total_withdrawals
-        FROM payments p
-        WHERE p.status = 'Approved'
-          AND p.created_at >= (CURRENT_DATE - (days_count - 1) * interval '1 day')
-        GROUP BY 1
-    ),
-    daily_new_users AS (
-        SELECT
-            (u.created_at AT TIME ZONE 'UTC')::date AS date,
-            COUNT(u.id) AS new_users_count
-        FROM users u
-        WHERE u.created_at >= (CURRENT_DATE - (days_count - 1) * interval '1 day')
-        GROUP BY 1
-    )
-    SELECT
-        ds.date,
-        COALESCE(dr.total_revenue, 0) AS total_revenue,
-        COALESCE(dw.total_withdrawals, 0) AS total_withdrawals,
-        COALESCE(dnu.new_users_count, 0)::integer AS new_users_count
-    FROM date_series ds
-    LEFT JOIN daily_revenue dr ON ds.date = dr.date
-    LEFT JOIN daily_withdrawals dw ON ds.date = dw.date
-    LEFT JOIN daily_new_users dnu ON ds.date = dnu.date
-    ORDER BY ds.date;
-END;
-$$;
-`;
-
-const referralCountSqlScript = `
--- =================================================================
--- USER REFERRAL COUNT FUNCTION
--- =================================================================
--- Run this script to fix user sorting by referral count.
--- =================================================================
-
-CREATE OR REPLACE FUNCTION get_users_with_referral_counts()
-RETURNS TABLE(
-    id uuid,
-    full_name text,
-    email text,
-    mobile text,
-    status text,
-    created_at timestamptz,
-    referral_code text,
-    balance_available numeric,
-    referral_count bigint
-)
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-    IF is_admin(auth.uid()) THEN
-        RETURN QUERY
-        SELECT
-            u.id,
-            u.full_name,
-            u.email,
-            u.mobile,
-            u.status,
-            u.created_at,
-            u.referral_code,
-            u.balance_available,
-            (SELECT count(*) FROM public.users AS r WHERE r.referred_by = u.referral_code) AS referral_count
-        FROM
-            public.users u;
-    END IF;
-END;
-$$;
-`;
-
-const withdrawalFixSqlScript = `
--- =================================================================
--- WITHDRAWAL REQUESTS FIX
--- =================================================================
--- Run this if you see an error on the Withdrawals page.
--- =================================================================
-
--- Recreate the is_admin helper function
-CREATE OR REPLACE FUNCTION is_admin(user_id uuid)
-RETURNS boolean
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  RETURN EXISTS (
-    SELECT 1
-    FROM public.admins
-    WHERE admins.user_id = is_admin.user_id
-  );
-END;
-$$;
-
--- Drop the old function if it exists, then create the new one.
+-- Step 3: Drop all custom functions created for the admin panel.
+DROP FUNCTION IF EXISTS is_admin(uuid);
+DROP FUNCTION IF EXISTS get_all_users();
+DROP FUNCTION IF EXISTS get_all_admins();
 DROP FUNCTION IF EXISTS get_all_payment_requests();
-CREATE OR REPLACE FUNCTION get_all_payment_requests()
-RETURNS TABLE(id int, created_at timestamptz, amount numeric, payment_method varchar, payment_details text, status varchar, user_id uuid, metadata jsonb, users json)
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-    IF is_admin(auth.uid()) THEN
-        RETURN QUERY
-        SELECT
-            p.id,
-            p.created_at,
-            p.amount,
-            p.payment_method,
-            p.payment_details,
-            p.status,
-            p.user_id,
-            p.metadata,
-            json_build_object('full_name', u.full_name, 'email', u.email)
-        FROM
-            public.payments p
-        JOIN
-            public.users u ON p.user_id = u.id
-        ORDER BY
-            p.created_at DESC;
-    END IF;
-END;
-$$;
+DROP FUNCTION IF EXISTS get_user_financials(uuid);
+DROP FUNCTION IF EXISTS get_users_with_referral_counts();
+DROP FUNCTION IF EXISTS truncate_all_tables();
+DROP FUNCTION IF EXISTS truncate_history(text, date);
+DROP FUNCTION IF EXISTS get_daily_dashboard_stats(integer);
+DROP FUNCTION IF EXISTS get_batch_stats(integer);
+DROP FUNCTION IF EXISTS get_and_assign_gmail_task(uuid);
+DROP FUNCTION IF EXISTS get_and_assign_visit_earn_task(uuid);
+DROP FUNCTION IF EXISTS get_and_assign_watch_earn_task(uuid);
+DROP FUNCTION IF EXISTS get_total_users_balance();
+DROP FUNCTION IF EXISTS get_total_users_count();
+DROP FUNCTION IF EXISTS get_top_referral_users(integer);
+
+RAISE NOTICE 'All specified policies and functions have been dropped.';
 `;
 
 
@@ -510,54 +66,32 @@ export default function SQLEditorPage() {
                 <div>
                     <h1 className="text-3xl font-bold">SQL Editor</h1>
                     <p className="text-muted-foreground">
-                        Use these scripts to set up and fix your Supabase database.
+                        Use these scripts to manage your Supabase database.
                     </p>
                 </div>
             </div>
 
             <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Important</AlertTitle>
+                <AlertTitle>Extreme Danger Zone</AlertTitle>
                 <AlertDescription>
-                    Always run scripts from your Supabase Dashboard's SQL Editor. Never expose database keys on the client-side. After running a script, you may need to refresh the admin panel.
+                    The script below is highly destructive and will remove all your database security (RLS) and logic (functions). Use with extreme caution. This action cannot be undone.
                 </AlertDescription>
             </Alert>
             
             <SqlCard
-                title="Master RLS & Functions Script"
-                description="This is the main script. It sets up all required database functions and Row Level Security (RLS) policies for both the user-facing app and the admin panel. Run this script first when setting up a new project or to fix widespread permission issues."
-                icon={<AlertTriangle className="h-6 w-6 text-yellow-500"/>}
-                sql={masterSqlScript}
+                title="RESET ALL POLICIES & FUNCTIONS"
+                description="This script drops ALL Row Level Security policies and custom functions from your database. This will make your data insecure until you re-apply new policies. Use this only if you want to start from a completely clean slate."
+                icon={<AlertTriangle className="h-6 w-6 text-destructive"/>}
+                sql={resetAllSqlScript}
             />
-
-            <SqlCard
-                title="Analytics Functions"
-                description="This script adds the necessary functions to power the Business Analytics chart on the admin dashboard. Run this once for new projects."
-                icon={<BarChart className="h-6 w-6 text-blue-500"/>}
-                sql={analyticsSqlScript}
-            />
-
-            <SqlCard
-                title="Fix: User Referral Counts"
-                description="Run this script if the 'Sort by Top Referrers' feature on the Users page is not working correctly. It creates the function needed to count user referrals."
-                icon={<Users className="h-6 w-6 text-green-500"/>}
-                sql={referralCountSqlScript}
-            />
-            
-            <SqlCard
-                title="Fix: Withdrawal Requests"
-                description="Run this if the Withdrawals page shows an error about a missing function ('get_all_payment_requests'). This script specifically recreates that function."
-                icon={<Wallet className="h-6 w-6 text-red-500"/>}
-                sql={withdrawalFixSqlScript}
-            />
-
         </div>
     );
 }
 
 function SqlCard({ title, description, icon, sql }: { title: string, description: string, icon: React.ReactNode, sql: string }) {
     return (
-        <Card>
+        <Card className="border-destructive">
             <CardHeader>
                 <div className="flex items-start gap-4">
                     {icon}
@@ -578,6 +112,3 @@ function SqlCard({ title, description, icon, sql }: { title: string, description
         </Card>
     )
 }
-
-    
-    
