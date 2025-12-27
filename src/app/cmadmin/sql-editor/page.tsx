@@ -73,6 +73,7 @@ $$;
 
 
 -- Function to get all payment requests
+DROP FUNCTION IF EXISTS get_all_payment_requests();
 CREATE OR REPLACE FUNCTION get_all_payment_requests()
 RETURNS TABLE(id int, created_at timestamptz, amount numeric, payment_method varchar, payment_details text, status varchar, user_id uuid, metadata jsonb, users json)
 LANGUAGE plpgsql
@@ -469,7 +470,8 @@ BEGIN
 END;
 $$;
 
--- Recreate the secure function to get all payment requests
+-- Drop the old function if it exists, then create the new one.
+DROP FUNCTION IF EXISTS get_all_payment_requests();
 CREATE OR REPLACE FUNCTION get_all_payment_requests()
 RETURNS TABLE(id int, created_at timestamptz, amount numeric, payment_method varchar, payment_details text, status varchar, user_id uuid, metadata jsonb, users json)
 LANGUAGE plpgsql
