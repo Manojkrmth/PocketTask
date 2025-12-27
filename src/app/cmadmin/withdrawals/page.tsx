@@ -267,9 +267,11 @@ export default function WithdrawalsPage() {
   const handleShowQr = (request: PaymentRequest) => {
     const charges = request.amount * ((withdrawalSettings?.chargesPercent || 0) / 100);
     const finalAmount = request.amount - charges;
+    const upiId = request.payment_details.split(' ')[0].trim();
+
 
     setSelectedQrData({
-      upiId: request.payment_details,
+      upiId: upiId,
       amount: finalAmount,
       name: request.users?.full_name || 'User'
     });
@@ -359,14 +361,14 @@ export default function WithdrawalsPage() {
                     </TableCell>
                     <TableCell>
                         <div className="font-medium">{request.payment_method}</div>
-                        <div className="flex items-center gap-2">
-                           <div className="text-xs text-muted-foreground break-all">{request.payment_details}</div>
-                            {isUpi && request.status === 'Pending' && (
-                                <Button variant="outline" size="sm" className="h-7 px-2" onClick={() => handleShowQr(request)}>
-                                    <QrCode className="h-4 w-4 mr-1"/>
-                                    QR
-                                </Button>
-                           )}
+                        <div className="flex items-center gap-2 mt-1">
+                          <div className="text-xs text-muted-foreground break-all">{request.payment_details}</div>
+                          {isUpi && request.status === 'Pending' && (
+                              <Button variant="outline" size="sm" className="h-7 px-2 shrink-0" onClick={() => handleShowQr(request)}>
+                                  <QrCode className="h-4 w-4 mr-1"/>
+                                  QR
+                              </Button>
+                          )}
                         </div>
                     </TableCell>
                     <TableCell>
